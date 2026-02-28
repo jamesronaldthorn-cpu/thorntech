@@ -1,45 +1,75 @@
 # Thorn Tech Solutions Ltd - Online PC Component Store
 
 ## Overview
-An online store for Thorn Tech Solutions Ltd (Company Reg: 17058756), selling PC components and accessories. Built as a full-stack application with a React frontend and Express backend, plus a Shopify Liquid theme export.
+A fully functional e-commerce store for Thorn Tech Solutions Ltd (Company Reg: 17058756), selling PC components and accessories. Full-stack application with React frontend, Express backend, PostgreSQL database, Stripe and PayPal payment integrations, plus a Shopify Liquid theme export.
 
 ## Architecture
 - **Frontend**: React + Vite + Tailwind CSS v4 + shadcn/ui components
 - **Backend**: Express.js with RESTful API routes
 - **Database**: PostgreSQL with Drizzle ORM
+- **Payments**: Stripe (card payments via Checkout Sessions) + PayPal (via PayPal Web SDK)
 - **Routing**: wouter (frontend), Express (backend)
-- **Data fetching**: TanStack Query
+- **State**: zustand (cart), TanStack Query (data fetching)
 
 ## Data Model
-- **Categories**: id, name, slug, description, icon (8 categories: GPUs, CPUs, Motherboards, Memory, Storage, Cooling, Cases, Peripherals)
-- **Products**: id, name, slug, description, price, compareAtPrice, categoryId, image, badge, inStock, vendor (20 seeded products)
+- **Categories**: id, name, slug, description, icon
+- **Products**: id, name, slug, description, price, compareAtPrice, categoryId, image, badge, inStock, vendor, stripeProductId, stripePriceId
+- **Orders**: id, email, name, address, city, postcode, phone, total, status, paymentMethod, paymentId, items, createdAt
+
+## Pages
+- `/` — Home (hero, categories, product grid, value props)
+- `/product/:slug` — Product detail with add to basket, related products
+- `/category/:slug` — Category listing with filter tabs
+- `/checkout` — Checkout form with Stripe and PayPal payment options
+- `/order-confirmation` — Order confirmation with payment verification
 
 ## API Routes
-- `GET /api/categories` - All categories
-- `GET /api/categories/:slug` - Single category by slug
-- `GET /api/categories/:slug/products` - Products in a category
-- `GET /api/products` - All products
-- `GET /api/products/:slug` - Single product by slug
+- `GET /api/categories` — All categories
+- `GET /api/categories/:slug` — Single category
+- `GET /api/categories/:slug/products` — Products in category
+- `GET /api/products` — All products
+- `GET /api/products/:slug` — Single product
+- `POST /api/checkout/stripe` — Create Stripe Checkout Session
+- `GET /api/checkout/stripe/verify/:sessionId` — Verify Stripe payment
+- `POST /api/checkout/paypal/create` — Create PayPal order
+- `POST /api/checkout/paypal/confirm` — Confirm PayPal payment
+- `GET /api/orders/:id` — Get order details
+- `GET /api/stripe/publishable-key` — Stripe publishable key
+- `POST /api/stripe/webhook` — Stripe webhook handler
 
 ## XML Feeds
-- `GET /feeds/google-shopping.xml` - Google Shopping / Merchant Center feed (RSS 2.0 + g: namespace)
-- `GET /feeds/facebook.xml` - Facebook / Meta Commerce catalogue feed
-- `GET /feeds/products.xml` - Generic product XML feed for price comparison sites
-- `GET /sitemap.xml` - XML sitemap for SEO (all pages, categories, products)
-- `GET /feeds` - JSON index listing all available feed URLs
+- `/feeds/google-shopping.xml` — Google Shopping feed
+- `/feeds/facebook.xml` — Facebook/Meta catalogue feed
+- `/feeds/products.xml` — Generic product feed
+- `/sitemap.xml` — XML sitemap
+- `/feeds` — Feed index
+
+## PayPal Routes (from integration blueprint)
+- `GET /paypal/setup` — PayPal client token
+- `POST /paypal/order` — Create PayPal order
+- `POST /paypal/order/:orderID/capture` — Capture PayPal order
 
 ## Key Files
-- `shared/schema.ts` - Drizzle schema for categories and products
-- `server/routes.ts` - API endpoints
-- `server/storage.ts` - Database storage interface
-- `server/seed.ts` - Database seeder with initial data
-- `client/src/pages/home.tsx` - Main storefront page
-- `client/src/index.css` - Theme variables (dark tech aesthetic)
+- `shared/schema.ts` — Drizzle schema
+- `server/routes.ts` — All API routes
+- `server/storage.ts` — Database storage interface
+- `server/stripeClient.ts` — Stripe SDK client (Replit connector)
+- `server/webhookHandlers.ts` — Stripe webhook processing
+- `server/paypal.ts` — PayPal SDK integration
+- `server/seed.ts` — Database seeder
+- `client/src/lib/cart.ts` — Zustand cart store
+- `client/src/components/NavBar.tsx` — Navigation with cart drawer
+- `client/src/components/Footer.tsx` — Site footer
+- `client/src/components/ProductCard.tsx` — Reusable product card
 
-## Shopify Theme Export
-A native Shopify Liquid theme is available at `shopify-theme/` and zipped as `thorn_tech_shopify_theme.zip`. It includes layout, sections, snippets, config, locales, and assets matching the React design.
+## Integrations
+- **Stripe**: Connected via Replit connector (stripe-replit-sync for schema/webhooks)
+- **PayPal**: Blueprint integration (requires PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET secrets)
 
 ## Design
 - Dark tech aesthetic with Orbitron (headings) + Rajdhani (body) fonts
 - Purple primary accent (#8b5cf6)
 - UK market formatting (£ prices, VAT included, DPD delivery)
+
+## Shopify Theme
+Native Shopify Liquid theme at `shopify-theme/` and `thorn_tech_shopify_theme.zip`

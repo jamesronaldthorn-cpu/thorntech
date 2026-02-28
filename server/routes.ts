@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import type { Product, Category } from "@shared/schema";
 
 function escapeXml(str: string): string {
@@ -156,6 +157,211 @@ export async function registerRoutes(
     res.json(product);
   });
 
+  app.get("/api/stripe/publishable-key", async (_req, res) => {
+    try {
+      const key = await getStripePublishableKey();
+      res.json({ publishableKey: key });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/checkout/stripe", async (req, res) => {
+    try {
+      const { items, email, name, address, city, postcode, phone } = req.body;
+      if (!items || !items.length || !email || !name || !address || !city || !postcode) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const allProducts = await storage.getProducts();
+      const productMap = new Map(allProducts.map(p => [p.id, p]));
+
+      const lineItems = items.map((item: { productId: number; quantity: number }) => {
+        const product = productMap.get(item.productId);
+        if (!product) throw new Error(`Product ${item.productId} not found`);
+        return {
+          price_data: {
+            currency: "gbp",
+            product_data: {
+              name: product.name,
+              description: product.description || undefined,
+            },
+            unit_amount: Math.round(product.price * 100),
+          },
+          quantity: item.quantity,
+        };
+      });
+
+      const total = items.reduce((sum: number, item: { productId: number; quantity: number }) => {
+        const product = productMap.get(item.productId);
+        return sum + (product ? product.price * item.quantity : 0);
+      }, 0);
+
+      const order = await storage.createOrder({
+        email,
+        name,
+        address,
+        city,
+        postcode,
+        phone: phone || null,
+        total,
+        status: "pending",
+        paymentMethod: "stripe",
+        paymentId: null,
+        items: JSON.stringify(items.map((item: { productId: number; quantity: number }) => {
+          const product = productMap.get(item.productId);
+          return { productId: item.productId, name: product?.name, price: product?.price, quantity: item.quantity };
+        })),
+      });
+
+      const siteUrl = buildSiteUrl(req);
+      const stripe = await getUncachableStripeClient();
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        line_items: lineItems,
+        mode: "payment",
+        success_url: `${siteUrl}/order-confirmation?session_id={CHECKOUT_SESSION_ID}&order_id=${order.id}`,
+        cancel_url: `${siteUrl}/checkout`,
+        customer_email: email,
+        shipping_options: [
+          {
+            shipping_rate_data: {
+              type: "fixed_amount",
+              fixed_amount: { amount: total >= 150 ? 0 : 599, currency: "gbp" },
+              display_name: total >= 150 ? "Free Next Day DPD Delivery" : "Next Day DPD Delivery",
+              delivery_estimate: {
+                minimum: { unit: "business_day", value: 1 },
+                maximum: { unit: "business_day", value: 2 },
+              },
+            },
+          },
+        ],
+        metadata: { orderId: order.id.toString() },
+      });
+
+      await storage.updateOrderStatus(order.id, "awaiting_payment", session.id);
+
+      res.json({ url: session.url, sessionId: session.id });
+    } catch (e: any) {
+      console.error("Stripe checkout error:", e);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/checkout/stripe/verify/:sessionId", async (req, res) => {
+    try {
+      const stripe = await getUncachableStripeClient();
+      const session = await stripe.checkout.sessions.retrieve(req.params.sessionId);
+
+      if (session.payment_status === "paid") {
+        const orderId = session.metadata?.orderId;
+        if (orderId) {
+          await storage.updateOrderStatus(parseInt(orderId), "paid", session.payment_intent as string);
+        }
+        res.json({ status: "paid", orderId });
+      } else {
+        res.json({ status: session.payment_status });
+      }
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/checkout/paypal/create", async (req, res) => {
+    try {
+      const { items, email, name, address, city, postcode, phone } = req.body;
+      if (!items || !items.length || !email || !name || !address || !city || !postcode) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const allProducts = await storage.getProducts();
+      const productMap = new Map(allProducts.map(p => [p.id, p]));
+
+      const total = items.reduce((sum: number, item: { productId: number; quantity: number }) => {
+        const product = productMap.get(item.productId);
+        return sum + (product ? product.price * item.quantity : 0);
+      }, 0);
+
+      const shipping = total >= 150 ? 0 : 5.99;
+      const grandTotal = total + shipping;
+
+      const order = await storage.createOrder({
+        email,
+        name,
+        address,
+        city,
+        postcode,
+        phone: phone || null,
+        total: grandTotal,
+        status: "pending",
+        paymentMethod: "paypal",
+        paymentId: null,
+        items: JSON.stringify(items.map((item: { productId: number; quantity: number }) => {
+          const product = productMap.get(item.productId);
+          return { productId: item.productId, name: product?.name, price: product?.price, quantity: item.quantity };
+        })),
+      });
+
+      res.json({ orderId: order.id, total: grandTotal.toFixed(2) });
+    } catch (e: any) {
+      console.error("PayPal create order error:", e);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/checkout/paypal/confirm", async (req, res) => {
+    try {
+      const { orderId, paypalOrderId } = req.body;
+      if (!orderId || !paypalOrderId) return res.status(400).json({ error: "Missing fields" });
+      await storage.updateOrderStatus(orderId, "paid", paypalOrderId);
+      res.json({ success: true, orderId });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/orders/:id", async (req, res) => {
+    const order = await storage.getOrder(parseInt(req.params.id));
+    if (!order) return res.status(404).json({ error: "Order not found" });
+    res.json(order);
+  });
+
+  let paypalLoaded = false;
+  let paypalModule: any = null;
+
+  app.get("/paypal/setup", async (req, res) => {
+    try {
+      if (!paypalModule) {
+        paypalModule = await import("./paypal");
+      }
+      await paypalModule.loadPaypalDefault(req, res);
+    } catch (e: any) {
+      res.status(500).json({ error: "PayPal not configured: " + e.message });
+    }
+  });
+
+  app.post("/paypal/order", async (req, res) => {
+    try {
+      if (!paypalModule) {
+        paypalModule = await import("./paypal");
+      }
+      await paypalModule.createPaypalOrder(req, res);
+    } catch (e: any) {
+      res.status(500).json({ error: "PayPal not configured: " + e.message });
+    }
+  });
+
+  app.post("/paypal/order/:orderID/capture", async (req, res) => {
+    try {
+      if (!paypalModule) {
+        paypalModule = await import("./paypal");
+      }
+      await paypalModule.capturePaypalOrder(req, res);
+    } catch (e: any) {
+      res.status(500).json({ error: "PayPal not configured: " + e.message });
+    }
+  });
+
   app.get("/feeds/google-shopping.xml", async (req, res) => {
     const [prods, cats] = await Promise.all([storage.getProducts(), storage.getCategories()]);
     const siteUrl = buildSiteUrl(req);
@@ -192,7 +398,6 @@ export async function registerRoutes(
         generic_products: "/feeds/products.xml",
         sitemap: "/sitemap.xml",
       },
-      description: "XML product feeds for Thorn Tech Solutions Ltd. All feeds are dynamically generated from the product database.",
     });
   });
 
