@@ -1,0 +1,82 @@
+<div class="header-wrapper">
+  <header class="header">
+    <div class="header-left">
+      <form action="{{ routes.search_url }}" method="get" role="search" class="search-form">
+        <input type="search" name="q" placeholder="Search..." value="{{ search.terms | escape }}">
+        <button type="submit" class="search-btn">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </button>
+      </form>
+    </div>
+
+    <div class="header-center">
+      <a href="{{ routes.root_url }}" class="header__heading-link link link--text focus-inset">
+        {%- if section.settings.logo != blank -%}
+          <img src="{{ section.settings.logo | image_url: width: 200 }}" alt="{{ shop.name }}" width="{{ section.settings.logo_width }}" height="auto">
+        {%- else -%}
+          <h1 class="header__heading-text">{{ shop.name }}</h1>
+        {%- endif -%}
+      </a>
+    </div>
+
+    <div class="header-right">
+      {%- if shop.customer_accounts_enabled -%}
+        <a href="{%- if customer -%}{{ routes.account_url }}{%- else -%}{{ routes.account_login_url }}{%- endif -%}" class="header__icon">
+          <span class="btn-outline" style="padding: 0.5rem 1rem; font-size: 0.8rem;">SIGN IN</span>
+        </a>
+      {%- endif -%}
+      
+      <a href="{{ routes.cart_url }}" class="header__icon" id="cart-icon-bubble" style="position: relative; display: flex; align-items: center; color: white;">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+        {%- if cart != empty -%}
+          <div class="cart-count-bubble">
+            <span aria-hidden="true">{{ cart.item_count }}</span>
+          </div>
+        {%- endif -%}
+      </a>
+    </div>
+  </header>
+  
+  {%- if section.settings.menu != blank -%}
+  <nav class="secondary-nav">
+    <ul class="nav-list">
+      {%- for link in section.settings.menu.links -%}
+        <li>
+          <a href="{{ link.url }}" class="nav-link {% if link.current %} nav-link--active{% endif %}">
+            {{ link.title | escape }}
+          </a>
+        </li>
+      {%- endfor -%}
+    </ul>
+  </nav>
+  {%- endif -%}
+</div>
+
+{% schema %}
+{
+  "name": "Header",
+  "settings": [
+    {
+      "type": "image_picker",
+      "id": "logo",
+      "label": "Logo image"
+    },
+    {
+      "type": "range",
+      "id": "logo_width",
+      "min": 50,
+      "max": 250,
+      "step": 10,
+      "default": 100,
+      "unit": "px",
+      "label": "Custom logo width"
+    },
+    {
+      "type": "link_list",
+      "id": "menu",
+      "default": "main-menu",
+      "label": "Secondary Menu"
+    }
+  ]
+}
+{% endschema %}
