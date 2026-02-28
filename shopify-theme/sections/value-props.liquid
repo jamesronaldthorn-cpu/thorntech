@@ -1,0 +1,114 @@
+<div class="value-props-section">
+  <div class="container">
+    <div class="value-props-grid">
+      {%- for block in section.blocks -%}
+        <div class="value-prop-item" {{ block.shopify_attributes }}>
+          {%- if block.settings.icon_svg != blank -%}
+            <div class="value-icon">{{ block.settings.icon_svg }}</div>
+          {%- endif -%}
+          <h4 class="value-title">{{ block.settings.title }}</h4>
+          <p class="value-text">{{ block.settings.text }}</p>
+        </div>
+      {%- endfor -%}
+    </div>
+  </div>
+</div>
+
+<style>
+.value-props-section {
+  padding: 4rem 0;
+  background-color: rgba(255, 255, 255, 0.02);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.value-props-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  text-align: center;
+}
+@media (min-width: 768px) {
+  .value-props-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.value-icon {
+  color: var(--primary);
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+}
+.value-icon svg {
+  width: 40px;
+  height: 40px;
+}
+.value-title {
+  font-size: 1.125rem;
+  margin-bottom: 0.5rem;
+}
+.value-text {
+  font-size: 0.875rem;
+  color: #a1a1aa;
+  max-width: 300px;
+  margin: 0 auto;
+}
+</style>
+
+{% schema %}
+{
+  "name": "Value Propositions",
+  "settings": [],
+  "blocks": [
+    {
+      "type": "value_prop",
+      "name": "Value Proposition",
+      "settings": [
+        {
+          "type": "html",
+          "id": "icon_svg",
+          "label": "Icon SVG code",
+          "info": "Paste raw SVG code here"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Title",
+          "default": "Value Title"
+        },
+        {
+          "type": "textarea",
+          "id": "text",
+          "label": "Text",
+          "default": "Value description goes here."
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Value Propositions",
+      "blocks": [
+        {
+          "type": "value_prop",
+          "settings": {
+            "title": "UK Warranty",
+            "text": "All components come with full UK manufacturer warranties."
+          }
+        },
+        {
+          "type": "value_prop",
+          "settings": {
+            "title": "Next Day DPD Delivery",
+            "text": "Free next working day delivery on orders over £150."
+          }
+        },
+        {
+          "type": "value_prop",
+          "settings": {
+            "title": "UK Based Support",
+            "text": "Our team of PC veterans is ready to assist."
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

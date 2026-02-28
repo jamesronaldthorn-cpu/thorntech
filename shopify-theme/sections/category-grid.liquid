@@ -1,0 +1,113 @@
+<div class="category-grid-section">
+  <div class="container">
+    <div class="section-header">
+      <h2>{{ section.settings.heading }} <span class="highlight">{{ section.settings.heading_highlight }}</span></h2>
+      <div class="title-underline"></div>
+    </div>
+    
+    <div class="category-grid">
+      {%- for block in section.blocks -%}
+        <div class="category-card" {{ block.shopify_attributes }}>
+          <a href="{{ block.settings.link }}" class="category-link">
+            {%- if block.settings.image != blank -%}
+              <img src="{{ block.settings.image | image_url: width: 100 }}" alt="{{ block.settings.title }}" class="category-icon">
+            {%- endif -%}
+            <h3 class="category-title">{{ block.settings.title }}</h3>
+          </a>
+        </div>
+      {%- endfor -%}
+    </div>
+  </div>
+</div>
+
+<style>
+.category-grid-section { padding: 4rem 0; }
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+@media (min-width: 768px) {
+  .category-grid { grid-template-columns: repeat(4, 1fr); }
+}
+@media (min-width: 1024px) {
+  .category-grid { grid-template-columns: repeat(8, 1fr); }
+}
+.category-card {
+  background: rgba(10, 10, 15, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+.category-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-5px);
+}
+.category-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 1rem;
+  object-fit: contain;
+}
+.category-title {
+  font-size: 0.875rem;
+  font-weight: bold;
+}
+</style>
+
+{% schema %}
+{
+  "name": "Category Grid",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "BROWSE"
+    },
+    {
+      "type": "text",
+      "id": "heading_highlight",
+      "label": "Heading Highlight",
+      "default": "CATEGORIES"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "category",
+      "name": "Category",
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Title",
+          "default": "Category"
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Icon/Image"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Link"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Category Grid",
+      "blocks": [
+        { "type": "category", "settings": { "title": "Graphics Cards" } },
+        { "type": "category", "settings": { "title": "Processors" } },
+        { "type": "category", "settings": { "title": "Motherboards" } },
+        { "type": "category", "settings": { "title": "Memory" } }
+      ]
+    }
+  ]
+}
+{% endschema %}
