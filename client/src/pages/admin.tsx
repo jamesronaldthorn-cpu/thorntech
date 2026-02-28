@@ -6,7 +6,7 @@ import {
   Package, Tag, ShoppingCart, Plus, Pencil, Trash2, LogOut,
   Eye, EyeOff, X, Save, Search, ChevronDown, ChevronUp, Rss, Upload, Copy, ExternalLink, Download, Loader2, CheckCircle, AlertCircle
 } from "lucide-react";
-import type { Product, Category, Order, CustomFeed } from "@shared/schema";
+import type { Product, Category, Order, CustomFeed, FeedSource } from "@shared/schema";
 
 function adminFetch(url: string, options: RequestInit = {}) {
   const token = localStorage.getItem("admin_token") || "";
@@ -318,32 +318,37 @@ export default function AdminPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [customFeeds, setCustomFeeds] = useState<CustomFeed[]>([]);
+  const [feedSources, setFeedSources] = useState<FeedSource[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [editingFeed, setEditingFeed] = useState<CustomFeed | null>(null);
   const [showFeedForm, setShowFeedForm] = useState(false);
+  const [showSourceForm, setShowSourceForm] = useState(false);
   const [importUrl, setImportUrl] = useState("");
   const [importCategoryId, setImportCategoryId] = useState("");
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<any>(null);
+  const [runningSource, setRunningSource] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [expandedOrder, setExpandedOrder] = useState<number | null>(null);
 
   const loadData = async () => {
     try {
-      const [pRes, cRes, oRes, fRes] = await Promise.all([
+      const [pRes, cRes, oRes, fRes, sRes] = await Promise.all([
         adminFetch("/api/admin/products"),
         adminFetch("/api/admin/categories"),
         adminFetch("/api/admin/orders"),
         adminFetch("/api/admin/feeds"),
+        adminFetch("/api/admin/feed-sources"),
       ]);
       if (pRes.status === 401) { localStorage.removeItem("admin_token"); setAuthed(false); return; }
       setProducts(await pRes.json());
       setCategories(await cRes.json());
       setOrders(await oRes.json());
       setCustomFeeds(await fRes.json());
+      setFeedSources(await sRes.json());
     } catch {}
   };
 
@@ -429,6 +434,35 @@ export default function AdminPage() {
       setImportResult({ error: e.message });
     }
     setImporting(false);
+  };
+
+  const saveSource = async (data: any) => {
+    await adminFetch("/api/admin/feed-sources", { method: "POST", body: JSON.stringify(data) });
+    setShowSourceForm(false);
+    loadData();
+  };
+
+  const deleteSource = async (id: number) => {
+    if (!confirm("Delete this scheduled feed source?")) return;
+    await adminFetch(`/api/admin/feed-sources/${id}`, { method: "DELETE" });
+    loadData();
+  };
+
+  const toggleSource = async (source: FeedSource) => {
+    await adminFetch(`/api/admin/feed-sources/${source.id}`, {
+      method: "PUT",
+      body: JSON.stringify({ enabled: !source.enabled }),
+    });
+    loadData();
+  };
+
+  const runSourceNow = async (id: number) => {
+    setRunningSource(id);
+    try {
+      await adminFetch(`/api/admin/feed-sources/${id}/run`, { method: "POST" });
+      loadData();
+    } catch {}
+    setRunningSource(null);
   };
 
   const copyUrl = (slug: string) => {
@@ -759,6 +793,95 @@ export default function AdminPage() {
                     </div>
                   )}
                 </div>
+              )}
+            </div>
+
+            <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-white"><Rss className="w-4 h-4 inline mr-1" />Scheduled Feed Sources</h3>
+                {!showSourceForm && (
+                  <Button size="sm" onClick={() => setShowSourceForm(true)} className="bg-purple-600 hover:bg-purple-700 h-7 text-xs" data-testid="button-add-source">
+                    <Plus className="w-3 h-3 mr-1" /> Add Source
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mb-3">Add feed URLs that automatically import new products on a schedule.</p>
+
+              {showSourceForm && (
+                <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-3 space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-gray-400 text-xs">Source Name *</Label>
+                      <Input id="source-name" className="bg-white/5 border-white/10 text-white" placeholder="e.g. Supplier Feed" data-testid="input-source-name" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-gray-400 text-xs">Feed URL *</Label>
+                      <Input id="source-url" className="bg-white/5 border-white/10 text-white" placeholder="https://supplier.com/feed.xml" data-testid="input-source-url" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-gray-400 text-xs">Category</Label>
+                      <select id="source-category" className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-white text-sm" data-testid="select-source-category">
+                        <option value="">No category</option>
+                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-gray-400 text-xs">Import Every</Label>
+                      <select id="source-interval" className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-white text-sm" data-testid="select-source-interval">
+                        <option value="1">1 hour</option>
+                        <option value="3">3 hours</option>
+                        <option value="6" selected>6 hours</option>
+                        <option value="12">12 hours</option>
+                        <option value="24">24 hours</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" className="bg-purple-600 hover:bg-purple-700" data-testid="button-save-source" onClick={() => {
+                      const name = (document.getElementById("source-name") as HTMLInputElement)?.value;
+                      const url = (document.getElementById("source-url") as HTMLInputElement)?.value;
+                      const catId = (document.getElementById("source-category") as HTMLSelectElement)?.value;
+                      const interval = (document.getElementById("source-interval") as HTMLSelectElement)?.value;
+                      if (name && url) {
+                        saveSource({ name, url, categoryId: catId ? parseInt(catId) : null, intervalHours: parseInt(interval || "6"), enabled: true });
+                      }
+                    }}><Save className="w-3 h-3 mr-1" /> Save</Button>
+                    <Button size="sm" variant="outline" onClick={() => setShowSourceForm(false)} className="border-white/10 text-gray-400 hover:bg-white/5"><X className="w-3 h-3 mr-1" /> Cancel</Button>
+                  </div>
+                </div>
+              )}
+
+              {feedSources.length > 0 ? (
+                <div className="space-y-2">
+                  {feedSources.map(s => (
+                    <div key={s.id} className="flex items-center justify-between gap-3 bg-white/5 rounded-lg px-4 py-3" data-testid={`card-source-${s.id}`}>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${s.enabled ? "bg-green-400" : "bg-gray-500"}`}></span>
+                          <span className="text-white text-sm font-medium">{s.name}</span>
+                          <span className="text-xs text-gray-500">every {s.intervalHours}h</span>
+                        </div>
+                        <p className="text-xs text-gray-500 truncate mt-0.5">{s.url}</p>
+                        <div className="flex gap-3 mt-1 text-xs text-gray-500">
+                          {s.lastImportAt && <span>Last: {new Date(s.lastImportAt).toLocaleString("en-GB")}</span>}
+                          {s.lastImportCount !== null && <span>{s.lastImportCount} imported</span>}
+                          {s.lastError && <span className="text-red-400">Error: {s.lastError}</span>}
+                        </div>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <Button size="sm" variant="ghost" onClick={() => runSourceNow(s.id)} disabled={runningSource === s.id} className="text-gray-400 hover:text-white h-8 px-2" data-testid={`button-run-source-${s.id}`}>
+                          {runningSource === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => toggleSource(s)} className={`h-8 px-2 ${s.enabled ? "text-green-400 hover:text-red-400" : "text-gray-500 hover:text-green-400"}`} data-testid={`button-toggle-source-${s.id}`}>
+                          {s.enabled ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => deleteSource(s.id)} className="text-gray-400 hover:text-red-400 h-8 px-2" data-testid={`button-delete-source-${s.id}`}><Trash2 className="w-3.5 h-3.5" /></Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-600">No scheduled sources yet. Add one to automatically import products.</p>
               )}
             </div>
 

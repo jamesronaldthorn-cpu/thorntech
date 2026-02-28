@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { categories, products, orders, customFeeds, type Category, type InsertCategory, type Product, type InsertProduct, type Order, type InsertOrder, type CustomFeed, type InsertCustomFeed } from "@shared/schema";
+import { categories, products, orders, customFeeds, feedSources, type Category, type InsertCategory, type Product, type InsertProduct, type Order, type InsertOrder, type CustomFeed, type InsertCustomFeed, type FeedSource, type InsertFeedSource } from "@shared/schema";
 
 export interface IStorage {
   getCategories(): Promise<Category[]>;
@@ -25,6 +25,10 @@ export interface IStorage {
   createCustomFeed(feed: InsertCustomFeed): Promise<CustomFeed>;
   updateCustomFeed(id: number, feed: Partial<InsertCustomFeed>): Promise<CustomFeed | undefined>;
   deleteCustomFeed(id: number): Promise<boolean>;
+  getFeedSources(): Promise<FeedSource[]>;
+  createFeedSource(source: InsertFeedSource): Promise<FeedSource>;
+  updateFeedSource(id: number, source: Partial<InsertFeedSource & { lastImportAt: Date; lastImportCount: number; lastError: string | null }>): Promise<FeedSource | undefined>;
+  deleteFeedSource(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -134,6 +138,25 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCustomFeed(id: number): Promise<boolean> {
     const result = await this.db.delete(customFeeds).where(eq(customFeeds.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getFeedSources(): Promise<FeedSource[]> {
+    return this.db.select().from(feedSources);
+  }
+
+  async createFeedSource(source: InsertFeedSource): Promise<FeedSource> {
+    const [created] = await this.db.insert(feedSources).values(source).returning();
+    return created;
+  }
+
+  async updateFeedSource(id: number, source: Partial<InsertFeedSource & { lastImportAt: Date; lastImportCount: number; lastError: string | null }>): Promise<FeedSource | undefined> {
+    const [updated] = await this.db.update(feedSources).set(source).where(eq(feedSources.id, id)).returning();
+    return updated;
+  }
+
+  async deleteFeedSource(id: number): Promise<boolean> {
+    const result = await this.db.delete(feedSources).where(eq(feedSources.id, id)).returning();
     return result.length > 0;
   }
 }

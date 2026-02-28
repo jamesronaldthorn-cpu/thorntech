@@ -51,10 +51,24 @@ export const customFeeds = pgTable("custom_feeds", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const feedSources = pgTable("feed_sources", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: text("name").notNull(),
+  url: text("url").notNull(),
+  categoryId: integer("category_id").references(() => categories.id),
+  intervalHours: integer("interval_hours").notNull().default(6),
+  enabled: boolean("enabled").notNull().default(true),
+  lastImportAt: timestamp("last_import_at"),
+  lastImportCount: integer("last_import_count"),
+  lastError: text("last_error"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertCategorySchema = createInsertSchema(categories).omit({ id: true });
 export const insertProductSchema = createInsertSchema(products).omit({ id: true });
 export const insertOrderSchema = createInsertSchema(orders).omit({ id: true, createdAt: true });
 export const insertCustomFeedSchema = createInsertSchema(customFeeds).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertFeedSourceSchema = createInsertSchema(feedSources).omit({ id: true, createdAt: true, lastImportAt: true, lastImportCount: true, lastError: true });
 
 export type Category = typeof categories.$inferSelect;
 export type InsertCategory = z.infer<typeof insertCategorySchema>;
@@ -64,3 +78,5 @@ export type Order = typeof orders.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type CustomFeed = typeof customFeeds.$inferSelect;
 export type InsertCustomFeed = z.infer<typeof insertCustomFeedSchema>;
+export type FeedSource = typeof feedSources.$inferSelect;
+export type InsertFeedSource = z.infer<typeof insertFeedSourceSchema>;
