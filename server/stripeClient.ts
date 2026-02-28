@@ -1,8 +1,10 @@
 import Stripe from 'stripe';
 
-let connectionSettings: any;
+function isReplitEnvironment(): boolean {
+  return !!(process.env.REPLIT_CONNECTORS_HOSTNAME && (process.env.REPL_IDENTITY || process.env.WEB_REPL_RENEWAL));
+}
 
-async function getCredentials() {
+async function getReplitCredentials() {
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY
     ? 'repl ' + process.env.REPL_IDENTITY
@@ -10,44 +12,53 @@ async function getCredentials() {
       ? 'depl ' + process.env.WEB_REPL_RENEWAL
       : null;
 
-  if (!xReplitToken) {
-    throw new Error('X-Replit-Token not found for repl/depl');
-  }
+  if (!xReplitToken) throw new Error('X-Replit-Token not found');
 
-  const connectorName = 'stripe';
   const isProduction = process.env.REPLIT_DEPLOYMENT === '1';
   const targetEnvironment = isProduction ? 'production' : 'development';
 
   const url = new URL(`https://${hostname}/api/v2/connection`);
   url.searchParams.set('include_secrets', 'true');
-  url.searchParams.set('connector_names', connectorName);
+  url.searchParams.set('connector_names', 'stripe');
   url.searchParams.set('environment', targetEnvironment);
 
   const response = await fetch(url.toString(), {
-    headers: {
-      'Accept': 'application/json',
-      'X-Replit-Token': xReplitToken
-    }
+    headers: { 'Accept': 'application/json', 'X-Replit-Token': xReplitToken }
   });
 
   const data = await response.json();
-  connectionSettings = data.items?.[0];
+  const settings = data.items?.[0];
 
-  if (!connectionSettings || (!connectionSettings.settings.publishable || !connectionSettings.settings.secret)) {
+  if (!settings?.settings?.publishable || !settings?.settings?.secret) {
     throw new Error(`Stripe ${targetEnvironment} connection not found`);
   }
 
   return {
-    publishableKey: connectionSettings.settings.publishable,
-    secretKey: connectionSettings.settings.secret,
+    publishableKey: settings.settings.publishable,
+    secretKey: settings.settings.secret,
   };
+}
+
+async function getCredentials() {
+  if (isReplitEnvironment()) {
+    return getReplitCredentials();
+  }
+
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  const publishableKey = process.env.STRIPE_PUBLISHABLE_KEY;
+
+  if (!secretKey || !publishableKey) {
+    throw new Error(
+      'Stripe keys not configured. Set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY environment variables.'
+    );
+  }
+
+  return { publishableKey, secretKey };
 }
 
 export async function getUncachableStripeClient() {
   const { secretKey } = await getCredentials();
-  return new Stripe(secretKey, {
-    apiVersion: '2025-08-27.basil' as any,
-  });
+  return new Stripe(secretKey);
 }
 
 export async function getStripePublishableKey() {

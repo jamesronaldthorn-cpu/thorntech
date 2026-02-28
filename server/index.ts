@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
@@ -30,7 +31,7 @@ async function initStripe() {
 
     const stripeSync = await getStripeSync();
 
-    const domain = process.env.REPLIT_DOMAINS?.split(",")[0];
+    const domain = process.env.REPLIT_DOMAINS?.split(",")[0] || process.env.SITE_DOMAIN;
     if (domain) {
       try {
         const webhookBaseUrl = `https://${domain}`;
@@ -45,6 +46,9 @@ async function initStripe() {
       } catch (webhookErr: any) {
         console.warn("Stripe webhook setup skipped:", webhookErr.message);
       }
+    } else {
+      console.log("No domain configured — set up Stripe webhooks manually in your Stripe Dashboard");
+      console.log("Webhook URL: https://yourdomain.com/api/stripe/webhook");
     }
 
     stripeSync

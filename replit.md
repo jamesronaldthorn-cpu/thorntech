@@ -63,8 +63,15 @@ A fully functional e-commerce store for Thorn Tech Solutions Ltd (Company Reg: 1
 - `client/src/components/ProductCard.tsx` — Reusable product card
 
 ## Integrations
-- **Stripe**: Connected via Replit connector (stripe-replit-sync for schema/webhooks)
-- **PayPal**: Blueprint integration (requires PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET secrets)
+- **Stripe**: Works with Replit connector or standard env vars (STRIPE_SECRET_KEY / STRIPE_PUBLISHABLE_KEY)
+- **PayPal**: Requires PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET env vars
+
+## Self-Hosting
+- See `DEPLOY.md` for full self-hosting guide
+- See `.env.example` for required environment variables
+- Build: `npm run build` → output in `dist/`
+- Start: `npm start` (runs `dist/index.cjs`)
+- Uses `dotenv` to load `.env` file automatically
 
 ## Design
 - Dark tech aesthetic with Orbitron (headings) + Rajdhani (body) fonts
