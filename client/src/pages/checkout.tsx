@@ -92,36 +92,9 @@ export default function CheckoutPage() {
         return;
       }
 
-      const paypalRes = await fetch("/paypal/order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: orderData.total,
-          currency: "GBP",
-          intent: "CAPTURE",
-        }),
-      });
-      const paypalOrder = await paypalRes.json();
-
-      if (paypalOrder.id) {
-        const captureRes = await fetch(`/paypal/order/${paypalOrder.id}/capture`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        });
-        const captureData = await captureRes.json();
-
-        if (captureData.status === "COMPLETED") {
-          await fetch("/api/checkout/paypal/confirm", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ orderId: orderData.orderId, paypalOrderId: paypalOrder.id }),
-          });
-          clearCart();
-          navigate(`/order-confirmation?order_id=${orderData.orderId}&method=paypal`);
-        } else {
-          setError("PayPal payment was not completed. Please try again.");
-          setLoading(null);
-        }
+      if (orderData.approvalUrl) {
+        clearCart();
+        window.location.href = orderData.approvalUrl;
       } else {
         setError("Failed to create PayPal order. Please try again or use card payment.");
         setLoading(null);

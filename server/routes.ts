@@ -302,10 +302,77 @@ export async function registerRoutes(
         })),
       });
 
-      res.json({ orderId: order.id, total: grandTotal.toFixed(2) });
+      const siteUrl = buildSiteUrl(req);
+
+      const { getUncachablePaypalOrdersController } = await import("./paypalDirect");
+      const paypalOrder = await getUncachablePaypalOrdersController().createOrder({
+        body: {
+          intent: "CAPTURE",
+          purchaseUnits: [
+            {
+              amount: {
+                currencyCode: "GBP",
+                value: grandTotal.toFixed(2),
+              },
+              description: `Thorn Tech Solutions Order #${order.id}`,
+            },
+          ],
+          paymentSource: {
+            paypal: {
+              experienceContext: {
+                returnUrl: `${siteUrl}/api/checkout/paypal/return?order_id=${order.id}`,
+                cancelUrl: `${siteUrl}/checkout`,
+                brandName: "Thorn Tech Solutions Ltd",
+                landingPage: "LOGIN",
+                userAction: "PAY_NOW",
+              },
+            },
+          },
+        },
+        prefer: "return=representation",
+      });
+
+      const paypalBody = JSON.parse(String(paypalOrder.body));
+      const approvalLink = paypalBody.links?.find((l: any) => l.rel === "payer-action" || l.rel === "approve");
+
+      if (approvalLink?.href) {
+        await storage.updateOrderStatus(order.id, "awaiting_payment", paypalBody.id);
+        res.json({ approvalUrl: approvalLink.href, orderId: order.id });
+      } else {
+        res.status(500).json({ error: "Could not get PayPal approval URL" });
+      }
     } catch (e: any) {
       console.error("PayPal create order error:", e);
       res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/checkout/paypal/return", async (req, res) => {
+    try {
+      const orderId = req.query.order_id as string;
+      const paypalOrderId = req.query.token as string;
+
+      if (!orderId || !paypalOrderId) {
+        return res.redirect("/checkout?error=missing_params");
+      }
+
+      const { getUncachablePaypalOrdersController } = await import("./paypalDirect");
+      const captureResult = await getUncachablePaypalOrdersController().captureOrder({
+        id: paypalOrderId,
+        prefer: "return=minimal",
+      });
+
+      const captureBody = JSON.parse(String(captureResult.body));
+
+      if (captureBody.status === "COMPLETED") {
+        await storage.updateOrderStatus(parseInt(orderId), "paid", paypalOrderId);
+        res.redirect(`/order-confirmation?order_id=${orderId}&method=paypal`);
+      } else {
+        res.redirect(`/checkout?error=payment_not_completed`);
+      }
+    } catch (e: any) {
+      console.error("PayPal return error:", e);
+      res.redirect(`/checkout?error=capture_failed`);
     }
   });
 
