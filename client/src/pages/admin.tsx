@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Package, Tag, ShoppingCart, Plus, Pencil, Trash2, LogOut,
-  Eye, EyeOff, X, Save, Search, ChevronDown, ChevronUp, Rss, Upload, Copy, ExternalLink, Download, Loader2, CheckCircle, AlertCircle, Users, KeyRound
+  Eye, EyeOff, X, Save, Search, ChevronDown, ChevronUp, Rss, Upload, Copy, ExternalLink, Download, Loader2, CheckCircle, AlertCircle, Users, KeyRound, BarChart3, TrendingUp, Globe, Calendar
 } from "lucide-react";
 import type { Product, Category, Order, CustomFeed, FeedSource } from "@shared/schema";
 
@@ -320,17 +320,18 @@ function FeedForm({ feed, onSave, onCancel }: {
   );
 }
 
-type Tab = "products" | "categories" | "orders" | "feeds" | "users";
+type Tab = "dashboard" | "products" | "categories" | "orders" | "feeds" | "users";
 
 export default function AdminPage() {
   const [authed, setAuthed] = useState(!!localStorage.getItem("admin_token"));
-  const [tab, setTab] = useState<Tab>("products");
+  const [tab, setTab] = useState<Tab>("dashboard");
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [customFeeds, setCustomFeeds] = useState<CustomFeed[]>([]);
   const [feedSources, setFeedSources] = useState<FeedSource[]>([]);
   const [usersList, setUsersList] = useState<AdminUser[]>([]);
+  const [stats, setStats] = useState<{ today: number; week: number; month: number; total: number; topPages: { path: string; views: number }[]; recentDays: { date: string; views: number }[] } | null>(null);
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [resetPasswordId, setResetPasswordId] = useState<number | null>(null);
   const [newPassword, setNewPassword] = useState("");
@@ -352,13 +353,14 @@ export default function AdminPage() {
 
   const loadData = async () => {
     try {
-      const [pRes, cRes, oRes, fRes, sRes, uRes] = await Promise.all([
+      const [pRes, cRes, oRes, fRes, sRes, uRes, stRes] = await Promise.all([
         adminFetch("/api/admin/products"),
         adminFetch("/api/admin/categories"),
         adminFetch("/api/admin/orders"),
         adminFetch("/api/admin/feeds"),
         adminFetch("/api/admin/feed-sources"),
         adminFetch("/api/admin/users"),
+        adminFetch("/api/admin/stats"),
       ]);
       if (pRes.status === 401) { localStorage.removeItem("admin_token"); setAuthed(false); return; }
       setProducts(await pRes.json());
@@ -367,6 +369,7 @@ export default function AdminPage() {
       setCustomFeeds(await fRes.json());
       setFeedSources(await sRes.json());
       setUsersList(await uRes.json());
+      if (stRes.ok) setStats(await stRes.json());
     } catch {}
   };
 
@@ -504,7 +507,8 @@ export default function AdminPage() {
     )
     .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
-  const tabs: { key: Tab; label: string; icon: React.ReactNode; count: number }[] = [
+  const tabs: { key: Tab; label: string; icon: React.ReactNode; count: number | string }[] = [
+    { key: "dashboard", label: "Dashboard", icon: <BarChart3 className="w-4 h-4" />, count: stats ? stats.today : "—" },
     { key: "products", label: "Products", icon: <Package className="w-4 h-4" />, count: products.length },
     { key: "categories", label: "Categories", icon: <Tag className="w-4 h-4" />, count: categories.length },
     { key: "orders", label: "Orders", icon: <ShoppingCart className="w-4 h-4" />, count: orders.length },
@@ -603,6 +607,108 @@ export default function AdminPage() {
             />
           </div>
         </div>
+
+        {tab === "dashboard" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white/5 border border-white/10 rounded-lg p-5">
+                <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                  <Globe className="w-4 h-4" />
+                  <span>Today</span>
+                </div>
+                <p className="text-3xl font-display font-bold text-white" data-testid="text-visits-today">{stats?.today ?? 0}</p>
+                <p className="text-xs text-gray-500 mt-1">page views</p>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-lg p-5">
+                <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                  <Calendar className="w-4 h-4" />
+                  <span>This Week</span>
+                </div>
+                <p className="text-3xl font-display font-bold text-white" data-testid="text-visits-week">{stats?.week ?? 0}</p>
+                <p className="text-xs text-gray-500 mt-1">page views</p>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-lg p-5">
+                <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                  <TrendingUp className="w-4 h-4" />
+                  <span>This Month</span>
+                </div>
+                <p className="text-3xl font-display font-bold text-white" data-testid="text-visits-month">{stats?.month ?? 0}</p>
+                <p className="text-xs text-gray-500 mt-1">page views</p>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-lg p-5">
+                <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                  <BarChart3 className="w-4 h-4" />
+                  <span>All Time</span>
+                </div>
+                <p className="text-3xl font-display font-bold text-white" data-testid="text-visits-total">{stats?.total ?? 0}</p>
+                <p className="text-xs text-gray-500 mt-1">page views</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white/5 border border-white/10 rounded-lg p-5">
+                <p className="text-gray-400 text-sm mb-1">Products</p>
+                <p className="text-2xl font-display font-bold text-white">{products.length}</p>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-lg p-5">
+                <p className="text-gray-400 text-sm mb-1">Orders</p>
+                <p className="text-2xl font-display font-bold text-white">{orders.length}</p>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-lg p-5">
+                <p className="text-gray-400 text-sm mb-1">Registered Users</p>
+                <p className="text-2xl font-display font-bold text-white">{usersList.length}</p>
+              </div>
+            </div>
+
+            {stats && stats.recentDays.length > 0 && (
+              <div className="bg-white/5 border border-white/10 rounded-lg p-5">
+                <h3 className="text-sm font-display text-gray-400 mb-4">DAILY VISITS (LAST 30 DAYS)</h3>
+                <div className="flex items-end gap-1 h-40">
+                  {(() => {
+                    const maxViews = Math.max(...stats.recentDays.map(d => d.views), 1);
+                    return stats.recentDays.map((day, i) => (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
+                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black border border-white/20 rounded px-2 py-1 text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                          {day.date}: {day.views} views
+                        </div>
+                        <div
+                          className="w-full bg-purple-600 rounded-t hover:bg-purple-500 transition-colors min-h-[2px]"
+                          style={{ height: `${(day.views / maxViews) * 100}%` }}
+                        />
+                        {i % 5 === 0 && (
+                          <span className="text-[9px] text-gray-600 rotate-[-45deg] origin-top-left mt-1 whitespace-nowrap">
+                            {new Date(day.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                          </span>
+                        )}
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+            )}
+
+            {stats && stats.topPages.length > 0 && (
+              <div className="bg-white/5 border border-white/10 rounded-lg p-5">
+                <h3 className="text-sm font-display text-gray-400 mb-4">TOP PAGES (LAST 30 DAYS)</h3>
+                <div className="space-y-2">
+                  {stats.topPages.map((page, i) => {
+                    const maxPageViews = stats.topPages[0].views;
+                    return (
+                      <div key={i} className="flex items-center gap-3">
+                        <span className="text-xs text-gray-500 w-6 text-right">{i + 1}.</span>
+                        <div className="flex-1 relative">
+                          <div className="bg-purple-600/20 rounded h-8" style={{ width: `${(page.views / maxPageViews) * 100}%` }} />
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-white truncate max-w-[300px]">{page.path}</span>
+                        </div>
+                        <span className="text-sm text-gray-400 w-16 text-right font-display">{page.views}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {tab === "products" && (
           <div className="space-y-4">

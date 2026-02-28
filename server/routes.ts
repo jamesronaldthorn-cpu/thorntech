@@ -59,6 +59,16 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
+  app.use((req, _res, next) => {
+    if (req.method === "GET" && !req.path.startsWith("/api/") && !req.path.startsWith("/assets/") && !req.path.includes(".")) {
+      const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.socket.remoteAddress || "";
+      const userAgent = req.headers["user-agent"] || "";
+      const referrer = req.headers["referer"] || "";
+      storage.recordPageView(req.path, ip, userAgent, referrer).catch(() => {});
+    }
+    next();
+  });
+
   app.post("/api/auth/register", async (req, res) => {
     try {
       const parsed = registerSchema.safeParse(req.body);
@@ -528,6 +538,15 @@ export async function registerRoutes(
       const deleted = await storage.deleteUser(parseInt(req.params.id));
       if (!deleted) return res.status(404).json({ error: "User not found" });
       res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/admin/stats", adminAuth, async (_req, res) => {
+    try {
+      const stats = await storage.getPageViewStats();
+      res.json(stats);
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }

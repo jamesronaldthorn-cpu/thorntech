@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, sql, gte, desc, count } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { users, categories, products, orders, customFeeds, feedSources, type User, type InsertUser, type Category, type InsertCategory, type Product, type InsertProduct, type Order, type InsertOrder, type CustomFeed, type InsertCustomFeed, type FeedSource, type InsertFeedSource } from "@shared/schema";
+import { users, categories, products, orders, customFeeds, feedSources, pageViews, type User, type InsertUser, type Category, type InsertCategory, type Product, type InsertProduct, type Order, type InsertOrder, type CustomFeed, type InsertCustomFeed, type FeedSource, type InsertFeedSource } from "@shared/schema";
 
 export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
@@ -36,6 +36,8 @@ export interface IStorage {
   createFeedSource(source: InsertFeedSource): Promise<FeedSource>;
   updateFeedSource(id: number, source: Partial<InsertFeedSource & { lastImportAt: Date; lastImportCount: number; lastError: string | null }>): Promise<FeedSource | undefined>;
   deleteFeedSource(id: number): Promise<boolean>;
+  recordPageView(path: string, ip?: string, userAgent?: string, referrer?: string): Promise<void>;
+  getPageViewStats(): Promise<{ today: number; week: number; month: number; total: number; topPages: { path: string; views: number }[]; recentDays: { date: string; views: number }[] }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -198,6 +200,49 @@ export class DatabaseStorage implements IStorage {
   async deleteFeedSource(id: number): Promise<boolean> {
     const result = await this.db.delete(feedSources).where(eq(feedSources.id, id)).returning();
     return result.length > 0;
+  }
+
+  async recordPageView(path: string, ip?: string, userAgent?: string, referrer?: string): Promise<void> {
+    await this.db.insert(pageViews).values({ path, ip: ip || null, userAgent: userAgent || null, referrer: referrer || null });
+  }
+
+  async getPageViewStats(): Promise<{ today: number; week: number; month: number; total: number; topPages: { path: string; views: number }[]; recentDays: { date: string; views: number }[] }> {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekStart = new Date(todayStart.getTime() - 6 * 24 * 60 * 60 * 1000);
+    const monthStart = new Date(todayStart.getTime() - 29 * 24 * 60 * 60 * 1000);
+
+    const [todayResult] = await this.db.select({ count: count() }).from(pageViews).where(gte(pageViews.createdAt, todayStart));
+    const [weekResult] = await this.db.select({ count: count() }).from(pageViews).where(gte(pageViews.createdAt, weekStart));
+    const [monthResult] = await this.db.select({ count: count() }).from(pageViews).where(gte(pageViews.createdAt, monthStart));
+    const [totalResult] = await this.db.select({ count: count() }).from(pageViews);
+
+    const topPages = await this.db
+      .select({ path: pageViews.path, views: count() })
+      .from(pageViews)
+      .where(gte(pageViews.createdAt, monthStart))
+      .groupBy(pageViews.path)
+      .orderBy(desc(count()))
+      .limit(10);
+
+    const recentDaysRaw = await this.db
+      .select({
+        date: sql<string>`TO_CHAR(${pageViews.createdAt}, 'YYYY-MM-DD')`,
+        views: count(),
+      })
+      .from(pageViews)
+      .where(gte(pageViews.createdAt, monthStart))
+      .groupBy(sql`TO_CHAR(${pageViews.createdAt}, 'YYYY-MM-DD')`)
+      .orderBy(sql`TO_CHAR(${pageViews.createdAt}, 'YYYY-MM-DD')`);
+
+    return {
+      today: todayResult.count,
+      week: weekResult.count,
+      month: monthResult.count,
+      total: totalResult.count,
+      topPages: topPages.map(p => ({ path: p.path, views: Number(p.views) })),
+      recentDays: recentDaysRaw.map(d => ({ date: d.date, views: Number(d.views) })),
+    };
   }
 }
 
