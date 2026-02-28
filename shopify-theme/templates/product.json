@@ -1,0 +1,13 @@
+{
+  "sections": {
+    "main": {
+      "type": "main-product",
+      "settings": {
+        "enable_payment_button": true
+      }
+    }
+  },
+  "order": [
+    "main"
+  ]
+}
