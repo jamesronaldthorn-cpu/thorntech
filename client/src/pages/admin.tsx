@@ -4,9 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Package, Tag, ShoppingCart, Plus, Pencil, Trash2, LogOut,
-  Eye, EyeOff, X, Save, Search, ChevronDown, ChevronUp
+  Eye, EyeOff, X, Save, Search, ChevronDown, ChevronUp, Rss, Upload, Copy, ExternalLink
 } from "lucide-react";
-import type { Product, Category, Order } from "@shared/schema";
+import type { Product, Category, Order, CustomFeed } from "@shared/schema";
 
 function adminFetch(url: string, options: RequestInit = {}) {
   const token = localStorage.getItem("admin_token") || "";
@@ -222,7 +222,94 @@ function CategoryForm({ category, onSave, onCancel }: {
   );
 }
 
-type Tab = "products" | "categories" | "orders";
+function FeedForm({ feed, onSave, onCancel }: {
+  feed?: CustomFeed;
+  onSave: (data: any) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState(feed?.name || "");
+  const [slug, setSlug] = useState(feed?.slug || "");
+  const [content, setContent] = useState(feed?.content || "");
+  const [uploadMode, setUploadMode] = useState(false);
+
+  const autoSlug = (n: string) => n.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setContent(ev.target?.result as string);
+      if (!name) {
+        const fileName = file.name.replace(/\.xml$/i, "");
+        setName(fileName);
+        if (!feed) setSlug(autoSlug(fileName));
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave({
+      name,
+      slug: slug || autoSlug(name),
+      content,
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 bg-white/5 border border-white/10 rounded-lg p-6">
+      <h3 className="text-lg font-display text-white tracking-wider">{feed ? "EDIT FEED" : "ADD CUSTOM FEED"}</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-1">
+          <Label className="text-gray-400 text-xs">Feed Name *</Label>
+          <Input value={name} onChange={e => { setName(e.target.value); if (!feed) setSlug(autoSlug(e.target.value)); }} className="bg-white/5 border-white/10 text-white" required placeholder="e.g. Google Merchant Custom" data-testid="input-feed-name" />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-gray-400 text-xs">URL Slug (serves at /feeds/custom/slug)</Label>
+          <Input value={slug} onChange={e => setSlug(e.target.value)} className="bg-white/5 border-white/10 text-white" placeholder="auto-generated" data-testid="input-feed-slug" />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label className="text-gray-400 text-xs">XML Content *</Label>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setUploadMode(false)} className={`text-xs px-2 py-1 rounded ${!uploadMode ? "bg-purple-600 text-white" : "text-gray-400 hover:text-white"}`} data-testid="button-paste-mode">Paste XML</button>
+            <button type="button" onClick={() => setUploadMode(true)} className={`text-xs px-2 py-1 rounded ${uploadMode ? "bg-purple-600 text-white" : "text-gray-400 hover:text-white"}`} data-testid="button-upload-mode"><Upload className="w-3 h-3 inline mr-1" />Upload File</button>
+          </div>
+        </div>
+        {uploadMode ? (
+          <div className="border border-dashed border-white/20 rounded-lg p-6 text-center">
+            <input type="file" accept=".xml,text/xml,application/xml" onChange={handleFileUpload} className="hidden" id="xml-upload" data-testid="input-feed-file" />
+            <label htmlFor="xml-upload" className="cursor-pointer">
+              <Upload className="w-8 h-8 text-gray-500 mx-auto mb-2" />
+              <p className="text-gray-400 text-sm">Click to upload an XML file</p>
+              <p className="text-gray-600 text-xs mt-1">or drag and drop</p>
+            </label>
+            {content && <p className="text-green-400 text-xs mt-3">File loaded ({content.length.toLocaleString()} characters)</p>}
+          </div>
+        ) : (
+          <textarea
+            value={content}
+            onChange={e => setContent(e.target.value)}
+            rows={12}
+            className="w-full px-3 py-2 rounded-md bg-white/5 border border-white/10 text-white text-sm font-mono resize-y"
+            placeholder='<?xml version="1.0" encoding="UTF-8"?>...'
+            required
+            data-testid="input-feed-content"
+          />
+        )}
+      </div>
+      <div className="flex gap-2 pt-2">
+        <Button type="submit" className="bg-purple-600 hover:bg-purple-700" disabled={!content} data-testid="button-save-feed"><Save className="w-4 h-4 mr-1" /> Save Feed</Button>
+        <Button type="button" variant="outline" onClick={onCancel} className="border-white/10 text-gray-400 hover:bg-white/5" data-testid="button-cancel-feed"><X className="w-4 h-4 mr-1" /> Cancel</Button>
+      </div>
+    </form>
+  );
+}
+
+type Tab = "products" | "categories" | "orders" | "feeds";
 
 export default function AdminPage() {
   const [authed, setAuthed] = useState(!!localStorage.getItem("admin_token"));
@@ -230,24 +317,29 @@ export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [customFeeds, setCustomFeeds] = useState<CustomFeed[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [editingFeed, setEditingFeed] = useState<CustomFeed | null>(null);
+  const [showFeedForm, setShowFeedForm] = useState(false);
   const [search, setSearch] = useState("");
   const [expandedOrder, setExpandedOrder] = useState<number | null>(null);
 
   const loadData = async () => {
     try {
-      const [pRes, cRes, oRes] = await Promise.all([
+      const [pRes, cRes, oRes, fRes] = await Promise.all([
         adminFetch("/api/admin/products"),
         adminFetch("/api/admin/categories"),
         adminFetch("/api/admin/orders"),
+        adminFetch("/api/admin/feeds"),
       ]);
       if (pRes.status === 401) { localStorage.removeItem("admin_token"); setAuthed(false); return; }
       setProducts(await pRes.json());
       setCategories(await cRes.json());
       setOrders(await oRes.json());
+      setCustomFeeds(await fRes.json());
     } catch {}
   };
 
@@ -296,6 +388,28 @@ export default function AdminPage() {
     loadData();
   };
 
+  const saveFeed = async (data: any) => {
+    if (editingFeed) {
+      await adminFetch(`/api/admin/feeds/${editingFeed.id}`, { method: "PUT", body: JSON.stringify(data) });
+    } else {
+      await adminFetch("/api/admin/feeds", { method: "POST", body: JSON.stringify(data) });
+    }
+    setShowFeedForm(false);
+    setEditingFeed(null);
+    loadData();
+  };
+
+  const deleteFeed = async (id: number) => {
+    if (!confirm("Delete this custom feed?")) return;
+    await adminFetch(`/api/admin/feeds/${id}`, { method: "DELETE" });
+    loadData();
+  };
+
+  const copyUrl = (slug: string) => {
+    const url = `${window.location.origin}/feeds/custom/${slug}`;
+    navigator.clipboard.writeText(url);
+  };
+
   const catMap = new Map(categories.map(c => [c.id, c.name]));
 
   const filteredProducts = products.filter(p =>
@@ -316,6 +430,7 @@ export default function AdminPage() {
     { key: "products", label: "Products", icon: <Package className="w-4 h-4" />, count: products.length },
     { key: "categories", label: "Categories", icon: <Tag className="w-4 h-4" />, count: categories.length },
     { key: "orders", label: "Orders", icon: <ShoppingCart className="w-4 h-4" />, count: orders.length },
+    { key: "feeds", label: "Feeds", icon: <Rss className="w-4 h-4" />, count: customFeeds.length },
   ];
 
   const statusColors: Record<string, string> = {
@@ -538,6 +653,67 @@ export default function AdminPage() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {tab === "feeds" && (
+          <div className="space-y-4">
+            <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-4">
+              <h3 className="text-sm font-medium text-white mb-2">Built-in Feeds (auto-generated)</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                {[
+                  { name: "Google Shopping", url: "/feeds/google-shopping.xml" },
+                  { name: "Facebook / Meta", url: "/feeds/facebook.xml" },
+                  { name: "Generic Products", url: "/feeds/products.xml" },
+                  { name: "Sitemap", url: "/sitemap.xml" },
+                ].map(f => (
+                  <div key={f.url} className="flex items-center justify-between bg-white/5 rounded px-3 py-2">
+                    <span className="text-gray-300 text-sm">{f.name}</span>
+                    <a href={f.url} target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300"><ExternalLink className="w-3.5 h-3.5" /></a>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {showFeedForm || editingFeed ? (
+              <FeedForm
+                feed={editingFeed || undefined}
+                onSave={saveFeed}
+                onCancel={() => { setShowFeedForm(false); setEditingFeed(null); }}
+              />
+            ) : (
+              <Button onClick={() => setShowFeedForm(true)} className="bg-purple-600 hover:bg-purple-700" data-testid="button-add-feed">
+                <Plus className="w-4 h-4 mr-1" /> Add Custom Feed
+              </Button>
+            )}
+
+            {customFeeds.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium text-gray-400">Custom Feeds</h3>
+                {customFeeds.map(f => (
+                  <div key={f.id} className="bg-white/5 border border-white/10 rounded-lg p-4" data-testid={`card-feed-${f.id}`}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-white">{f.name}</h4>
+                        <div className="flex items-center gap-2 mt-1">
+                          <code className="text-xs text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded">/feeds/custom/{f.slug}</code>
+                          <button onClick={() => copyUrl(f.slug)} className="text-gray-500 hover:text-white transition" title="Copy URL" data-testid={`button-copy-feed-${f.id}`}><Copy className="w-3.5 h-3.5" /></button>
+                          <a href={`/feeds/custom/${f.slug}`} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-white transition" title="Open feed" data-testid={`link-open-feed-${f.id}`}><ExternalLink className="w-3.5 h-3.5" /></a>
+                        </div>
+                        <div className="flex gap-3 mt-2 text-xs text-gray-500">
+                          <span>{f.content.length.toLocaleString()} chars</span>
+                          {f.updatedAt && <span>Updated: {new Date(f.updatedAt).toLocaleString("en-GB")}</span>}
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => { setEditingFeed(f); setShowFeedForm(false); }} className="text-gray-400 hover:text-white h-8 w-8 p-0" data-testid={`button-edit-feed-${f.id}`}><Pencil className="w-3.5 h-3.5" /></Button>
+                        <Button size="sm" variant="ghost" onClick={() => deleteFeed(f.id)} className="text-gray-400 hover:text-red-400 h-8 w-8 p-0" data-testid={`button-delete-feed-${f.id}`}><Trash2 className="w-3.5 h-3.5" /></Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

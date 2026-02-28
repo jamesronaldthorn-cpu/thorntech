@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { categories, products, orders, type Category, type InsertCategory, type Product, type InsertProduct, type Order, type InsertOrder } from "@shared/schema";
+import { categories, products, orders, customFeeds, type Category, type InsertCategory, type Product, type InsertProduct, type Order, type InsertOrder, type CustomFeed, type InsertCustomFeed } from "@shared/schema";
 
 export interface IStorage {
   getCategories(): Promise<Category[]>;
@@ -20,6 +20,11 @@ export interface IStorage {
   getOrders(): Promise<Order[]>;
   getOrderByPaymentId(paymentId: string): Promise<Order | undefined>;
   updateOrderStatus(id: number, status: string, paymentId?: string): Promise<Order | undefined>;
+  getCustomFeeds(): Promise<CustomFeed[]>;
+  getCustomFeedBySlug(slug: string): Promise<CustomFeed | undefined>;
+  createCustomFeed(feed: InsertCustomFeed): Promise<CustomFeed>;
+  updateCustomFeed(id: number, feed: Partial<InsertCustomFeed>): Promise<CustomFeed | undefined>;
+  deleteCustomFeed(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -106,6 +111,30 @@ export class DatabaseStorage implements IStorage {
     if (paymentId) updates.paymentId = paymentId;
     const [updated] = await this.db.update(orders).set(updates).where(eq(orders.id, id)).returning();
     return updated;
+  }
+
+  async getCustomFeeds(): Promise<CustomFeed[]> {
+    return this.db.select().from(customFeeds);
+  }
+
+  async getCustomFeedBySlug(slug: string): Promise<CustomFeed | undefined> {
+    const [feed] = await this.db.select().from(customFeeds).where(eq(customFeeds.slug, slug));
+    return feed;
+  }
+
+  async createCustomFeed(feed: InsertCustomFeed): Promise<CustomFeed> {
+    const [created] = await this.db.insert(customFeeds).values(feed).returning();
+    return created;
+  }
+
+  async updateCustomFeed(id: number, feed: Partial<InsertCustomFeed>): Promise<CustomFeed | undefined> {
+    const [updated] = await this.db.update(customFeeds).set({ ...feed, updatedAt: new Date() }).where(eq(customFeeds.id, id)).returning();
+    return updated;
+  }
+
+  async deleteCustomFeed(id: number): Promise<boolean> {
+    const result = await this.db.delete(customFeeds).where(eq(customFeeds.id, id)).returning();
+    return result.length > 0;
   }
 }
 

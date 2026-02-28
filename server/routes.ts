@@ -522,6 +522,40 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/admin/feeds", adminAuth, async (_req, res) => {
+    const feeds = await storage.getCustomFeeds();
+    res.json(feeds);
+  });
+
+  app.post("/api/admin/feeds", adminAuth, async (req, res) => {
+    try {
+      const feed = await storage.createCustomFeed(req.body);
+      res.json(feed);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.put("/api/admin/feeds/:id", adminAuth, async (req, res) => {
+    try {
+      const feed = await storage.updateCustomFeed(parseInt(req.params.id), req.body);
+      if (!feed) return res.status(404).json({ error: "Feed not found" });
+      res.json(feed);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.delete("/api/admin/feeds/:id", adminAuth, async (req, res) => {
+    try {
+      const deleted = await storage.deleteCustomFeed(parseInt(req.params.id));
+      if (!deleted) return res.status(404).json({ error: "Feed not found" });
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.post("/api/admin/login", (req, res) => {
     const { password } = req.body;
     if (password === ADMIN_PASSWORD) {
@@ -559,13 +593,24 @@ export async function registerRoutes(
     res.send(generateSitemapXml(prods, cats, siteUrl));
   });
 
+  app.get("/feeds/custom/:slug", async (req, res) => {
+    const feed = await storage.getCustomFeedBySlug(req.params.slug);
+    if (!feed) return res.status(404).send("Feed not found");
+    res.set("Content-Type", "application/xml; charset=utf-8");
+    res.send(feed.content);
+  });
+
   app.get("/feeds", async (_req, res) => {
+    const custom = await storage.getCustomFeeds();
+    const customFeeds: Record<string, string> = {};
+    custom.forEach(f => { customFeeds[f.slug] = `/feeds/custom/${f.slug}`; });
     res.json({
       feeds: {
         google_shopping: "/feeds/google-shopping.xml",
         facebook_meta: "/feeds/facebook.xml",
         generic_products: "/feeds/products.xml",
         sitemap: "/sitemap.xml",
+        ...customFeeds,
       },
     });
   });
