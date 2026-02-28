@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Package, Tag, ShoppingCart, Plus, Pencil, Trash2, LogOut,
-  Eye, EyeOff, X, Save, Search, ChevronDown, ChevronUp, Rss, Upload, Copy, ExternalLink
+  Eye, EyeOff, X, Save, Search, ChevronDown, ChevronUp, Rss, Upload, Copy, ExternalLink, Download, Loader2, CheckCircle, AlertCircle
 } from "lucide-react";
 import type { Product, Category, Order, CustomFeed } from "@shared/schema";
 
@@ -324,6 +324,10 @@ export default function AdminPage() {
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [editingFeed, setEditingFeed] = useState<CustomFeed | null>(null);
   const [showFeedForm, setShowFeedForm] = useState(false);
+  const [importUrl, setImportUrl] = useState("");
+  const [importCategoryId, setImportCategoryId] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<any>(null);
   const [search, setSearch] = useState("");
   const [expandedOrder, setExpandedOrder] = useState<number | null>(null);
 
@@ -403,6 +407,28 @@ export default function AdminPage() {
     if (!confirm("Delete this custom feed?")) return;
     await adminFetch(`/api/admin/feeds/${id}`, { method: "DELETE" });
     loadData();
+  };
+
+  const importFromFeed = async () => {
+    if (!importUrl) return;
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const res = await adminFetch("/api/admin/import-feed", {
+        method: "POST",
+        body: JSON.stringify({ url: importUrl, categoryId: importCategoryId || null }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setImportResult(data);
+        loadData();
+      } else {
+        setImportResult({ error: data.error });
+      }
+    } catch (e: any) {
+      setImportResult({ error: e.message });
+    }
+    setImporting(false);
   };
 
   const copyUrl = (slug: string) => {
@@ -673,6 +699,67 @@ export default function AdminPage() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-white mb-3"><Download className="w-4 h-4 inline mr-1" />Import Products from Feed</h3>
+              <p className="text-xs text-gray-500 mb-3">Paste a product feed URL (Google Shopping, Facebook, or generic XML) to import products into your store.</p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1">
+                  <Input
+                    value={importUrl}
+                    onChange={e => setImportUrl(e.target.value)}
+                    placeholder="https://example.com/feeds/products.xml"
+                    className="bg-white/5 border-white/10 text-white"
+                    data-testid="input-import-url"
+                  />
+                </div>
+                <select
+                  value={importCategoryId}
+                  onChange={e => setImportCategoryId(e.target.value)}
+                  className="h-10 px-3 rounded-md bg-white/5 border border-white/10 text-white text-sm"
+                  data-testid="select-import-category"
+                >
+                  <option value="">Assign category (optional)</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <Button
+                  onClick={importFromFeed}
+                  disabled={!importUrl || importing}
+                  className="bg-purple-600 hover:bg-purple-700"
+                  data-testid="button-import-feed"
+                >
+                  {importing ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Importing...</> : <><Download className="w-4 h-4 mr-1" /> Import</>}
+                </Button>
+              </div>
+              {importResult && (
+                <div className={`mt-3 p-3 rounded-lg text-sm ${importResult.error ? "bg-red-500/10 border border-red-500/20" : "bg-green-500/10 border border-green-500/20"}`}>
+                  {importResult.error ? (
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+                      <span className="text-red-400">{importResult.error}</span>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <CheckCircle className="w-4 h-4 text-green-400" />
+                        <span className="text-green-400 font-medium">Imported {importResult.imported} of {importResult.totalInFeed} products</span>
+                      </div>
+                      {importResult.skipped > 0 && (
+                        <p className="text-gray-400 text-xs ml-6">Skipped {importResult.skipped} (already exist or duplicates)</p>
+                      )}
+                      {importResult.products?.length > 0 && (
+                        <div className="mt-2 ml-6 space-y-0.5">
+                          {importResult.products.slice(0, 5).map((p: any) => (
+                            <p key={p.id} className="text-gray-300 text-xs">+ {p.name}</p>
+                          ))}
+                          {importResult.products.length > 5 && <p className="text-gray-500 text-xs">...and {importResult.products.length - 5} more</p>}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {showFeedForm || editingFeed ? (

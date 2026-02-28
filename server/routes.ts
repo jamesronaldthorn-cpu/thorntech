@@ -556,6 +556,121 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/admin/import-feed", adminAuth, async (req, res) => {
+    try {
+      const { url, categoryId } = req.body;
+      if (!url) return res.status(400).json({ error: "Feed URL is required" });
+
+      const feedRes = await fetch(url);
+      if (!feedRes.ok) return res.status(400).json({ error: `Failed to fetch feed: ${feedRes.status}` });
+      const xml = await feedRes.text();
+
+      const { XMLParser } = await import("fast-xml-parser");
+      const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_" });
+      const parsed = parser.parse(xml);
+
+      const items: any[] = [];
+
+      const rss = parsed?.rss?.channel?.item;
+      if (rss) {
+        const arr = Array.isArray(rss) ? rss : [rss];
+        arr.forEach((item: any) => {
+          items.push({
+            name: item.title || item["g:title"] || "Untitled",
+            description: item.description || item["g:description"] || "",
+            price: parseFloat(item["g:price"]?.replace(/[^0-9.]/g, "") || item["g:sale_price"]?.replace(/[^0-9.]/g, "") || "0"),
+            image: item["g:image_link"] || item.enclosure?.["@_url"] || null,
+            vendor: item["g:brand"] || null,
+            inStock: item["g:availability"] !== "out of stock" && item["g:availability"] !== "out_of_stock",
+            compareAtPrice: item["g:sale_price"] && item["g:price"] ? parseFloat(item["g:price"].replace(/[^0-9.]/g, "")) : null,
+          });
+        });
+      }
+
+      const feed = parsed?.feed?.entry;
+      if (feed) {
+        const arr = Array.isArray(feed) ? feed : [feed];
+        arr.forEach((item: any) => {
+          items.push({
+            name: item.title?.["#text"] || item.title || "Untitled",
+            description: item.summary?.["#text"] || item.summary || item.content?.["#text"] || "",
+            price: 0,
+            image: null,
+            vendor: null,
+            inStock: true,
+          });
+        });
+      }
+
+      if (items.length === 0) {
+        const products = parsed?.products?.product || parsed?.catalog?.product;
+        if (products) {
+          const arr = Array.isArray(products) ? products : [products];
+          arr.forEach((item: any) => {
+            items.push({
+              name: item.name || item.title || "Untitled",
+              description: item.description || "",
+              price: parseFloat(item.price || "0"),
+              image: item.image || item.image_url || item.image_link || null,
+              vendor: item.brand || item.vendor || null,
+              inStock: item.availability !== "out of stock" && item.in_stock !== "false",
+              compareAtPrice: item.compare_at_price ? parseFloat(item.compare_at_price) : null,
+            });
+          });
+        }
+      }
+
+      if (items.length === 0) {
+        return res.status(400).json({ error: "No products found in feed. Supported formats: Google Shopping RSS, Atom, or generic XML product feeds." });
+      }
+
+      const created: any[] = [];
+      const skipped: string[] = [];
+      const existingProducts = await storage.getProducts();
+      const existingSlugs = new Set(existingProducts.map(p => p.slug));
+
+      for (const item of items) {
+        if (item.price <= 0 && !item.name) continue;
+        const slug = item.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "").substring(0, 80);
+        if (existingSlugs.has(slug)) {
+          skipped.push(item.name);
+          continue;
+        }
+        existingSlugs.add(slug);
+        try {
+          const product = await storage.createProduct({
+            name: item.name,
+            slug,
+            description: item.description || null,
+            price: item.price || 0,
+            compareAtPrice: item.compareAtPrice || null,
+            categoryId: categoryId ? parseInt(categoryId) : null,
+            image: item.image || null,
+            badge: null,
+            inStock: item.inStock !== false,
+            vendor: item.vendor || null,
+            stripeProductId: null,
+            stripePriceId: null,
+          });
+          created.push({ id: product.id, name: product.name });
+        } catch (e: any) {
+          skipped.push(`${item.name}: ${e.message}`);
+        }
+      }
+
+      res.json({
+        imported: created.length,
+        skipped: skipped.length,
+        products: created,
+        skippedNames: skipped,
+        totalInFeed: items.length,
+      });
+    } catch (e: any) {
+      console.error("Feed import error:", e);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.post("/api/admin/login", (req, res) => {
     const { password } = req.body;
     if (password === ADMIN_PASSWORD) {
