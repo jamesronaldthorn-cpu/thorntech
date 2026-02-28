@@ -21,6 +21,13 @@ An online store for Thorn Tech Solutions Ltd (Company Reg: 17058756), selling PC
 - `GET /api/products` - All products
 - `GET /api/products/:slug` - Single product by slug
 
+## XML Feeds
+- `GET /feeds/google-shopping.xml` - Google Shopping / Merchant Center feed (RSS 2.0 + g: namespace)
+- `GET /feeds/facebook.xml` - Facebook / Meta Commerce catalogue feed
+- `GET /feeds/products.xml` - Generic product XML feed for price comparison sites
+- `GET /sitemap.xml` - XML sitemap for SEO (all pages, categories, products)
+- `GET /feeds` - JSON index listing all available feed URLs
+
 ## Key Files
 - `shared/schema.ts` - Drizzle schema for categories and products
 - `server/routes.ts` - API endpoints
