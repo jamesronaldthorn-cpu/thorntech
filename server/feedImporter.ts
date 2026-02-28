@@ -19,6 +19,7 @@ export async function parseFeedXml(xml: string): Promise<any[]> {
         vendor: item["g:brand"] || null,
         inStock: item["g:availability"] !== "out of stock" && item["g:availability"] !== "out_of_stock",
         compareAtPrice: item["g:sale_price"] && item["g:price"] ? parseFloat(item["g:price"].replace(/[^0-9.]/g, "")) : null,
+        feedCategory: item["g:product_type"] || item["g:google_product_category"] || item.category || null,
       });
     });
   }
@@ -34,6 +35,7 @@ export async function parseFeedXml(xml: string): Promise<any[]> {
         image: null,
         vendor: null,
         inStock: true,
+        feedCategory: item.category?.["@_term"] || item.category?.["#text"] || item.category || null,
       });
     });
   }
@@ -51,6 +53,7 @@ export async function parseFeedXml(xml: string): Promise<any[]> {
           vendor: item.brand || item.vendor || null,
           inStock: item.availability !== "out of stock" && item.in_stock !== "false",
           compareAtPrice: item.compare_at_price ? parseFloat(item.compare_at_price) : null,
+          feedCategory: item.category || item.product_type || item.type || null,
         });
       });
     }
@@ -59,11 +62,53 @@ export async function parseFeedXml(xml: string): Promise<any[]> {
   return items;
 }
 
-export async function importProducts(items: any[], categoryId: number | null): Promise<{ imported: number; skipped: number; products: any[]; skippedNames: string[] }> {
+function matchCategory(feedCategory: string | null, storeCategories: { id: number; name: string; slug: string }[]): number | null {
+  if (!feedCategory) return null;
+
+  const feedCatLower = feedCategory.toLowerCase().trim();
+
+  for (const cat of storeCategories) {
+    const catNameLower = cat.name.toLowerCase();
+    const catSlugLower = cat.slug.toLowerCase();
+    if (feedCatLower === catNameLower || feedCatLower === catSlugLower) return cat.id;
+  }
+
+  for (const cat of storeCategories) {
+    const catNameLower = cat.name.toLowerCase();
+    if (feedCatLower.includes(catNameLower) || catNameLower.includes(feedCatLower)) return cat.id;
+  }
+
+  const categoryKeywords: Record<string, string[]> = {
+    "graphics cards": ["gpu", "graphics", "video card", "geforce", "radeon", "rtx", "gtx"],
+    "processors": ["cpu", "processor", "ryzen", "intel core", "amd", "i5", "i7", "i9"],
+    "motherboards": ["motherboard", "mobo", "mainboard"],
+    "memory": ["ram", "memory", "ddr4", "ddr5", "dimm"],
+    "storage": ["ssd", "hdd", "hard drive", "nvme", "m.2", "storage"],
+    "cooling": ["cooler", "cooling", "fan", "aio", "radiator", "heatsink", "thermal"],
+    "cases": ["case", "chassis", "tower", "enclosure", "mid-tower", "full-tower"],
+    "peripherals": ["keyboard", "mouse", "monitor", "headset", "peripheral", "webcam", "speaker"],
+  };
+
+  for (const cat of storeCategories) {
+    const catNameLower = cat.name.toLowerCase();
+    const keywords = categoryKeywords[catNameLower];
+    if (keywords) {
+      for (const keyword of keywords) {
+        if (feedCatLower.includes(keyword)) return cat.id;
+      }
+    }
+  }
+
+  return null;
+}
+
+export async function importProducts(items: any[], fallbackCategoryId: number | null): Promise<{ imported: number; skipped: number; products: any[]; skippedNames: string[]; categoriesMatched: number }> {
   const created: any[] = [];
   const skipped: string[] = [];
+  let categoriesMatched = 0;
   const existingProducts = await storage.getProducts();
   const existingSlugs = new Set(existingProducts.map(p => p.slug));
+  const storeCategories = await storage.getCategories();
 
   for (const item of items) {
     if (item.price <= 0 && !item.name) continue;
@@ -73,6 +118,14 @@ export async function importProducts(items: any[], categoryId: number | null): P
       continue;
     }
     existingSlugs.add(slug);
+
+    let categoryId = matchCategory(item.feedCategory, storeCategories);
+    if (categoryId) {
+      categoriesMatched++;
+    } else {
+      categoryId = fallbackCategoryId;
+    }
+
     try {
       const product = await storage.createProduct({
         name: item.name,
@@ -88,13 +141,13 @@ export async function importProducts(items: any[], categoryId: number | null): P
         stripeProductId: null,
         stripePriceId: null,
       });
-      created.push({ id: product.id, name: product.name });
+      created.push({ id: product.id, name: product.name, category: item.feedCategory || "none" });
     } catch (e: any) {
       skipped.push(`${item.name}: ${e.message}`);
     }
   }
 
-  return { imported: created.length, skipped: skipped.length, products: created, skippedNames: skipped };
+  return { imported: created.length, skipped: skipped.length, products: created, skippedNames: skipped, categoriesMatched };
 }
 
 export async function importFromUrl(url: string, categoryId: number | null) {
@@ -136,7 +189,7 @@ export function startFeedScheduler() {
             lastImportCount: result.imported,
             lastError: null,
           });
-          console.log(`[Feed Scheduler] ${source.name}: imported ${result.imported}, skipped ${result.skipped}`);
+          console.log(`[Feed Scheduler] ${source.name}: imported ${result.imported}, skipped ${result.skipped}, categories matched ${result.categoriesMatched}`);
         } catch (e: any) {
           await storage.updateFeedSource(source.id, {
             lastImportAt: now,

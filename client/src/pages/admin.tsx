@@ -779,6 +779,9 @@ export default function AdminPage() {
                         <CheckCircle className="w-4 h-4 text-green-400" />
                         <span className="text-green-400 font-medium">Imported {importResult.imported} of {importResult.totalInFeed} products</span>
                       </div>
+                      {importResult.categoriesMatched > 0 && (
+                        <p className="text-gray-400 text-xs ml-6">{importResult.categoriesMatched} products auto-matched to categories from feed</p>
+                      )}
                       {importResult.skipped > 0 && (
                         <p className="text-gray-400 text-xs ml-6">Skipped {importResult.skipped} (already exist or duplicates)</p>
                       )}
