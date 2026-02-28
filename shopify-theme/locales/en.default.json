@@ -1,9 +1,4 @@
 {
-  "name": "Thorn Tech UK",
-  "version": "1.0.0",
-  "author": "Replit Agent",
-  "theme_name": "Thorn Tech Dark Mode",
-  "theme_version": "1.0.0",
   "general": {
     "404": {
       "title": "404 Page Not Found",
