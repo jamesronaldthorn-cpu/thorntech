@@ -2,7 +2,12 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
+import { registerSchema, loginSchema } from "@shared/schema";
 import type { Product, Category } from "@shared/schema";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.JWT_SECRET || "thorntech-jwt-secret-change-me";
 
 function escapeXml(str: string): string {
   return str
@@ -19,97 +24,6 @@ function buildSiteUrl(req: any): string {
   return `${proto}://${host}`;
 }
 
-function generateGoogleShoppingFeed(products: Product[], categories: Category[], siteUrl: string): string {
-  const catMap = new Map(categories.map(c => [c.id, c]));
-  const items = products.map(p => {
-    const cat = catMap.get(p.categoryId ?? 0);
-    const productUrl = `${siteUrl}/product/${p.slug}`;
-    const imageUrl = p.image || `${siteUrl}/placeholder-product.png`;
-    return `    <item>
-      <g:id>${p.id}</g:id>
-      <title>${escapeXml(p.name)}</title>
-      <description>${escapeXml(p.description || p.name)}</description>
-      <link>${escapeXml(productUrl)}</link>
-      <g:image_link>${escapeXml(imageUrl)}</g:image_link>
-      <g:price>${p.price.toFixed(2)} GBP</g:price>${p.compareAtPrice ? `\n      <g:sale_price>${p.price.toFixed(2)} GBP</g:sale_price>` : ""}
-      <g:availability>${p.inStock ? "in_stock" : "out_of_stock"}</g:availability>
-      <g:condition>new</g:condition>
-      <g:brand>${escapeXml(p.vendor || "Thorn Tech Solutions")}</g:brand>
-      <g:product_type>${escapeXml(cat?.name || "PC Components")}</g:product_type>
-      <g:identifier_exists>false</g:identifier_exists>
-      <g:shipping>
-        <g:country>GB</g:country>
-        <g:price>0.00 GBP</g:price>
-      </g:shipping>
-    </item>`;
-  });
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
-  <channel>
-    <title>Thorn Tech Solutions Ltd - PC Components</title>
-    <link>${siteUrl}</link>
-    <description>Premium PC components, accessories and peripherals from Thorn Tech Solutions Ltd</description>
-${items.join("\n")}
-  </channel>
-</rss>`;
-}
-
-function generateFacebookFeed(products: Product[], categories: Category[], siteUrl: string): string {
-  const catMap = new Map(categories.map(c => [c.id, c]));
-  const items = products.map(p => {
-    const cat = catMap.get(p.categoryId ?? 0);
-    const productUrl = `${siteUrl}/product/${p.slug}`;
-    const imageUrl = p.image || `${siteUrl}/placeholder-product.png`;
-    return `    <item>
-      <id>${p.id}</id>
-      <title>${escapeXml(p.name)}</title>
-      <description>${escapeXml(p.description || p.name)}</description>
-      <availability>${p.inStock ? "in stock" : "out of stock"}</availability>
-      <condition>new</condition>
-      <price>${p.price.toFixed(2)} GBP</price>${p.compareAtPrice ? `\n      <sale_price>${p.price.toFixed(2)} GBP</sale_price>` : ""}
-      <link>${escapeXml(productUrl)}</link>
-      <image_link>${escapeXml(imageUrl)}</image_link>
-      <brand>${escapeXml(p.vendor || "Thorn Tech Solutions")}</brand>
-      <product_type>${escapeXml(cat?.name || "PC Components")}</product_type>
-    </item>`;
-  });
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0">
-  <channel>
-    <title>Thorn Tech Solutions Ltd</title>
-    <link>${siteUrl}</link>
-    <description>Premium PC Components &amp; Accessories</description>
-${items.join("\n")}
-  </channel>
-</rss>`;
-}
-
-function generateGenericProductFeed(products: Product[], categories: Category[], siteUrl: string): string {
-  const catMap = new Map(categories.map(c => [c.id, c]));
-  const items = products.map(p => {
-    const cat = catMap.get(p.categoryId ?? 0);
-    const productUrl = `${siteUrl}/product/${p.slug}`;
-    return `  <product>
-    <id>${p.id}</id>
-    <name>${escapeXml(p.name)}</name>
-    <slug>${escapeXml(p.slug)}</slug>
-    <description>${escapeXml(p.description || "")}</description>
-    <price currency="GBP">${p.price.toFixed(2)}</price>${p.compareAtPrice ? `\n    <compare_at_price currency="GBP">${p.compareAtPrice.toFixed(2)}</compare_at_price>` : ""}
-    <url>${escapeXml(productUrl)}</url>
-    <category>${escapeXml(cat?.name || "")}</category>
-    <vendor>${escapeXml(p.vendor || "")}</vendor>
-    <in_stock>${p.inStock}</in_stock>${p.badge ? `\n    <badge>${escapeXml(p.badge)}</badge>` : ""}
-  </product>`;
-  });
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<products store="Thorn Tech Solutions Ltd" url="${siteUrl}" currency="GBP" generated="${new Date().toISOString()}">
-${items.join("\n")}
-</products>`;
-}
-
 function generateSitemapXml(products: Product[], categories: Category[], siteUrl: string): string {
   const now = new Date().toISOString().split("T")[0];
   const urls = [
@@ -124,10 +38,139 @@ ${urls.join("\n")}
 </urlset>`;
 }
 
+function userAuth(req: any, res: any, next: any) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  try {
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: number; email: string };
+    req.userId = decoded.userId;
+    req.userEmail = decoded.email;
+    next();
+  } catch {
+    return res.status(401).json({ error: "Invalid or expired token" });
+  }
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const parsed = registerSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0].message });
+      }
+      const { email, password, name, phone } = parsed.data;
+
+      const existing = await storage.getUserByEmail(email.toLowerCase());
+      if (existing) {
+        return res.status(409).json({ error: "An account with this email already exists" });
+      }
+
+      const passwordHash = await bcrypt.hash(password, 12);
+      const user = await storage.createUser({
+        email: email.toLowerCase(),
+        passwordHash,
+        name,
+        phone: phone || null,
+        address: null,
+        city: null,
+        postcode: null,
+      });
+
+      const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: "30d" });
+      res.json({
+        token,
+        user: { id: user.id, email: user.email, name: user.name, phone: user.phone, address: user.address, city: user.city, postcode: user.postcode },
+      });
+    } catch (e: any) {
+      console.error("Register error:", e);
+      res.status(500).json({ error: "Registration failed" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const parsed = loginSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0].message });
+      }
+      const { email, password } = parsed.data;
+
+      const user = await storage.getUserByEmail(email.toLowerCase());
+      if (!user) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+
+      const valid = await bcrypt.compare(password, user.passwordHash);
+      if (!valid) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+
+      const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: "30d" });
+      res.json({
+        token,
+        user: { id: user.id, email: user.email, name: user.name, phone: user.phone, address: user.address, city: user.city, postcode: user.postcode },
+      });
+    } catch (e: any) {
+      console.error("Login error:", e);
+      res.status(500).json({ error: "Login failed" });
+    }
+  });
+
+  app.get("/api/auth/me", userAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.userId);
+      if (!user) return res.status(404).json({ error: "User not found" });
+      res.json({ id: user.id, email: user.email, name: user.name, phone: user.phone, address: user.address, city: user.city, postcode: user.postcode });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.put("/api/auth/me", userAuth, async (req: any, res) => {
+    try {
+      const { name, phone, address, city, postcode } = req.body;
+      const updated = await storage.updateUser(req.userId, { name, phone, address, city, postcode });
+      if (!updated) return res.status(404).json({ error: "User not found" });
+      res.json({ id: updated.id, email: updated.email, name: updated.name, phone: updated.phone, address: updated.address, city: updated.city, postcode: updated.postcode });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.put("/api/auth/password", userAuth, async (req: any, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      if (!currentPassword || !newPassword || newPassword.length < 8) {
+        return res.status(400).json({ error: "New password must be at least 8 characters" });
+      }
+      const user = await storage.getUser(req.userId);
+      if (!user) return res.status(404).json({ error: "User not found" });
+      const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!valid) return res.status(401).json({ error: "Current password is incorrect" });
+      const passwordHash = await bcrypt.hash(newPassword, 12);
+      await storage.updateUser(req.userId, { passwordHash });
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/auth/orders", userAuth, async (req: any, res) => {
+    try {
+      const userOrders = await storage.getOrdersByUserId(req.userId);
+      res.json(userOrders);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.get("/api/categories", async (_req, res) => {
     const cats = await storage.getCategories();
     res.json(cats);
@@ -168,7 +211,7 @@ export async function registerRoutes(
 
   app.post("/api/checkout/stripe", async (req, res) => {
     try {
-      const { items, email, name, address, city, postcode, phone } = req.body;
+      const { items, email, name, address, city, postcode, phone, userId } = req.body;
       if (!items || !items.length || !email || !name || !address || !city || !postcode) {
         return res.status(400).json({ error: "Missing required fields" });
       }
@@ -198,6 +241,7 @@ export async function registerRoutes(
       }, 0);
 
       const order = await storage.createOrder({
+        userId: userId || null,
         email,
         name,
         address,
@@ -269,7 +313,7 @@ export async function registerRoutes(
 
   app.post("/api/checkout/paypal/create", async (req, res) => {
     try {
-      const { items, email, name, address, city, postcode, phone } = req.body;
+      const { items, email, name, address, city, postcode, phone, userId } = req.body;
       if (!items || !items.length || !email || !name || !address || !city || !postcode) {
         return res.status(400).json({ error: "Missing required fields" });
       }
@@ -286,6 +330,7 @@ export async function registerRoutes(
       const grandTotal = total + shipping;
 
       const order = await storage.createOrder({
+        userId: userId || null,
         email,
         name,
         address,
@@ -393,7 +438,6 @@ export async function registerRoutes(
     res.json(order);
   });
 
-  let paypalLoaded = false;
   let paypalModule: any = null;
 
   app.get("/paypal/setup", async (req, res) => {
@@ -635,27 +679,6 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/feeds/google-shopping.xml", async (req, res) => {
-    const [prods, cats] = await Promise.all([storage.getProducts(), storage.getCategories()]);
-    const siteUrl = buildSiteUrl(req);
-    res.set("Content-Type", "application/xml; charset=utf-8");
-    res.send(generateGoogleShoppingFeed(prods, cats, siteUrl));
-  });
-
-  app.get("/feeds/facebook.xml", async (req, res) => {
-    const [prods, cats] = await Promise.all([storage.getProducts(), storage.getCategories()]);
-    const siteUrl = buildSiteUrl(req);
-    res.set("Content-Type", "application/xml; charset=utf-8");
-    res.send(generateFacebookFeed(prods, cats, siteUrl));
-  });
-
-  app.get("/feeds/products.xml", async (req, res) => {
-    const [prods, cats] = await Promise.all([storage.getProducts(), storage.getCategories()]);
-    const siteUrl = buildSiteUrl(req);
-    res.set("Content-Type", "application/xml; charset=utf-8");
-    res.send(generateGenericProductFeed(prods, cats, siteUrl));
-  });
-
   app.get("/sitemap.xml", async (req, res) => {
     const [prods, cats] = await Promise.all([storage.getProducts(), storage.getCategories()]);
     const siteUrl = buildSiteUrl(req);
@@ -676,9 +699,6 @@ export async function registerRoutes(
     custom.forEach(f => { customFeeds[f.slug] = `/feeds/custom/${f.slug}`; });
     res.json({
       feeds: {
-        google_shopping: "/feeds/google-shopping.xml",
-        facebook_meta: "/feeds/facebook.xml",
-        generic_products: "/feeds/products.xml",
         sitemap: "/sitemap.xml",
         ...customFeeds,
       },

@@ -1,9 +1,10 @@
 import { Link } from "wouter";
-import { ShoppingBasket, Search, Menu, X, Minus, Plus } from "lucide-react";
+import { ShoppingBasket, Search, Menu, X, Minus, Plus, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useCart } from "@/lib/cart";
+import { useAuth } from "@/lib/auth";
 import logoImg from "@/assets/images/logo.png";
 
 function formatPrice(price: number) {
@@ -12,6 +13,7 @@ function formatPrice(price: number) {
 
 export default function NavBar() {
   const { items, isOpen, setOpen, updateQuantity, removeItem, getTotal, getCount } = useCart();
+  const { user } = useAuth();
   const cartCount = getCount();
   const cartTotal = getTotal();
 
@@ -88,7 +90,17 @@ export default function NavBar() {
               )}
             </SheetContent>
           </Sheet>
-          <Button variant="outline" className="hidden sm:flex border-primary/50 hover:bg-primary/20 hover:text-white transition-all font-display tracking-widest" data-testid="button-signin">SIGN IN</Button>
+          {user ? (
+            <Link href="/account">
+              <Button variant="outline" className="hidden sm:flex border-primary/50 hover:bg-primary/20 hover:text-white transition-all font-display tracking-widest" data-testid="button-account">
+                <User className="w-4 h-4 mr-2" /> {user.name.split(" ")[0].toUpperCase()}
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/login">
+              <Button variant="outline" className="hidden sm:flex border-primary/50 hover:bg-primary/20 hover:text-white transition-all font-display tracking-widest" data-testid="button-signin">SIGN IN</Button>
+            </Link>
+          )}
           <Button variant="ghost" size="icon" className="md:hidden"><Menu className="w-6 h-6" /></Button>
         </div>
       </div>

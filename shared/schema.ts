@@ -2,6 +2,18 @@ import { pgTable, text, integer, doublePrecision, boolean, timestamp } from "dri
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export const users = pgTable("users", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  name: text("name").notNull(),
+  phone: text("phone"),
+  address: text("address"),
+  city: text("city"),
+  postcode: text("postcode"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const categories = pgTable("categories", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   name: text("name").notNull(),
@@ -28,6 +40,7 @@ export const products = pgTable("products", {
 
 export const orders = pgTable("orders", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userId: integer("user_id").references(() => users.id),
   email: text("email").notNull(),
   name: text("name").notNull(),
   address: text("address").notNull(),
@@ -64,12 +77,27 @@ export const feedSources = pgTable("feed_sources", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertCategorySchema = createInsertSchema(categories).omit({ id: true });
 export const insertProductSchema = createInsertSchema(products).omit({ id: true });
 export const insertOrderSchema = createInsertSchema(orders).omit({ id: true, createdAt: true });
 export const insertCustomFeedSchema = createInsertSchema(customFeeds).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertFeedSourceSchema = createInsertSchema(feedSources).omit({ id: true, createdAt: true, lastImportAt: true, lastImportCount: true, lastError: true });
 
+export const registerSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  name: z.string().min(1, "Name is required"),
+  phone: z.string().optional(),
+});
+
+export const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
+
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Category = typeof categories.$inferSelect;
 export type InsertCategory = z.infer<typeof insertCategorySchema>;
 export type Product = typeof products.$inferSelect;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { ChevronRight, CreditCard, ShieldCheck, Truck, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import { useCart } from "@/lib/cart";
+import { useAuth } from "@/lib/auth";
 
 function formatPrice(price: number) {
   return `£${price.toFixed(2)}`;
@@ -13,6 +14,7 @@ function formatPrice(price: number) {
 
 export default function CheckoutPage() {
   const { items, getTotal, clearCart } = useCart();
+  const { user } = useAuth();
   const [, navigate] = useLocation();
   const [loading, setLoading] = useState<"stripe" | "paypal" | null>(null);
   const [error, setError] = useState("");
@@ -25,6 +27,19 @@ export default function CheckoutPage() {
     city: "",
     postcode: "",
   });
+
+  useEffect(() => {
+    if (user) {
+      setForm(prev => ({
+        email: user.email || prev.email,
+        name: user.name || prev.name,
+        phone: user.phone || prev.phone,
+        address: user.address || prev.address,
+        city: user.city || prev.city,
+        postcode: user.postcode || prev.postcode,
+      }));
+    }
+  }, [user]);
 
   const subtotal = getTotal();
   const shipping = subtotal >= 150 ? 0 : 5.99;
@@ -57,6 +72,7 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           items: items.map(i => ({ productId: i.product.id, quantity: i.quantity })),
           ...form,
+          userId: user?.id || null,
         }),
       });
       const data = await res.json();
@@ -82,6 +98,7 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           items: items.map(i => ({ productId: i.product.id, quantity: i.quantity })),
           ...form,
+          userId: user?.id || null,
         }),
       });
       const orderData = await createRes.json();
