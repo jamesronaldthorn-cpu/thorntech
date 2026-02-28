@@ -1,0 +1,64 @@
+root@bold-golick:/var/www/thorntech# pm2 logs thorntech --lines 30
+[TAILING] Tailing last 30 lines for [thorntech] process (change the value with --lines option)
+/root/.pm2/logs/thorntech-out.log last 30 lines:
+0|thorntec | Stripe schema ready
+0|thorntec | { autoExpandLists: undefined, stripeApiVersion: undefined } StripeSync initialized
+0|thorntec | [Feed Scheduler] Started — checking every 5 minutes for feeds due for import
+0|thorntec | 5:09:35 PM [express] serving on port 5000
+0|thorntec | Stripe data synced
+0|thorntec | Initializing Stripe schema...
+0|thorntec | Stripe schema ready
+0|thorntec | { autoExpandLists: undefined, stripeApiVersion: undefined } StripeSync initialized
+0|thorntec | [Feed Scheduler] Started — checking every 5 minutes for feeds due for import
+0|thorntec | 5:11:43 PM [express] serving on port 5000
+0|thorntec | Stripe data synced
+0|thorntec | 5:11:47 PM [express] GET /api/admin/categories 304 in 12ms :: [{"id":1,"name":"Graphics Cards","slug":"graphics-cards","description":"Unleash max frames","icon":"Monitor"},{"id":2,"name":"Processors","slug":"processors","description":"The brain of your rig","ico
+0|thorntec | 5:11:47 PM [express] GET /api/admin/products 304 in 10ms :: [{"id":1,"name":"NVIDIA RTX 4090 Founders Edition","slug":"rtx-4090-fe","description":"The ultimate GPU for creators and gamers. 24GB GDDR6X, DLSS 3.0, ray tracing.","price":1599.99,"compareAtPrice":n
+0|thorntec | 5:11:47 PM [express] GET /api/admin/feeds 304 in 1ms :: []
+0|thorntec | 5:11:47 PM [express] GET /api/admin/orders 200 in 2ms :: [{"id":4,"userId":null,"email":"jamesronaldthorn@msn.com","name":"James Ronald Thorn","address":"34 Princes Street, Sutton Bridge","city":"SPALDING","postcode":"PE12 9RE","phone":"07894077284","total"
+0|thorntec | 5:11:47 PM [express] GET /api/admin/feed-sources 304 in 1ms :: []
+0|thorntec | 5:12:21 PM [express] GET /api/categories 304 in 14ms :: [{"id":1,"name":"Graphics Cards","slug":"graphics-cards","description":"Unleash max frames","icon":"Monitor"},{"id":2,"name":"Processors","slug":"processors","description":"The brain of your rig","ico
+0|thorntec | 5:12:21 PM [express] GET /api/products 304 in 15ms :: [{"id":1,"name":"NVIDIA RTX 4090 Founders Edition","slug":"rtx-4090-fe","description":"The ultimate GPU for creators and gamers. 24GB GDDR6X, DLSS 3.0, ray tracing.","price":1599.99,"compareAtPrice":n
+0|thorntec | Initializing Stripe schema...
+0|thorntec | [Feed Scheduler] Started — checking every 5 minutes for feeds due for import
+0|thorntec | 5:20:00 PM [express] serving on port 5000
+0|thorntec | 5:21:09 PM [express] GET /api/categories 500 in 5ms :: {"message":"getaddrinfo EAI_AGAIN 4mLp"}
+0|thorntec | 5:21:09 PM [express] GET /api/products 500 in 1ms :: {"message":"getaddrinfo EAI_AGAIN 4mLp"}
+0|thorntec | 5:21:16 PM [express] GET /api/products 500 in 3ms :: {"message":"getaddrinfo EAI_AGAIN 4mLp"}
+0|thorntec | 5:21:16 PM [express] GET /api/categories 500 in 2ms :: {"message":"getaddrinfo EAI_AGAIN 4mLp"}
+0|thorntec | Initializing Stripe schema...
+0|thorntec | [Feed Scheduler] Started — checking every 5 minutes for feeds due for import
+0|thorntec | 5:22:28 PM [express] serving on port 5000
+0|thorntec | 5:22:31 PM [express] GET /api/categories 500 in 7ms :: {"message":"getaddrinfo EAI_AGAIN 4mLp"}
+0|thorntec | 5:22:31 PM [express] GET /api/products 500 in 4ms :: {"message":"getaddrinfo EAI_AGAIN 4mLp"}
+
+/root/.pm2/logs/thorntech-error.log last 30 lines:
+0|thorntec |   syscall: 'getaddrinfo',
+0|thorntec |   hostname: '4mLp'
+0|thorntec | }
+0|thorntec | Failed to initialize Stripe: Error: getaddrinfo EAI_AGAIN 4mLp
+0|thorntec |     at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+0|thorntec |   errno: -3001,
+0|thorntec |   code: 'EAI_AGAIN',
+0|thorntec |   syscall: 'getaddrinfo',
+0|thorntec |   hostname: '4mLp'
+0|thorntec | }
+0|thorntec | Internal Server Error: Error: getaddrinfo EAI_AGAIN 4mLp
+0|thorntec |     at /var/www/thorntech/dist/index.cjs:59:14231
+0|thorntec |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|thorntec |     at async /var/www/thorntech/dist/index.cjs:65:37955
+0|thorntec |     at async /var/www/thorntech/dist/index.cjs:81:3183 {
+0|thorntec |   errno: -3001,
+0|thorntec |   code: 'EAI_AGAIN',
+0|thorntec |   syscall: 'getaddrinfo',
+0|thorntec |   hostname: '4mLp'
+0|thorntec | }
+0|thorntec | Internal Server Error: Error: getaddrinfo EAI_AGAIN 4mLp
+0|thorntec |     at /var/www/thorntech/dist/index.cjs:59:14231
+0|thorntec |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|thorntec |     at async /var/www/thorntech/dist/index.cjs:65:37955
+0|thorntec |     at async /var/www/thorntech/dist/index.cjs:81:3639 {
+0|thorntec |   errno: -3001,
+0|thorntec |   code: 'EAI_AGAIN',
+0|thorntec |   syscall: 'getaddrinfo',
+0|thorntec |   hostname: '4mLp'
