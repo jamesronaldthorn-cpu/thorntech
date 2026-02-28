@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { User, Package, Settings, LogOut, ChevronRight, Eye, EyeOff, Loader2, Save, AlertCircle, CheckCircle } from "lucide-react";
+import { User, Package, Settings, LogOut, ChevronRight, Eye, EyeOff, Loader2, Save, AlertCircle, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
+import { OrderTracker } from "@/pages/order-status";
 
 function formatPrice(price: number) {
   return `£${price.toFixed(2)}`;
@@ -253,13 +254,14 @@ function AccountDashboard() {
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <span className="font-display font-bold text-white">Order #{order.id}</span>
-                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${order.status === "paid" ? "bg-green-500/20 text-green-400" : order.status === "shipped" ? "bg-blue-500/20 text-blue-400" : order.status === "delivered" ? "bg-purple-500/20 text-purple-400" : "bg-yellow-500/20 text-yellow-400"}`} data-testid={`status-order-${order.id}`}>
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${order.status === "paid" ? "bg-green-500/20 text-green-400" : order.status === "shipped" ? "bg-blue-500/20 text-blue-400" : order.status === "delivered" ? "bg-purple-500/20 text-purple-400" : order.status === "cancelled" || order.status === "refunded" ? "bg-red-500/20 text-red-400" : "bg-yellow-500/20 text-yellow-400"}`} data-testid={`status-order-${order.id}`}>
                         {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                       </span>
                     </div>
                     <span className="text-gray-500 text-sm">{new Date(order.createdAt).toLocaleDateString("en-GB")}</span>
                   </div>
-                  <div className="space-y-1 mb-3">
+                  <OrderTracker status={order.status} />
+                  <div className="space-y-1 mb-3 mt-4">
                     {orderItems.map((item: any, i: number) => (
                       <div key={i} className="flex justify-between text-sm">
                         <span className="text-gray-300">{item.name} x{item.quantity}</span>

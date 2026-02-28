@@ -438,6 +438,16 @@ export async function registerRoutes(
     res.json(order);
   });
 
+  app.post("/api/orders/lookup", async (req, res) => {
+    const { orderId, email } = req.body;
+    if (!orderId || !email) return res.status(400).json({ error: "Order number and email are required" });
+    const order = await storage.getOrder(parseInt(orderId));
+    if (!order || order.email.toLowerCase() !== email.toLowerCase()) {
+      return res.status(404).json({ error: "No order found with that number and email" });
+    }
+    res.json(order);
+  });
+
   let paypalModule: any = null;
 
   app.get("/paypal/setup", async (req, res) => {

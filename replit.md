@@ -31,6 +31,7 @@ A fully functional e-commerce store for Thorn Tech Solutions Ltd (Company Reg: 1
 - `/account` — User account dashboard (orders, details, password)
 - `/returns` — Returns & Warranty policy (UK Consumer Rights Act 2015 compliant)
 - `/contact` — Contact page with form (mailto:thorntech@hotmail.com) and phone (07868 552028)
+- `/order-status` — Public order lookup by order number + email, with visual status tracker
 - `/admin` — Admin panel (products, categories, orders, feeds)
 
 ## API Routes
