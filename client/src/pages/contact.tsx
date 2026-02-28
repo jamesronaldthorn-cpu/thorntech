@@ -55,8 +55,9 @@ export default function ContactPage() {
               <div className="flex items-start gap-3">
                 <Clock className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-white">Response Time</p>
-                  <p className="text-sm text-gray-400">We aim to respond within 24 hours</p>
+                  <p className="text-sm font-medium text-white">Phone Hours</p>
+                  <p className="text-sm text-gray-400">Monday to Friday, 6:30 PM – 8:00 PM</p>
+                  <p className="text-xs text-gray-500 mt-1">Emails responded to within 24 hours</p>
                 </div>
               </div>
 
