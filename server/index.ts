@@ -3,7 +3,6 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import { seedDatabase } from "./seed";
 import { runMigrations } from "stripe-replit-sync";
 import { getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
@@ -128,7 +127,6 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  await seedDatabase();
   await initStripe();
   await registerRoutes(httpServer, app);
 
