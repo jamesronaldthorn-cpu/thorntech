@@ -20,43 +20,6 @@
   </div>
 </div>
 
-<style>
-.category-grid-section { padding: 4rem 0; }
-.category-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-}
-@media (min-width: 768px) {
-  .category-grid { grid-template-columns: repeat(4, 1fr); }
-}
-@media (min-width: 1024px) {
-  .category-grid { grid-template-columns: repeat(8, 1fr); }
-}
-.category-card {
-  background: rgba(10, 10, 15, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.5rem;
-  padding: 1rem;
-  text-align: center;
-  transition: all 0.3s ease;
-}
-.category-card:hover {
-  border-color: var(--primary);
-  transform: translateY(-5px);
-}
-.category-icon {
-  width: 48px;
-  height: 48px;
-  margin: 0 auto 1rem;
-  object-fit: contain;
-}
-.category-title {
-  font-size: 0.875rem;
-  font-weight: bold;
-}
-</style>
-
 {% schema %}
 {
   "name": "Category Grid",
