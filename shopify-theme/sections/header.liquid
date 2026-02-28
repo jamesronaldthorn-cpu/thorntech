@@ -1,6 +1,15 @@
 <div class="header-wrapper">
   <header class="header">
     <div class="header-left">
+      <form action="{{ routes.search_url }}" method="get" role="search" class="search-form">
+        <input type="search" name="q" placeholder="Search..." value="{{ search.terms | escape }}">
+        <button type="submit" class="search-btn">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </button>
+      </form>
+    </div>
+
+    <div class="header-center">
       <a href="{{ routes.root_url }}" class="header__heading-link link link--text focus-inset">
         {%- if section.settings.logo != blank -%}
           <img src="{{ section.settings.logo | image_url: width: 200 }}" alt="{{ shop.name }}" width="{{ section.settings.logo_width }}" height="auto">
@@ -10,23 +19,14 @@
       </a>
     </div>
 
-    <div class="header-center">
-      <form action="{{ routes.search_url }}" method="get" role="search" class="search-form">
-        <input type="search" name="q" placeholder="Search components, peripherals, and more..." value="{{ search.terms | escape }}">
-        <button type="submit" class="search-btn">
-          <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        </button>
-      </form>
-    </div>
-
     <div class="header-right">
       {%- if shop.customer_accounts_enabled -%}
         <a href="{%- if customer -%}{{ routes.account_url }}{%- else -%}{{ routes.account_login_url }}{%- endif -%}" class="header__icon">
-          <span class="btn-outline">SIGN IN</span>
+          <span class="btn-outline" style="padding: 0.5rem 1rem; font-size: 0.8rem;">SIGN IN</span>
         </a>
       {%- endif -%}
       
-      <a href="{{ routes.cart_url }}" class="header__icon" id="cart-icon-bubble">
+      <a href="{{ routes.cart_url }}" class="header__icon" id="cart-icon-bubble" style="position: relative; display: flex; align-items: center; color: white;">
         <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
         {%- if cart != empty -%}
           <div class="cart-count-bubble">
@@ -51,6 +51,123 @@
   </nav>
   {%- endif -%}
 </div>
+
+<style>
+.header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  background: rgba(10, 10, 15, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.header-left {
+  display: flex;
+  justify-content: flex-start;
+}
+.header-center {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+}
+.header-right {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1.5rem;
+  align-items: center;
+}
+.header__heading-text {
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  letter-spacing: 0.1em;
+  margin: 0;
+  background: linear-gradient(to right, #60a5fa, #a855f7);
+  -webkit-background-clip: text;
+  color: transparent;
+}
+.search-form {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.search-form input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.6rem 2.5rem 0.6rem 1rem;
+  border-radius: 4px;
+  color: white;
+  width: 280px;
+  font-family: var(--font-body);
+}
+.search-btn {
+  position: absolute;
+  right: 0.5rem;
+  background: none;
+  border: none;
+  color: #a1a1aa;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.secondary-nav {
+  background: rgba(0, 0, 0, 0.8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 1rem 2rem;
+  overflow-x: auto;
+}
+.nav-list {
+  display: flex;
+  justify-content: center;
+  gap: 2.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.nav-link {
+  color: #a1a1aa;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+}
+.nav-link:hover, .nav-link--active {
+  color: var(--primary);
+}
+.cart-count-bubble {
+  position: absolute;
+  top: -8px;
+  right: -10px;
+  background: var(--primary);
+  color: white;
+  font-size: 0.75rem;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-weight: bold;
+}
+@media (max-width: 768px) {
+  .header {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  .header-left, .header-right {
+    justify-content: center;
+  }
+  .search-form input {
+    width: 100%;
+  }
+  .nav-list {
+    justify-content: flex-start;
+  }
+}
+</style>
 
 {% schema %}
 {
