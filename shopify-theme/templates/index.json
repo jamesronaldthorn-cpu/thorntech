@@ -14,6 +14,10 @@
         "heading_highlight": "ULTIMATE RIG"
       }
     },
+    "categories": {
+      "type": "category-grid",
+      "settings": {}
+    },
     "featured_collection": {
       "type": "featured-collection",
       "settings": {
@@ -21,10 +25,16 @@
         "heading_highlight": "DROPS",
         "products_to_show": 8
       }
+    },
+    "value_props": {
+      "type": "value-props",
+      "settings": {}
     }
   },
   "order": [
     "hero",
-    "featured_collection"
+    "categories",
+    "featured_collection",
+    "value_props"
   ]
 }
