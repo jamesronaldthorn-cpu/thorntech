@@ -115,7 +115,6 @@ export default function Home() {
             <div className="flex flex-col items-center">
               <Headset className="w-10 h-10 text-primary mb-4" />
               <h4 className="font-display font-bold text-lg mb-2">UK Based Support</h4>
-              <p className="text-sm text-muted-foreground max-w-xs">Our team of PC building veterans is ready to assist you.</p>
             </div>
           </div>
         </div>
