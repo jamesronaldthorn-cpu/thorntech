@@ -429,6 +429,108 @@ export async function registerRoutes(
     }
   });
 
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "thorntech2024";
+
+  function adminAuth(req: any, res: any, next: any) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || authHeader !== `Bearer ${ADMIN_PASSWORD}`) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    next();
+  }
+
+  app.get("/api/admin/products", adminAuth, async (_req, res) => {
+    const prods = await storage.getProducts();
+    res.json(prods);
+  });
+
+  app.post("/api/admin/products", adminAuth, async (req, res) => {
+    try {
+      const product = await storage.createProduct(req.body);
+      res.json(product);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.put("/api/admin/products/:id", adminAuth, async (req, res) => {
+    try {
+      const product = await storage.updateProduct(parseInt(req.params.id), req.body);
+      if (!product) return res.status(404).json({ error: "Product not found" });
+      res.json(product);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.delete("/api/admin/products/:id", adminAuth, async (req, res) => {
+    try {
+      const deleted = await storage.deleteProduct(parseInt(req.params.id));
+      if (!deleted) return res.status(404).json({ error: "Product not found" });
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/admin/categories", adminAuth, async (_req, res) => {
+    const cats = await storage.getCategories();
+    res.json(cats);
+  });
+
+  app.post("/api/admin/categories", adminAuth, async (req, res) => {
+    try {
+      const cat = await storage.createCategory(req.body);
+      res.json(cat);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.put("/api/admin/categories/:id", adminAuth, async (req, res) => {
+    try {
+      const cat = await storage.updateCategory(parseInt(req.params.id), req.body);
+      if (!cat) return res.status(404).json({ error: "Category not found" });
+      res.json(cat);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.delete("/api/admin/categories/:id", adminAuth, async (req, res) => {
+    try {
+      const deleted = await storage.deleteCategory(parseInt(req.params.id));
+      if (!deleted) return res.status(404).json({ error: "Category not found" });
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/admin/orders", adminAuth, async (_req, res) => {
+    const allOrders = await storage.getOrders();
+    res.json(allOrders);
+  });
+
+  app.put("/api/admin/orders/:id/status", adminAuth, async (req, res) => {
+    try {
+      const order = await storage.updateOrderStatus(parseInt(req.params.id), req.body.status);
+      if (!order) return res.status(404).json({ error: "Order not found" });
+      res.json(order);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/admin/login", (req, res) => {
+    const { password } = req.body;
+    if (password === ADMIN_PASSWORD) {
+      res.json({ success: true });
+    } else {
+      res.status(401).json({ error: "Invalid password" });
+    }
+  });
+
   app.get("/feeds/google-shopping.xml", async (req, res) => {
     const [prods, cats] = await Promise.all([storage.getProducts(), storage.getCategories()]);
     const siteUrl = buildSiteUrl(req);

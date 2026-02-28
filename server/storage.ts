@@ -6,13 +6,18 @@ export interface IStorage {
   getCategories(): Promise<Category[]>;
   getCategoryBySlug(slug: string): Promise<Category | undefined>;
   createCategory(cat: InsertCategory): Promise<Category>;
+  updateCategory(id: number, cat: Partial<InsertCategory>): Promise<Category | undefined>;
+  deleteCategory(id: number): Promise<boolean>;
   getProducts(): Promise<Product[]>;
   getProductsByCategory(categoryId: number): Promise<Product[]>;
   getProductBySlug(slug: string): Promise<Product | undefined>;
   getProduct(id: number): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
+  updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined>;
+  deleteProduct(id: number): Promise<boolean>;
   createOrder(order: InsertOrder): Promise<Order>;
   getOrder(id: number): Promise<Order | undefined>;
+  getOrders(): Promise<Order[]>;
   getOrderByPaymentId(paymentId: string): Promise<Order | undefined>;
   updateOrderStatus(id: number, status: string, paymentId?: string): Promise<Order | undefined>;
 }
@@ -57,6 +62,26 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
+  async updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined> {
+    const [updated] = await this.db.update(products).set(product).where(eq(products.id, id)).returning();
+    return updated;
+  }
+
+  async deleteProduct(id: number): Promise<boolean> {
+    const result = await this.db.delete(products).where(eq(products.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async updateCategory(id: number, cat: Partial<InsertCategory>): Promise<Category | undefined> {
+    const [updated] = await this.db.update(categories).set(cat).where(eq(categories.id, id)).returning();
+    return updated;
+  }
+
+  async deleteCategory(id: number): Promise<boolean> {
+    const result = await this.db.delete(categories).where(eq(categories.id, id)).returning();
+    return result.length > 0;
+  }
+
   async createOrder(order: InsertOrder): Promise<Order> {
     const [created] = await this.db.insert(orders).values(order).returning();
     return created;
@@ -65,6 +90,10 @@ export class DatabaseStorage implements IStorage {
   async getOrder(id: number): Promise<Order | undefined> {
     const [order] = await this.db.select().from(orders).where(eq(orders.id, id));
     return order;
+  }
+
+  async getOrders(): Promise<Order[]> {
+    return this.db.select().from(orders);
   }
 
   async getOrderByPaymentId(paymentId: string): Promise<Order | undefined> {
