@@ -81,8 +81,14 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="py-20 relative z-20 -mt-20">
+      <section id="products" className="py-20 relative z-20 -mt-20">
         <div className="container px-4 mx-auto">
+          <div className="flex items-end justify-between mb-10">
+            <div>
+              <h2 className="text-3xl font-display font-bold mb-2">OUR <span className="text-primary">COMPONENTS</span></h2>
+              <div className="h-1 w-20 bg-primary rounded-full"></div>
+            </div>
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {categories.map((cat) => (
               <Link key={cat.id} href={`/category/${cat.slug}`} className="tech-border glass-panel p-4 rounded-lg group cursor-pointer hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center" data-testid={`link-category-${cat.slug}`}>
@@ -93,20 +99,21 @@ export default function Home() {
               </Link>
             ))}
           </div>
-        </div>
-      </section>
-
-      <section id="products" className="py-16 container mx-auto px-4">
-        <div className="flex items-end justify-between mb-10">
-          <div>
-            <h2 className="text-3xl font-display font-bold mb-2">OUR <span className="text-primary">COMPONENTS</span></h2>
-            <div className="h-1 w-20 bg-primary rounded-full"></div>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} category={catMap.get(product.categoryId ?? 0)} />
-          ))}
+          {products.length > 0 && (
+            <div className="mt-16">
+              <div className="flex items-end justify-between mb-10">
+                <div>
+                  <h2 className="text-3xl font-display font-bold mb-2">LATEST <span className="text-primary">PRODUCTS</span></h2>
+                  <div className="h-1 w-20 bg-primary rounded-full"></div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {products.map((product) => (
+                  <ProductCard key={product.id} product={product} category={catMap.get(product.categoryId ?? 0)} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
