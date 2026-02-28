@@ -739,6 +739,49 @@ export async function registerRoutes(
     }
   });
 
+  // Blog admin routes
+  app.get("/api/admin/blog", adminAuth, async (_req, res) => {
+    const posts = await storage.getBlogPosts();
+    res.json(posts);
+  });
+
+  app.post("/api/admin/blog", adminAuth, async (req, res) => {
+    try {
+      const post = await storage.createBlogPost(req.body);
+      res.json(post);
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.put("/api/admin/blog/:id", adminAuth, async (req, res) => {
+    try {
+      const post = await storage.updateBlogPost(parseInt(req.params.id), req.body);
+      if (!post) return res.status(404).json({ error: "Post not found" });
+      res.json(post);
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.delete("/api/admin/blog/:id", adminAuth, async (req, res) => {
+    const deleted = await storage.deleteBlogPost(parseInt(req.params.id));
+    if (!deleted) return res.status(404).json({ error: "Post not found" });
+    res.json({ success: true });
+  });
+
+  // Public blog routes
+  app.get("/api/blog", async (_req, res) => {
+    const posts = await storage.getBlogPosts(true);
+    res.json(posts);
+  });
+
+  app.get("/api/blog/:slug", async (req, res) => {
+    const post = await storage.getBlogPostBySlug(req.params.slug);
+    if (!post || !post.published) return res.status(404).json({ error: "Post not found" });
+    res.json(post);
+  });
+
   app.post("/api/admin/login", (req, res) => {
     const { password } = req.body;
     if (password === ADMIN_PASSWORD) {
@@ -749,10 +792,16 @@ export async function registerRoutes(
   });
 
   app.get("/sitemap.xml", async (req, res) => {
-    const [prods, cats] = await Promise.all([storage.getProducts(), storage.getCategories()]);
+    const [prods, cats, posts] = await Promise.all([storage.getProducts(), storage.getCategories(), storage.getBlogPosts(true)]);
     const siteUrl = buildSiteUrl(req);
+    const now = new Date().toISOString().split("T")[0];
+    const blogUrls = posts.map(p => `  <url><loc>${siteUrl}/blog/${p.slug}</loc><changefreq>weekly</changefreq><priority>0.7</priority><lastmod>${p.updatedAt ? new Date(p.updatedAt).toISOString().split("T")[0] : now}</lastmod></url>`);
+    let sitemap = generateSitemapXml(prods, cats, siteUrl);
+    if (blogUrls.length > 0) {
+      sitemap = sitemap.replace("</urlset>", `  <url><loc>${siteUrl}/blog</loc><changefreq>daily</changefreq><priority>0.8</priority><lastmod>${now}</lastmod></url>\n${blogUrls.join("\n")}\n</urlset>`);
+    }
     res.set("Content-Type", "application/xml; charset=utf-8");
-    res.send(generateSitemapXml(prods, cats, siteUrl));
+    res.send(sitemap);
   });
 
   app.get("/feeds/custom/:slug", async (req, res) => {

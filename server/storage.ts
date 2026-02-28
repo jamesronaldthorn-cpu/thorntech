@@ -1,6 +1,6 @@
 import { eq, sql, gte, desc, count } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { users, categories, products, orders, customFeeds, feedSources, pageViews, type User, type InsertUser, type Category, type InsertCategory, type Product, type InsertProduct, type Order, type InsertOrder, type CustomFeed, type InsertCustomFeed, type FeedSource, type InsertFeedSource } from "@shared/schema";
+import { users, categories, products, orders, customFeeds, feedSources, pageViews, blogPosts, type User, type InsertUser, type Category, type InsertCategory, type Product, type InsertProduct, type Order, type InsertOrder, type CustomFeed, type InsertCustomFeed, type FeedSource, type InsertFeedSource, type BlogPost, type InsertBlogPost } from "@shared/schema";
 
 export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
@@ -36,6 +36,12 @@ export interface IStorage {
   createFeedSource(source: InsertFeedSource): Promise<FeedSource>;
   updateFeedSource(id: number, source: Partial<InsertFeedSource & { lastImportAt: Date; lastImportCount: number; lastError: string | null }>): Promise<FeedSource | undefined>;
   deleteFeedSource(id: number): Promise<boolean>;
+  getBlogPosts(publishedOnly?: boolean): Promise<BlogPost[]>;
+  getBlogPostBySlug(slug: string): Promise<BlogPost | undefined>;
+  getBlogPost(id: number): Promise<BlogPost | undefined>;
+  createBlogPost(post: InsertBlogPost): Promise<BlogPost>;
+  updateBlogPost(id: number, post: Partial<InsertBlogPost>): Promise<BlogPost | undefined>;
+  deleteBlogPost(id: number): Promise<boolean>;
   recordPageView(path: string, ip?: string, userAgent?: string, referrer?: string): Promise<void>;
   getPageViewStats(): Promise<{ today: number; week: number; month: number; total: number; topPages: { path: string; views: number }[]; recentDays: { date: string; views: number }[] }>;
 }
@@ -199,6 +205,38 @@ export class DatabaseStorage implements IStorage {
 
   async deleteFeedSource(id: number): Promise<boolean> {
     const result = await this.db.delete(feedSources).where(eq(feedSources.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getBlogPosts(publishedOnly = false): Promise<BlogPost[]> {
+    if (publishedOnly) {
+      return this.db.select().from(blogPosts).where(eq(blogPosts.published, true)).orderBy(desc(blogPosts.createdAt));
+    }
+    return this.db.select().from(blogPosts).orderBy(desc(blogPosts.createdAt));
+  }
+
+  async getBlogPostBySlug(slug: string): Promise<BlogPost | undefined> {
+    const [post] = await this.db.select().from(blogPosts).where(eq(blogPosts.slug, slug));
+    return post;
+  }
+
+  async getBlogPost(id: number): Promise<BlogPost | undefined> {
+    const [post] = await this.db.select().from(blogPosts).where(eq(blogPosts.id, id));
+    return post;
+  }
+
+  async createBlogPost(post: InsertBlogPost): Promise<BlogPost> {
+    const [created] = await this.db.insert(blogPosts).values(post).returning();
+    return created;
+  }
+
+  async updateBlogPost(id: number, post: Partial<InsertBlogPost>): Promise<BlogPost | undefined> {
+    const [updated] = await this.db.update(blogPosts).set({ ...post, updatedAt: new Date() }).where(eq(blogPosts.id, id)).returning();
+    return updated;
+  }
+
+  async deleteBlogPost(id: number): Promise<boolean> {
+    const result = await this.db.delete(blogPosts).where(eq(blogPosts.id, id)).returning();
     return result.length > 0;
   }
 

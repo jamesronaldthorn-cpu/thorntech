@@ -19,6 +19,7 @@ A fully functional e-commerce store for Thorn Tech Solutions Ltd (Company Reg: 1
 - **Orders**: id, userId (nullable), email, name, address, city, postcode, phone, total, status, paymentMethod, paymentId, items, createdAt
 - **CustomFeeds**: id, name, slug, content, createdAt, updatedAt
 - **FeedSources**: id, name, url, categoryId, intervalHours, enabled, lastImportAt, lastImportCount, lastError, createdAt
+- **BlogPosts**: id, title, slug, excerpt, content, image, published, createdAt, updatedAt
 
 ## Pages
 - `/` — Home (hero, categories, product grid, value props)
@@ -32,7 +33,9 @@ A fully functional e-commerce store for Thorn Tech Solutions Ltd (Company Reg: 1
 - `/returns` — Returns & Warranty policy (UK Consumer Rights Act 2015 compliant)
 - `/contact` — Contact page with form (mailto:thorntech@hotmail.com) and phone (07868 552028)
 - `/order-status` — Public order lookup by order number + email, with visual status tracker
-- `/admin` — Admin panel (products, categories, orders, feeds)
+- `/blog` — Blog listing (published posts)
+- `/blog/:slug` — Individual blog post
+- `/admin` — Admin panel (products, categories, orders, feeds, blog)
 
 ## API Routes
 ### Auth

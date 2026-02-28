@@ -6,7 +6,8 @@ import {
   Package, Tag, ShoppingCart, Plus, Pencil, Trash2, LogOut,
   Eye, EyeOff, X, Save, Search, ChevronDown, ChevronUp, Rss, Upload, Copy, ExternalLink, Download, Loader2, CheckCircle, AlertCircle, Users, KeyRound, BarChart3, TrendingUp, Globe, Calendar
 } from "lucide-react";
-import type { Product, Category, Order, CustomFeed, FeedSource } from "@shared/schema";
+import type { Product, Category, Order, CustomFeed, FeedSource, BlogPost } from "@shared/schema";
+import { FileText } from "lucide-react";
 
 interface AdminUser {
   id: number;
@@ -320,7 +321,92 @@ function FeedForm({ feed, onSave, onCancel }: {
   );
 }
 
-type Tab = "dashboard" | "products" | "categories" | "orders" | "feeds" | "users";
+function BlogForm({ post, onSave, onCancel }: { post?: BlogPost; onSave: (data: any) => void; onCancel: () => void }) {
+  const [title, setTitle] = useState(post?.title || "");
+  const [slug, setSlug] = useState(post?.slug || "");
+  const [excerpt, setExcerpt] = useState(post?.excerpt || "");
+  const [content, setContent] = useState(post?.content || "");
+  const [image, setImage] = useState(post?.image || "");
+  const [published, setPublished] = useState(post?.published || false);
+
+  const generateSlug = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+  return (
+    <form onSubmit={e => { e.preventDefault(); onSave({ title, slug: slug || generateSlug(title), excerpt: excerpt || null, content, image: image || null, published }); }} className="bg-white/5 border border-white/10 rounded-lg p-6 space-y-4">
+      <h3 className="text-lg font-display font-bold text-white">{post ? "Edit Blog Post" : "New Blog Post"}</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label className="text-gray-400 text-xs">Title *</Label>
+          <Input
+            value={title}
+            onChange={e => { setTitle(e.target.value); if (!post) setSlug(generateSlug(e.target.value)); }}
+            className="bg-white/5 border-white/10 text-white"
+            required
+            data-testid="input-blog-title"
+          />
+        </div>
+        <div>
+          <Label className="text-gray-400 text-xs">Slug</Label>
+          <Input
+            value={slug}
+            onChange={e => setSlug(e.target.value)}
+            className="bg-white/5 border-white/10 text-white"
+            placeholder="auto-generated-from-title"
+            data-testid="input-blog-slug"
+          />
+        </div>
+      </div>
+      <div>
+        <Label className="text-gray-400 text-xs">Image URL (optional)</Label>
+        <Input
+          value={image}
+          onChange={e => setImage(e.target.value)}
+          className="bg-white/5 border-white/10 text-white"
+          placeholder="https://..."
+          data-testid="input-blog-image"
+        />
+      </div>
+      <div>
+        <Label className="text-gray-400 text-xs">Excerpt (short summary for listing)</Label>
+        <Input
+          value={excerpt}
+          onChange={e => setExcerpt(e.target.value)}
+          className="bg-white/5 border-white/10 text-white"
+          placeholder="A brief summary of the post..."
+          data-testid="input-blog-excerpt"
+        />
+      </div>
+      <div>
+        <Label className="text-gray-400 text-xs">Content * (supports basic markdown: # ## ### headings, - lists, **bold**)</Label>
+        <textarea
+          value={content}
+          onChange={e => setContent(e.target.value)}
+          className="w-full min-h-[300px] bg-white/5 border border-white/10 rounded-md text-white p-3 text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-purple-500"
+          required
+          data-testid="input-blog-content"
+        />
+      </div>
+      <div className="flex items-center gap-3">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={published}
+            onChange={e => setPublished(e.target.checked)}
+            className="w-4 h-4 rounded bg-white/10 border-white/20 text-purple-600 focus:ring-purple-500"
+            data-testid="input-blog-published"
+          />
+          <span className="text-sm text-gray-300">Publish immediately</span>
+        </label>
+      </div>
+      <div className="flex gap-2 pt-2">
+        <Button type="submit" className="bg-purple-600 hover:bg-purple-700" disabled={!title || !content} data-testid="button-save-blog"><Save className="w-4 h-4 mr-1" /> Save Post</Button>
+        <Button type="button" variant="outline" onClick={onCancel} className="border-white/10 text-gray-400 hover:bg-white/5" data-testid="button-cancel-blog"><X className="w-4 h-4 mr-1" /> Cancel</Button>
+      </div>
+    </form>
+  );
+}
+
+type Tab = "dashboard" | "products" | "categories" | "orders" | "feeds" | "users" | "blog";
 
 export default function AdminPage() {
   const [authed, setAuthed] = useState(!!localStorage.getItem("admin_token"));
@@ -330,6 +416,7 @@ export default function AdminPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [customFeeds, setCustomFeeds] = useState<CustomFeed[]>([]);
   const [feedSources, setFeedSources] = useState<FeedSource[]>([]);
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [usersList, setUsersList] = useState<AdminUser[]>([]);
   const [stats, setStats] = useState<{ today: number; week: number; month: number; total: number; topPages: { path: string; views: number }[]; recentDays: { date: string; views: number }[] } | null>(null);
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
@@ -343,6 +430,8 @@ export default function AdminPage() {
   const [editingFeed, setEditingFeed] = useState<CustomFeed | null>(null);
   const [showFeedForm, setShowFeedForm] = useState(false);
   const [showSourceForm, setShowSourceForm] = useState(false);
+  const [showBlogForm, setShowBlogForm] = useState(false);
+  const [editingBlog, setEditingBlog] = useState<BlogPost | null>(null);
   const [importUrl, setImportUrl] = useState("");
   const [importCategoryId, setImportCategoryId] = useState("");
   const [importing, setImporting] = useState(false);
@@ -353,7 +442,7 @@ export default function AdminPage() {
 
   const loadData = async () => {
     try {
-      const [pRes, cRes, oRes, fRes, sRes, uRes, stRes] = await Promise.all([
+      const [pRes, cRes, oRes, fRes, sRes, uRes, stRes, bRes] = await Promise.all([
         adminFetch("/api/admin/products"),
         adminFetch("/api/admin/categories"),
         adminFetch("/api/admin/orders"),
@@ -361,6 +450,7 @@ export default function AdminPage() {
         adminFetch("/api/admin/feed-sources"),
         adminFetch("/api/admin/users"),
         adminFetch("/api/admin/stats"),
+        adminFetch("/api/admin/blog"),
       ]);
       if (pRes.status === 401) { localStorage.removeItem("admin_token"); setAuthed(false); return; }
       setProducts(await pRes.json());
@@ -370,6 +460,7 @@ export default function AdminPage() {
       setFeedSources(await sRes.json());
       setUsersList(await uRes.json());
       if (stRes.ok) setStats(await stRes.json());
+      if (bRes.ok) setBlogPosts(await bRes.json());
     } catch {}
   };
 
@@ -432,6 +523,31 @@ export default function AdminPage() {
   const deleteFeed = async (id: number) => {
     if (!confirm("Delete this custom feed?")) return;
     await adminFetch(`/api/admin/feeds/${id}`, { method: "DELETE" });
+    loadData();
+  };
+
+  const saveBlogPost = async (data: any) => {
+    if (editingBlog) {
+      await adminFetch(`/api/admin/blog/${editingBlog.id}`, { method: "PUT", body: JSON.stringify(data) });
+    } else {
+      await adminFetch("/api/admin/blog", { method: "POST", body: JSON.stringify(data) });
+    }
+    setShowBlogForm(false);
+    setEditingBlog(null);
+    loadData();
+  };
+
+  const deleteBlogPost = async (id: number) => {
+    if (!confirm("Delete this blog post?")) return;
+    await adminFetch(`/api/admin/blog/${id}`, { method: "DELETE" });
+    loadData();
+  };
+
+  const toggleBlogPublished = async (post: BlogPost) => {
+    await adminFetch(`/api/admin/blog/${post.id}`, {
+      method: "PUT",
+      body: JSON.stringify({ published: !post.published }),
+    });
     loadData();
   };
 
@@ -514,6 +630,7 @@ export default function AdminPage() {
     { key: "orders", label: "Orders", icon: <ShoppingCart className="w-4 h-4" />, count: orders.length },
     { key: "users", label: "Users", icon: <Users className="w-4 h-4" />, count: usersList.length },
     { key: "feeds", label: "Feeds", icon: <Rss className="w-4 h-4" />, count: customFeeds.length },
+    { key: "blog", label: "Blog", icon: <FileText className="w-4 h-4" />, count: blogPosts.length },
   ];
 
   const filteredUsers = usersList.filter(u =>
@@ -1181,6 +1298,61 @@ export default function AdminPage() {
                       <div className="flex gap-1">
                         <Button size="sm" variant="ghost" onClick={() => { setEditingFeed(f); setShowFeedForm(false); }} className="text-gray-400 hover:text-white h-8 w-8 p-0" data-testid={`button-edit-feed-${f.id}`}><Pencil className="w-3.5 h-3.5" /></Button>
                         <Button size="sm" variant="ghost" onClick={() => deleteFeed(f.id)} className="text-gray-400 hover:text-red-400 h-8 w-8 p-0" data-testid={`button-delete-feed-${f.id}`}><Trash2 className="w-3.5 h-3.5" /></Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === "blog" && (
+          <div className="space-y-6">
+            {showBlogForm || editingBlog ? (
+              <BlogForm
+                post={editingBlog || undefined}
+                onSave={saveBlogPost}
+                onCancel={() => { setShowBlogForm(false); setEditingBlog(null); }}
+              />
+            ) : (
+              <Button onClick={() => setShowBlogForm(true)} className="bg-purple-600 hover:bg-purple-700" data-testid="button-add-blog">
+                <Plus className="w-4 h-4 mr-1" /> New Blog Post
+              </Button>
+            )}
+
+            {blogPosts.length > 0 && (
+              <div className="space-y-3">
+                {blogPosts
+                  .filter(p => p.title.toLowerCase().includes(search.toLowerCase()))
+                  .map(post => (
+                  <div key={post.id} className="bg-white/5 border border-white/10 rounded-lg p-4" data-testid={`card-blog-${post.id}`}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3">
+                          <h4 className="font-medium text-white" data-testid={`text-blog-title-${post.id}`}>{post.title}</h4>
+                          <span className={`text-xs px-2 py-0.5 rounded ${post.published ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`} data-testid={`status-blog-${post.id}`}>
+                            {post.published ? "Published" : "Draft"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+                          <code className="text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded">/blog/{post.slug}</code>
+                          {post.createdAt && <span>{new Date(post.createdAt).toLocaleDateString("en-GB")}</span>}
+                          {post.updatedAt && <span>Updated: {new Date(post.updatedAt).toLocaleDateString("en-GB")}</span>}
+                        </div>
+                        {post.excerpt && (
+                          <p className="text-sm text-gray-400 mt-2 line-clamp-2">{post.excerpt}</p>
+                        )}
+                      </div>
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => toggleBlogPublished(post)} className={`h-8 w-8 p-0 ${post.published ? "text-green-400 hover:text-yellow-400" : "text-yellow-400 hover:text-green-400"}`} title={post.published ? "Unpublish" : "Publish"} data-testid={`button-toggle-blog-${post.id}`}>
+                          {post.published ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                        </Button>
+                        {post.published && (
+                          <a href={`/blog/${post.slug}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center h-8 w-8 text-gray-400 hover:text-white transition" data-testid={`link-view-blog-${post.id}`}><ExternalLink className="w-3.5 h-3.5" /></a>
+                        )}
+                        <Button size="sm" variant="ghost" onClick={() => { setEditingBlog(post); setShowBlogForm(false); }} className="text-gray-400 hover:text-white h-8 w-8 p-0" data-testid={`button-edit-blog-${post.id}`}><Pencil className="w-3.5 h-3.5" /></Button>
+                        <Button size="sm" variant="ghost" onClick={() => deleteBlogPost(post.id)} className="text-gray-400 hover:text-red-400 h-8 w-8 p-0" data-testid={`button-delete-blog-${post.id}`}><Trash2 className="w-3.5 h-3.5" /></Button>
                       </div>
                     </div>
                   </div>

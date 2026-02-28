@@ -77,6 +77,18 @@ export const feedSources = pgTable("feed_sources", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const blogPosts = pgTable("blog_posts", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  excerpt: text("excerpt"),
+  content: text("content").notNull(),
+  image: text("image"),
+  published: boolean("published").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const pageViews = pgTable("page_views", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   path: text("path").notNull(),
@@ -92,6 +104,7 @@ export const insertProductSchema = createInsertSchema(products).omit({ id: true 
 export const insertOrderSchema = createInsertSchema(orders).omit({ id: true, createdAt: true });
 export const insertCustomFeedSchema = createInsertSchema(customFeeds).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertFeedSourceSchema = createInsertSchema(feedSources).omit({ id: true, createdAt: true, lastImportAt: true, lastImportCount: true, lastError: true });
+export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({ id: true, createdAt: true, updatedAt: true });
 
 export const registerSchema = z.object({
   email: z.string().email(),
@@ -117,3 +130,5 @@ export type CustomFeed = typeof customFeeds.$inferSelect;
 export type InsertCustomFeed = z.infer<typeof insertCustomFeedSchema>;
 export type FeedSource = typeof feedSources.$inferSelect;
 export type InsertFeedSource = z.infer<typeof insertFeedSourceSchema>;
+export type BlogPost = typeof blogPosts.$inferSelect;
+export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
