@@ -1,38 +1,58 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
+import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { categories, products, type Category, type InsertCategory, type Product, type InsertProduct } from "@shared/schema";
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  getCategories(): Promise<Category[]>;
+  getCategoryBySlug(slug: string): Promise<Category | undefined>;
+  createCategory(cat: InsertCategory): Promise<Category>;
+
+  getProducts(): Promise<Product[]>;
+  getProductsByCategory(categoryId: number): Promise<Product[]>;
+  getProductBySlug(slug: string): Promise<Product | undefined>;
+  getProduct(id: number): Promise<Product | undefined>;
+  createProduct(product: InsertProduct): Promise<Product>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
+export class DatabaseStorage implements IStorage {
+  private db = drizzle(process.env.DATABASE_URL!);
 
-  constructor() {
-    this.users = new Map();
+  async getCategories(): Promise<Category[]> {
+    return this.db.select().from(categories);
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  async getCategoryBySlug(slug: string): Promise<Category | undefined> {
+    const [cat] = await this.db.select().from(categories).where(eq(categories.slug, slug));
+    return cat;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+  async createCategory(cat: InsertCategory): Promise<Category> {
+    const [created] = await this.db.insert(categories).values(cat).returning();
+    return created;
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+  async getProducts(): Promise<Product[]> {
+    return this.db.select().from(products);
+  }
+
+  async getProductsByCategory(categoryId: number): Promise<Product[]> {
+    return this.db.select().from(products).where(eq(products.categoryId, categoryId));
+  }
+
+  async getProductBySlug(slug: string): Promise<Product | undefined> {
+    const [product] = await this.db.select().from(products).where(eq(products.slug, slug));
+    return product;
+  }
+
+  async getProduct(id: number): Promise<Product | undefined> {
+    const [product] = await this.db.select().from(products).where(eq(products.id, id));
+    return product;
+  }
+
+  async createProduct(product: InsertProduct): Promise<Product> {
+    const [created] = await this.db.insert(products).values(product).returning();
+    return created;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
