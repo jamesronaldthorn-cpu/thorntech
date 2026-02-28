@@ -67,7 +67,7 @@ export default function Home() {
               PC COMPONENTS <br/><span className="tech-gradient-text">FOR EVERY BUILD</span>
             </h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-xl border-l-2 border-primary/50 pl-4">
-              CPUs, GPUs, motherboards, RAM, storage, PSUs, cases and cooling — everything you need to build, upgrade, or repair your PC. All with UK warranty and fast DPD delivery.
+              CPUs, GPUs, motherboards, RAM, storage, PSUs, cases and cooling — everything you need to build, upgrade, or repair your PC. All with UK warranty and 1-3 day delivery.
             </p>
             <div className="flex flex-wrap gap-4">
               <a href="#products">
@@ -127,8 +127,8 @@ export default function Home() {
             </div>
             <div className="flex flex-col items-center">
               <Truck className="w-10 h-10 text-primary mb-4" />
-              <h4 className="font-display font-bold text-lg mb-2">Next Day DPD Delivery</h4>
-              <p className="text-sm text-muted-foreground max-w-xs">Free next working day delivery on orders over £150. Securely packaged.</p>
+              <h4 className="font-display font-bold text-lg mb-2">1-3 Day Delivery</h4>
+              <p className="text-sm text-muted-foreground max-w-xs">Free delivery on orders over £200. Securely packaged.</p>
             </div>
             <div className="flex flex-col items-center">
               <Headset className="w-10 h-10 text-primary mb-4" />

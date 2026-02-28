@@ -125,7 +125,7 @@ export default function ProductPage() {
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <Truck className="w-4 h-4 text-primary" />
-                <span>Free Next Day DPD Delivery on orders over £150</span>
+                <span>Free 1-3 Day Delivery on orders over £200</span>
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <ShieldCheck className="w-4 h-4 text-primary" />

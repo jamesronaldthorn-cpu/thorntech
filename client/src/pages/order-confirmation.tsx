@@ -114,8 +114,8 @@ export default function OrderConfirmationPage() {
                 <div className="flex items-start gap-3">
                   <Truck className="w-5 h-5 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="font-medium text-sm">DPD Dispatch</p>
-                    <p className="text-xs text-muted-foreground">You'll receive a DPD tracking number via email</p>
+                    <p className="font-medium text-sm">Dispatch</p>
+                    <p className="text-xs text-muted-foreground">You'll receive a tracking number via email within 1-3 days</p>
                   </div>
                 </div>
               </div>

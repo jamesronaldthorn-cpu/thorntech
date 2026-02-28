@@ -42,7 +42,7 @@ export default function CheckoutPage() {
   }, [user]);
 
   const subtotal = getTotal();
-  const shipping = subtotal >= 150 ? 0 : 5.99;
+  const shipping = subtotal >= 200 ? 0 : 5.99;
   const total = subtotal + shipping;
 
   const updateField = (field: string, value: string) => {
@@ -243,7 +243,7 @@ export default function CheckoutPage() {
                   <span>{formatPrice(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">DPD Delivery</span>
+                  <span className="text-muted-foreground">Delivery</span>
                   <span className={shipping === 0 ? "text-green-400" : ""}>{shipping === 0 ? "FREE" : formatPrice(shipping)}</span>
                 </div>
                 <div className="flex justify-between text-sm text-muted-foreground">
@@ -263,7 +263,7 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Truck className="w-4 h-4 text-primary" />
-                  <span>{subtotal >= 150 ? "Free next day DPD delivery" : "Free delivery over £150"}</span>
+                  <span>{subtotal >= 200 ? "Free 1-3 day delivery" : "Free delivery over £200"}</span>
                 </div>
               </div>
             </div>

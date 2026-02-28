@@ -82,7 +82,7 @@ export default function NavBar() {
                     <span>Subtotal</span>
                     <span className="font-display">{formatPrice(cartTotal)}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground text-center">VAT included. {cartTotal >= 150 ? "Free next day DPD delivery!" : "Free delivery over £150"}</p>
+                  <p className="text-xs text-muted-foreground text-center">VAT included. {cartTotal >= 200 ? "Free delivery!" : "Free delivery over £200"}</p>
                   <Link href="/checkout">
                     <Button className="w-full font-display tracking-widest bg-primary hover:bg-primary/80 h-12 text-lg" onClick={() => setOpen(false)} data-testid="button-checkout">CHECKOUT</Button>
                   </Link>
