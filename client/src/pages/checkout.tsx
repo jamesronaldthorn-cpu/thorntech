@@ -7,12 +7,14 @@ import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
+import { usePageTitle } from "@/components/SEO";
 
 function formatPrice(price: number) {
   return `£${price.toFixed(2)}`;
 }
 
 export default function CheckoutPage() {
+  usePageTitle("Checkout");
   const { items, getTotal, clearCart } = useCart();
   const { user } = useAuth();
   const [, navigate] = useLocation();

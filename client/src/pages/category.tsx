@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
+import { usePageTitle, BreadcrumbJsonLd } from "@/components/SEO";
 import type { Product, Category } from "@shared/schema";
 
 export default function CategoryPage() {
@@ -53,9 +54,17 @@ export default function CategoryPage() {
     );
   }
 
+  usePageTitle(category ? `${category.name} - Buy Online UK` : undefined);
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       <NavBar />
+      {category && (
+        <BreadcrumbJsonLd items={[
+          { name: "Home", url: "/" },
+          { name: category.name, url: `/category/${category.slug}` },
+        ]} />
+      )}
 
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">

@@ -9,6 +9,7 @@ import Footer from "@/components/Footer";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { OrderTracker } from "@/pages/order-status";
+import { usePageTitle } from "@/components/SEO";
 
 function formatPrice(price: number) {
   return `£${price.toFixed(2)}`;
@@ -356,6 +357,7 @@ function AccountDashboard() {
 }
 
 export function LoginPage() {
+  usePageTitle("Sign In");
   const { user } = useAuth();
   const [, navigate] = useLocation();
 
@@ -376,6 +378,7 @@ export function LoginPage() {
 }
 
 export function RegisterPage() {
+  usePageTitle("Create Account");
   const { user } = useAuth();
   const [, navigate] = useLocation();
 
@@ -396,6 +399,7 @@ export function RegisterPage() {
 }
 
 export default function AccountPage() {
+  usePageTitle("My Account");
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
 

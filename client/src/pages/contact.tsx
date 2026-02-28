@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { Mail, Phone, ChevronRight, Send, Clock, MapPin, Loader2, CheckCircle } from "lucide-react";
+import { usePageTitle } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +9,7 @@ import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 
 export default function ContactPage() {
+  usePageTitle("Contact Us");
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
   const [sent, setSent] = useState(false);
 

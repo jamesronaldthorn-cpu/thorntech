@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { Search, ChevronRight, Package, Clock, Truck, CheckCircle, CreditCard, Loader2, AlertCircle } from "lucide-react";
+import { usePageTitle } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,6 +61,7 @@ function OrderTracker({ status }: { status: string }) {
 }
 
 export default function OrderStatusPage() {
+  usePageTitle("Order Status");
   const [orderId, setOrderId] = useState("");
   const [email, setEmail] = useState("");
   const [order, setOrder] = useState<any>(null);

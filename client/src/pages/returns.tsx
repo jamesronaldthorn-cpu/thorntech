@@ -2,8 +2,10 @@ import { Link } from "wouter";
 import { ShieldCheck, Mail, Phone, ChevronRight } from "lucide-react";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
+import { usePageTitle } from "@/components/SEO";
 
 export default function ReturnsPage() {
+  usePageTitle("Returns & Warranty Policy");
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       <NavBar />

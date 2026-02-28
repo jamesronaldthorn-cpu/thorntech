@@ -6,6 +6,7 @@ import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
 import { useCart } from "@/lib/cart";
+import { usePageTitle, ProductJsonLd, BreadcrumbJsonLd } from "@/components/SEO";
 import type { Product, Category } from "@shared/schema";
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -71,9 +72,19 @@ export default function ProductPage() {
     );
   }
 
+  usePageTitle(product ? `${product.name} - Buy Online` : undefined);
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       <NavBar />
+      {product && <ProductJsonLd product={product} category={category?.name} />}
+      {product && (
+        <BreadcrumbJsonLd items={[
+          { name: "Home", url: "/" },
+          ...(category ? [{ name: category.name, url: `/category/${category.slug}` }] : []),
+          { name: product.name, url: `/product/${product.slug}` },
+        ]} />
+      )}
 
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">

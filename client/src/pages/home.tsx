@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
+import { usePageTitle } from "@/components/SEO";
 import type { Product, Category } from "@shared/schema";
 import heroBgImg from "@/assets/images/hero-bg.png";
 
@@ -45,6 +46,7 @@ export default function Home() {
     queryFn: () => fetch("/api/products").then(r => r.json()),
   });
 
+  usePageTitle();
   const catMap = new Map(categories.map(c => [c.id, c]));
 
   return (
