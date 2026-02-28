@@ -12,6 +12,8 @@ import CheckoutPage from "@/pages/checkout";
 import OrderConfirmationPage from "@/pages/order-confirmation";
 import AdminPage from "@/pages/admin";
 import AccountPage, { LoginPage, RegisterPage } from "@/pages/account";
+import ReturnsPage from "@/pages/returns";
+import ContactPage from "@/pages/contact";
 
 function Router() {
   return (
@@ -25,6 +27,8 @@ function Router() {
       <Route path="/account" component={AccountPage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/register" component={RegisterPage} />
+      <Route path="/returns" component={ReturnsPage} />
+      <Route path="/contact" component={ContactPage} />
       <Route component={NotFound} />
     </Switch>
   );

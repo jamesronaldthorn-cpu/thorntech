@@ -29,6 +29,8 @@ A fully functional e-commerce store for Thorn Tech Solutions Ltd (Company Reg: 1
 - `/login` — User login
 - `/register` — User registration
 - `/account` — User account dashboard (orders, details, password)
+- `/returns` — Returns & Warranty policy (UK Consumer Rights Act 2015 compliant)
+- `/contact` — Contact page with form (mailto:thorntech@hotmail.com) and phone (07868 552028)
 - `/admin` — Admin panel (products, categories, orders, feeds)
 
 ## API Routes
@@ -82,6 +84,8 @@ A fully functional e-commerce store for Thorn Tech Solutions Ltd (Company Reg: 1
 - `client/src/components/NavBar.tsx` — Navigation with cart drawer and user account link
 - `client/src/components/Footer.tsx` — Site footer
 - `client/src/components/ProductCard.tsx` — Reusable product card
+- `client/src/pages/returns.tsx` — Returns & Warranty policy page
+- `client/src/pages/contact.tsx` — Contact Us page with form
 
 ## Integrations
 - **Stripe**: Works with Replit connector or standard env vars (STRIPE_SECRET_KEY / STRIPE_PUBLISHABLE_KEY)

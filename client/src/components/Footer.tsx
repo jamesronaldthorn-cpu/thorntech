@@ -33,11 +33,13 @@ export default function Footer() {
         <div>
           <h4 className="font-display font-bold mb-4">Support</h4>
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li><a href="#" className="hover:text-primary transition-colors">Track Order / DPD</a></li>
-            <li><a href="#" className="hover:text-primary transition-colors">Returns & Refunds</a></li>
-            <li><a href="#" className="hover:text-primary transition-colors">UK Warranty Info</a></li>
-            <li><a href="#" className="hover:text-primary transition-colors">Contact Us</a></li>
+            <li><Link href="/returns" className="hover:text-primary transition-colors">Returns & Warranty</Link></li>
+            <li><Link href="/contact" className="hover:text-primary transition-colors">Contact Us</Link></li>
           </ul>
+          <div className="mt-4 pt-4 border-t border-white/5 text-xs text-muted-foreground/60 space-y-1">
+            <p className="flex items-center gap-2"><span>thorntech@hotmail.com</span></p>
+            <p className="flex items-center gap-2"><span>07868 552028</span></p>
+          </div>
         </div>
         <div>
           <h4 className="font-display font-bold mb-4">Newsletter</h4>

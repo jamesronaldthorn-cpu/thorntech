@@ -50,17 +50,20 @@ export default function Home() {
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-sm font-medium mb-6">
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-              UK's Premier PC Hardware Store
+              UK PC Components &amp; Hardware
             </div>
             <h2 className="text-5xl md:text-7xl font-display font-black tracking-tight mb-6 leading-tight">
-              BUILD YOUR <br/><span className="tech-gradient-text">ULTIMATE RIG</span>
+              PC COMPONENTS <br/><span className="tech-gradient-text">FOR EVERY BUILD</span>
             </h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-xl border-l-2 border-primary/50 pl-4">
-              Premium PC components, bespoke water-cooled builds, and enthusiast peripherals for gamers, creators, and professionals.
+              CPUs, GPUs, motherboards, RAM, storage, PSUs, cases and cooling — everything you need to build, upgrade, or repair your PC. All with UK warranty and fast DPD delivery.
             </p>
             <div className="flex flex-wrap gap-4">
-              <Link href="/category/graphics-cards">
-                <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-display tracking-wider rounded-none px-8">SHOP ALL COMPONENTS</Button>
+              <a href="#products">
+                <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-display tracking-wider rounded-none px-8">BROWSE COMPONENTS</Button>
+              </a>
+              <Link href="/contact">
+                <Button size="lg" variant="outline" className="border-primary/50 hover:bg-primary/20 font-display tracking-wider rounded-none px-8">GET IN TOUCH</Button>
               </Link>
             </div>
           </div>
@@ -82,10 +85,10 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="py-16 container mx-auto px-4">
+      <section id="products" className="py-16 container mx-auto px-4">
         <div className="flex items-end justify-between mb-10">
           <div>
-            <h2 className="text-3xl font-display font-bold mb-2">LATEST <span className="text-primary">DROPS</span></h2>
+            <h2 className="text-3xl font-display font-bold mb-2">OUR <span className="text-primary">COMPONENTS</span></h2>
             <div className="h-1 w-20 bg-primary rounded-full"></div>
           </div>
         </div>
