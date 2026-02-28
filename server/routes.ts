@@ -483,6 +483,46 @@ export async function registerRoutes(
     next();
   }
 
+  app.get("/api/admin/users", adminAuth, async (_req, res) => {
+    const allUsers = await storage.getUsers();
+    res.json(allUsers.map(u => ({ id: u.id, email: u.email, name: u.name, phone: u.phone, address: u.address, city: u.city, postcode: u.postcode, createdAt: u.createdAt })));
+  });
+
+  app.put("/api/admin/users/:id", adminAuth, async (req, res) => {
+    try {
+      const { name, email, phone, address, city, postcode } = req.body;
+      const updated = await storage.updateUser(parseInt(req.params.id), { name, email, phone, address, city, postcode });
+      if (!updated) return res.status(404).json({ error: "User not found" });
+      res.json({ id: updated.id, email: updated.email, name: updated.name, phone: updated.phone, address: updated.address, city: updated.city, postcode: updated.postcode, createdAt: updated.createdAt });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.put("/api/admin/users/:id/reset-password", adminAuth, async (req, res) => {
+    try {
+      const { newPassword } = req.body;
+      if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
+      const bcrypt = await import("bcryptjs");
+      const passwordHash = await bcrypt.hash(newPassword, 12);
+      const updated = await storage.updateUser(parseInt(req.params.id), { passwordHash });
+      if (!updated) return res.status(404).json({ error: "User not found" });
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.delete("/api/admin/users/:id", adminAuth, async (req, res) => {
+    try {
+      const deleted = await storage.deleteUser(parseInt(req.params.id));
+      if (!deleted) return res.status(404).json({ error: "User not found" });
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.get("/api/admin/products", adminAuth, async (_req, res) => {
     const prods = await storage.getProducts();
     res.json(prods);

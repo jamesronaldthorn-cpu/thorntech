@@ -6,7 +6,9 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUser(id: number): Promise<User | undefined>;
+  getUsers(): Promise<User[]>;
   updateUser(id: number, data: Partial<InsertUser>): Promise<User | undefined>;
+  deleteUser(id: number): Promise<boolean>;
   getCategories(): Promise<Category[]>;
   getCategoryBySlug(slug: string): Promise<Category | undefined>;
   createCategory(cat: InsertCategory): Promise<Category>;
@@ -54,9 +56,18 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async getUsers(): Promise<User[]> {
+    return this.db.select().from(users);
+  }
+
   async updateUser(id: number, data: Partial<InsertUser>): Promise<User | undefined> {
     const [updated] = await this.db.update(users).set(data).where(eq(users.id, id)).returning();
     return updated;
+  }
+
+  async deleteUser(id: number): Promise<boolean> {
+    const result = await this.db.delete(users).where(eq(users.id, id)).returning();
+    return result.length > 0;
   }
 
   async getCategories(): Promise<Category[]> {

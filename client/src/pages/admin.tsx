@@ -4,9 +4,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Package, Tag, ShoppingCart, Plus, Pencil, Trash2, LogOut,
-  Eye, EyeOff, X, Save, Search, ChevronDown, ChevronUp, Rss, Upload, Copy, ExternalLink, Download, Loader2, CheckCircle, AlertCircle
+  Eye, EyeOff, X, Save, Search, ChevronDown, ChevronUp, Rss, Upload, Copy, ExternalLink, Download, Loader2, CheckCircle, AlertCircle, Users, KeyRound
 } from "lucide-react";
 import type { Product, Category, Order, CustomFeed, FeedSource } from "@shared/schema";
+
+interface AdminUser {
+  id: number;
+  email: string;
+  name: string;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  postcode: string | null;
+  createdAt: string | null;
+}
 
 function adminFetch(url: string, options: RequestInit = {}) {
   const token = localStorage.getItem("admin_token") || "";
@@ -309,7 +320,7 @@ function FeedForm({ feed, onSave, onCancel }: {
   );
 }
 
-type Tab = "products" | "categories" | "orders" | "feeds";
+type Tab = "products" | "categories" | "orders" | "feeds" | "users";
 
 export default function AdminPage() {
   const [authed, setAuthed] = useState(!!localStorage.getItem("admin_token"));
@@ -319,6 +330,11 @@ export default function AdminPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [customFeeds, setCustomFeeds] = useState<CustomFeed[]>([]);
   const [feedSources, setFeedSources] = useState<FeedSource[]>([]);
+  const [usersList, setUsersList] = useState<AdminUser[]>([]);
+  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
+  const [resetPasswordId, setResetPasswordId] = useState<number | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [userMessage, setUserMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -336,12 +352,13 @@ export default function AdminPage() {
 
   const loadData = async () => {
     try {
-      const [pRes, cRes, oRes, fRes, sRes] = await Promise.all([
+      const [pRes, cRes, oRes, fRes, sRes, uRes] = await Promise.all([
         adminFetch("/api/admin/products"),
         adminFetch("/api/admin/categories"),
         adminFetch("/api/admin/orders"),
         adminFetch("/api/admin/feeds"),
         adminFetch("/api/admin/feed-sources"),
+        adminFetch("/api/admin/users"),
       ]);
       if (pRes.status === 401) { localStorage.removeItem("admin_token"); setAuthed(false); return; }
       setProducts(await pRes.json());
@@ -349,6 +366,7 @@ export default function AdminPage() {
       setOrders(await oRes.json());
       setCustomFeeds(await fRes.json());
       setFeedSources(await sRes.json());
+      setUsersList(await uRes.json());
     } catch {}
   };
 
@@ -490,8 +508,48 @@ export default function AdminPage() {
     { key: "products", label: "Products", icon: <Package className="w-4 h-4" />, count: products.length },
     { key: "categories", label: "Categories", icon: <Tag className="w-4 h-4" />, count: categories.length },
     { key: "orders", label: "Orders", icon: <ShoppingCart className="w-4 h-4" />, count: orders.length },
+    { key: "users", label: "Users", icon: <Users className="w-4 h-4" />, count: usersList.length },
     { key: "feeds", label: "Feeds", icon: <Rss className="w-4 h-4" />, count: customFeeds.length },
   ];
+
+  const filteredUsers = usersList.filter(u =>
+    u.name.toLowerCase().includes(search.toLowerCase()) ||
+    u.email.toLowerCase().includes(search.toLowerCase()) ||
+    (u.phone || "").includes(search)
+  );
+
+  const saveUser = async (user: AdminUser) => {
+    setUserMessage(null);
+    try {
+      const res = await adminFetch(`/api/admin/users/${user.id}`, { method: "PUT", body: JSON.stringify(user) });
+      if (!res.ok) { const data = await res.json(); setUserMessage({ type: "error", text: data.error }); return; }
+      setEditingUser(null);
+      setUserMessage({ type: "success", text: "User updated" });
+      loadData();
+    } catch (e: any) {
+      setUserMessage({ type: "error", text: e.message });
+    }
+  };
+
+  const resetUserPassword = async (userId: number) => {
+    setUserMessage(null);
+    try {
+      const res = await adminFetch(`/api/admin/users/${userId}/reset-password`, { method: "PUT", body: JSON.stringify({ newPassword }) });
+      const data = await res.json();
+      if (!res.ok) { setUserMessage({ type: "error", text: data.error }); return; }
+      setResetPasswordId(null);
+      setNewPassword("");
+      setUserMessage({ type: "success", text: "Password reset successfully" });
+    } catch (e: any) {
+      setUserMessage({ type: "error", text: e.message });
+    }
+  };
+
+  const deleteUser = async (id: number) => {
+    if (!confirm("Delete this user account? This cannot be undone.")) return;
+    await adminFetch(`/api/admin/users/${id}`, { method: "DELETE" });
+    loadData();
+  };
 
   const statusColors: Record<string, string> = {
     pending: "bg-yellow-500/20 text-yellow-400",
@@ -713,6 +771,102 @@ export default function AdminPage() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {tab === "users" && (
+          <div className="space-y-4">
+            {userMessage && (
+              <div className={`flex items-center gap-2 text-sm rounded-lg p-3 ${userMessage.type === "success" ? "bg-green-500/10 border border-green-500/20 text-green-400" : "bg-red-500/10 border border-red-500/20 text-red-400"}`}>
+                {userMessage.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                {userMessage.text}
+              </div>
+            )}
+
+            {editingUser && (
+              <div className="bg-white/5 border border-white/10 rounded-lg p-5 space-y-4">
+                <h3 className="text-sm font-medium text-white">Edit User #{editingUser.id}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-gray-400 text-xs">Name</Label>
+                    <Input value={editingUser.name} onChange={e => setEditingUser({ ...editingUser, name: e.target.value })} className="bg-white/5 border-white/10 text-white" data-testid="input-edit-user-name" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-gray-400 text-xs">Email</Label>
+                    <Input value={editingUser.email} onChange={e => setEditingUser({ ...editingUser, email: e.target.value })} className="bg-white/5 border-white/10 text-white" data-testid="input-edit-user-email" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-gray-400 text-xs">Phone</Label>
+                    <Input value={editingUser.phone || ""} onChange={e => setEditingUser({ ...editingUser, phone: e.target.value || null })} className="bg-white/5 border-white/10 text-white" data-testid="input-edit-user-phone" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-gray-400 text-xs">Address</Label>
+                    <Input value={editingUser.address || ""} onChange={e => setEditingUser({ ...editingUser, address: e.target.value || null })} className="bg-white/5 border-white/10 text-white" data-testid="input-edit-user-address" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-gray-400 text-xs">City</Label>
+                    <Input value={editingUser.city || ""} onChange={e => setEditingUser({ ...editingUser, city: e.target.value || null })} className="bg-white/5 border-white/10 text-white" data-testid="input-edit-user-city" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-gray-400 text-xs">Postcode</Label>
+                    <Input value={editingUser.postcode || ""} onChange={e => setEditingUser({ ...editingUser, postcode: e.target.value || null })} className="bg-white/5 border-white/10 text-white" data-testid="input-edit-user-postcode" />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" className="bg-purple-600 hover:bg-purple-700" onClick={() => saveUser(editingUser)} data-testid="button-save-user"><Save className="w-3 h-3 mr-1" /> Save</Button>
+                  <Button size="sm" variant="outline" onClick={() => { setEditingUser(null); setUserMessage(null); }} className="border-white/10 text-gray-400 hover:bg-white/5" data-testid="button-cancel-user"><X className="w-3 h-3 mr-1" /> Cancel</Button>
+                </div>
+              </div>
+            )}
+
+            {resetPasswordId && (
+              <div className="bg-white/5 border border-white/10 rounded-lg p-5 space-y-3">
+                <h3 className="text-sm font-medium text-white">Reset Password for User #{resetPasswordId}</h3>
+                <div className="flex gap-3 items-end max-w-md">
+                  <div className="flex-1 space-y-1">
+                    <Label className="text-gray-400 text-xs">New Password (min 8 characters)</Label>
+                    <Input type="text" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="bg-white/5 border-white/10 text-white" placeholder="Enter new password" data-testid="input-reset-password" />
+                  </div>
+                  <Button size="sm" className="bg-purple-600 hover:bg-purple-700" disabled={newPassword.length < 8} onClick={() => resetUserPassword(resetPasswordId)} data-testid="button-confirm-reset"><KeyRound className="w-3 h-3 mr-1" /> Reset</Button>
+                  <Button size="sm" variant="outline" onClick={() => { setResetPasswordId(null); setNewPassword(""); setUserMessage(null); }} className="border-white/10 text-gray-400 hover:bg-white/5"><X className="w-3 h-3 mr-1" /> Cancel</Button>
+                </div>
+              </div>
+            )}
+
+            {filteredUsers.length === 0 ? (
+              <div className="text-center py-16 text-gray-500">
+                <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p>{search ? "No users match your search" : "No registered users yet"}</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {filteredUsers.map(u => (
+                  <div key={u.id} className="bg-white/5 border border-white/10 rounded-lg p-4" data-testid={`card-user-${u.id}`}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium text-white" data-testid={`text-user-name-${u.id}`}>{u.name}</span>
+                          <span className="text-xs text-gray-500">#{u.id}</span>
+                        </div>
+                        <p className="text-sm text-purple-400" data-testid={`text-user-email-${u.id}`}>{u.email}</p>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-gray-500">
+                          {u.phone && <span>Phone: {u.phone}</span>}
+                          {u.address && <span>{u.address}</span>}
+                          {u.city && <span>{u.city}</span>}
+                          {u.postcode && <span>{u.postcode}</span>}
+                          {u.createdAt && <span>Joined: {new Date(u.createdAt).toLocaleDateString("en-GB")}</span>}
+                        </div>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <Button size="sm" variant="ghost" onClick={() => { setEditingUser({ ...u }); setResetPasswordId(null); setUserMessage(null); }} className="text-gray-400 hover:text-white h-8 w-8 p-0" title="Edit user" data-testid={`button-edit-user-${u.id}`}><Pencil className="w-3.5 h-3.5" /></Button>
+                        <Button size="sm" variant="ghost" onClick={() => { setResetPasswordId(u.id); setEditingUser(null); setNewPassword(""); setUserMessage(null); }} className="text-gray-400 hover:text-yellow-400 h-8 w-8 p-0" title="Reset password" data-testid={`button-reset-pw-${u.id}`}><KeyRound className="w-3.5 h-3.5" /></Button>
+                        <Button size="sm" variant="ghost" onClick={() => deleteUser(u.id)} className="text-gray-400 hover:text-red-400 h-8 w-8 p-0" title="Delete user" data-testid={`button-delete-user-${u.id}`}><Trash2 className="w-3.5 h-3.5" /></Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
