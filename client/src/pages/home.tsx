@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Cpu, Monitor, HardDrive, Zap, ChevronRight,
   ShieldCheck, Truck, Headset,
-  Fan, Box, Keyboard, CircuitBoard
+  Fan, Box, Keyboard, CircuitBoard,
+  MemoryStick, Cable, Mouse, Wifi, Speaker, Gamepad2, Disc, Server, MonitorSpeaker
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import NavBar from "@/components/NavBar";
@@ -21,6 +22,16 @@ const iconMap: Record<string, React.ReactNode> = {
   Fan: <Fan className="w-6 h-6 text-primary" />,
   Box: <Box className="w-6 h-6 text-primary" />,
   Keyboard: <Keyboard className="w-6 h-6 text-primary" />,
+  MemoryStick: <MemoryStick className="w-6 h-6 text-primary" />,
+  Cable: <Cable className="w-6 h-6 text-primary" />,
+  Mouse: <Mouse className="w-6 h-6 text-primary" />,
+  Wifi: <Wifi className="w-6 h-6 text-primary" />,
+  Speaker: <Speaker className="w-6 h-6 text-primary" />,
+  Headset: <Headset className="w-6 h-6 text-primary" />,
+  Gamepad2: <Gamepad2 className="w-6 h-6 text-primary" />,
+  Disc: <Disc className="w-6 h-6 text-primary" />,
+  Server: <Server className="w-6 h-6 text-primary" />,
+  MonitorSpeaker: <MonitorSpeaker className="w-6 h-6 text-primary" />,
 };
 
 export default function Home() {
@@ -72,7 +83,7 @@ export default function Home() {
 
       <section className="py-20 relative z-20 -mt-20">
         <div className="container px-4 mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {categories.map((cat) => (
               <Link key={cat.id} href={`/category/${cat.slug}`} className="tech-border glass-panel p-4 rounded-lg group cursor-pointer hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center" data-testid={`link-category-${cat.slug}`}>
                 <div className="p-3 rounded-full bg-white/5 group-hover:bg-primary/20 transition-colors mb-3">
