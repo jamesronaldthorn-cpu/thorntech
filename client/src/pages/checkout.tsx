@@ -42,7 +42,7 @@ export default function CheckoutPage() {
   }, [user]);
 
   const subtotal = getTotal();
-  const shipping = subtotal >= 200 ? 0 : 5.99;
+  const shipping = subtotal >= 200 ? 0 : 7.99;
   const total = subtotal + shipping;
 
   const updateField = (field: string, value: string) => {
