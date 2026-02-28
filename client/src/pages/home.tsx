@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { 
   ShoppingCart, 
@@ -10,10 +11,21 @@ import {
   ChevronRight,
   ShieldCheck,
   Truck,
-  Headset
+  Headset,
+  X,
+  Plus,
+  Minus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetFooter,
+} from "@/components/ui/sheet";
 
 // Import generated assets
 import logoImg from "@/assets/images/logo.png";
@@ -23,10 +35,10 @@ import catCpuImg from "@/assets/images/cat-cpu.png";
 
 // Mock Product Data
 const featuredProducts = [
-  { id: 1, name: "Thorn RTX 4090 Ultra X", price: "$1,599.99", category: "Graphics Cards", image: catGpuImg, badge: "New Release" },
-  { id: 2, name: "Ryzen 9 7950X3D", price: "$699.99", category: "Processors", image: catCpuImg, badge: "Best Seller" },
-  { id: 3, name: "Dominator Platinum 64GB DDR5", price: "$249.99", category: "Memory", image: catCpuImg, badge: "" },
-  { id: 4, name: "NVMe 2TB Gen4 M.2", price: "$159.99", category: "Storage", image: catGpuImg, badge: "Sale" },
+  { id: 1, name: "Thorn RTX 4090 Ultra X", price: 1599.99, priceStr: "$1,599.99", category: "Graphics Cards", image: catGpuImg, badge: "New Release" },
+  { id: 2, name: "Ryzen 9 7950X3D", price: 699.99, priceStr: "$699.99", category: "Processors", image: catCpuImg, badge: "Best Seller" },
+  { id: 3, name: "Dominator Platinum 64GB DDR5", price: 249.99, priceStr: "$249.99", category: "Memory", image: catCpuImg, badge: "" },
+  { id: 4, name: "NVMe 2TB Gen4 M.2", price: 159.99, priceStr: "$159.99", category: "Storage", image: catGpuImg, badge: "Sale" },
 ];
 
 const categories = [
@@ -37,6 +49,33 @@ const categories = [
 ];
 
 export default function Home() {
+  const [cart, setCart] = useState<{product: any, quantity: number}[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+
+  const addToCart = (product: any) => {
+    setCart(prev => {
+      const existing = prev.find(item => item.product.id === product.id);
+      if (existing) {
+        return prev.map(item => item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+      }
+      return [...prev, { product, quantity: 1 }];
+    });
+    setIsCartOpen(true);
+  };
+
+  const updateQuantity = (id: number, delta: number) => {
+    setCart(prev => prev.map(item => {
+      if (item.product.id === id) {
+        const newQuantity = Math.max(0, item.quantity + delta);
+        return { ...item, quantity: newQuantity };
+      }
+      return item;
+    }).filter(item => item.quantity > 0));
+  };
+
+  const cartTotal = cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
+  const cartCount = cart.reduce((count, item) => count + item.quantity, 0);
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       {/* Navigation */}
@@ -65,10 +104,80 @@ export default function Home() {
             <Button variant="ghost" size="icon" className="md:hidden">
               <Search className="w-5 h-5" />
             </Button>
-            <Button variant="ghost" size="icon" className="relative group">
-              <ShoppingCart className="w-5 h-5 group-hover:text-primary transition-colors" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full"></span>
-            </Button>
+            
+            {/* Shopify Cart Drawer */}
+            <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative group" data-testid="button-cart">
+                  <ShoppingCart className="w-5 h-5 group-hover:text-primary transition-colors" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-[10px] font-bold flex items-center justify-center rounded-full">
+                      {cartCount}
+                    </span>
+                  )}
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="w-full sm:max-w-md border-l border-white/10 bg-background/95 backdrop-blur-xl flex flex-col">
+                <SheetHeader className="border-b border-white/10 pb-4">
+                  <SheetTitle className="font-display tracking-wider text-left">YOUR CART</SheetTitle>
+                </SheetHeader>
+                
+                <div className="flex-1 overflow-y-auto py-4 space-y-6">
+                  {cart.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-muted-foreground space-y-4">
+                      <ShoppingCart className="w-16 h-16 opacity-20" />
+                      <p>Your cart is empty</p>
+                      <Button variant="outline" onClick={() => setIsCartOpen(false)}>
+                        Continue Shopping
+                      </Button>
+                    </div>
+                  ) : (
+                    cart.map(item => (
+                      <div key={item.product.id} className="flex gap-4 items-center">
+                        <div className="w-20 h-20 bg-black/40 rounded border border-white/5 p-2 flex-shrink-0">
+                          <img src={item.product.image} alt={item.product.name} className="w-full h-full object-contain" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium text-sm line-clamp-1">{item.product.name}</h4>
+                          <div className="text-primary font-display font-bold text-sm mb-2">{item.product.priceStr}</div>
+                          <div className="flex items-center gap-2">
+                            <Button variant="outline" size="icon" className="h-6 w-6 rounded-full border-white/20" onClick={() => updateQuantity(item.product.id, -1)}>
+                              <Minus className="w-3 h-3" />
+                            </Button>
+                            <span className="text-sm w-4 text-center">{item.quantity}</span>
+                            <Button variant="outline" size="icon" className="h-6 w-6 rounded-full border-white/20" onClick={() => updateQuantity(item.product.id, 1)}>
+                              <Plus className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={() => updateQuantity(item.product.id, -item.quantity)}>
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {cart.length > 0 && (
+                  <div className="pt-4 border-t border-white/10 space-y-4">
+                    <div className="flex justify-between items-center text-lg font-bold">
+                      <span>Subtotal</span>
+                      <span className="font-display">${cartTotal.toFixed(2)}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground text-center">Taxes and shipping calculated at checkout</p>
+                    <div className="grid gap-2">
+                      <Button className="w-full font-display tracking-widest bg-primary hover:bg-primary/80 h-12 text-lg">
+                        CHECKOUT
+                      </Button>
+                      <Button className="w-full bg-[#5A31F4] hover:bg-[#5A31F4]/90 text-white font-bold h-12 flex items-center justify-center gap-2">
+                        <span className="text-xl tracking-tight">Shop</span> <span className="bg-white text-[#5A31F4] px-1 rounded text-sm">Pay</span>
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </SheetContent>
+            </Sheet>
+
             <Button variant="outline" className="hidden sm:flex border-primary/50 hover:bg-primary/20 hover:text-white transition-all font-display tracking-widest">
               SIGN IN
             </Button>
@@ -144,7 +253,7 @@ export default function Home() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {featuredProducts.map((product) => (
-            <div key={product.id} className="group flex flex-col bg-card border border-white/5 rounded-xl overflow-hidden hover:border-primary/50 transition-colors">
+            <div key={product.id} className="group flex flex-col bg-card border border-white/5 rounded-xl overflow-hidden hover:border-primary/50 transition-colors relative">
               <div className="relative aspect-square p-6 bg-black/40 flex items-center justify-center overflow-hidden">
                 {product.badge && (
                   <div className="absolute top-3 left-3 z-10 bg-primary text-xs font-bold px-2 py-1 rounded">
@@ -156,16 +265,29 @@ export default function Home() {
                   alt={product.name} 
                   className="w-full h-full object-contain filter drop-shadow-2xl group-hover:scale-110 transition-transform duration-500"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-6">
-                  <Button className="w-3/4 font-display tracking-widest bg-primary hover:bg-primary/80">
-                    ADD TO CART
-                  </Button>
-                </div>
               </div>
               <div className="p-5 flex-1 flex flex-col">
                 <span className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{product.category}</span>
-                <h3 className="font-medium text-lg mb-2 leading-tight flex-1">{product.name}</h3>
-                <div className="font-display font-bold text-xl text-primary">{product.price}</div>
+                <h3 className="font-medium text-lg mb-2 leading-tight flex-1 hover:text-primary cursor-pointer transition-colors">{product.name}</h3>
+                <div className="font-display font-bold text-xl text-primary mb-4">{product.priceStr}</div>
+                
+                {/* Shopify-style Add to Cart actions */}
+                <div className="grid gap-2 mt-auto">
+                  <Button 
+                    onClick={() => addToCart(product)}
+                    className="w-full font-display tracking-widest bg-white/10 hover:bg-white/20 text-white border border-white/10"
+                    data-testid={`button-add-cart-${product.id}`}
+                  >
+                    ADD TO CART
+                  </Button>
+                  <Button 
+                    onClick={() => addToCart(product)}
+                    className="w-full bg-[#5A31F4] hover:bg-[#5A31F4]/90 text-white font-bold flex items-center justify-center gap-2"
+                    data-testid={`button-buy-now-${product.id}`}
+                  >
+                    Buy with <span className="text-lg tracking-tight">Shop</span> <span className="bg-white text-[#5A31F4] px-1 rounded text-xs">Pay</span>
+                  </Button>
+                </div>
               </div>
             </div>
           ))}
@@ -235,7 +357,7 @@ export default function Home() {
           </div>
         </div>
         <div className="container mx-auto px-4 mt-12 pt-8 border-t border-white/10 text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} Thorn Tech Solutions Ltd. All rights reserved.
+          &copy; {new Date().getFullYear()} Thorn Tech Solutions Ltd. All rights reserved. Powered by mock Shopify integration.
         </div>
       </footer>
     </div>
