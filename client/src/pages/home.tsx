@@ -62,9 +62,6 @@ export default function Home() {
               <Link href="/category/graphics-cards">
                 <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-display tracking-wider rounded-none px-8">SHOP ALL COMPONENTS</Button>
               </Link>
-              <Button size="lg" variant="outline" className="border-white/20 hover:bg-white/5 font-display tracking-wider rounded-none px-8 group">
-                CUSTOM PC BUILDER <ChevronRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Button>
             </div>
           </div>
         </div>
