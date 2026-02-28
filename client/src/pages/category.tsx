@@ -27,6 +27,8 @@ export default function CategoryPage() {
     queryFn: () => fetch("/api/categories").then(r => r.json()),
   });
 
+  usePageTitle(category ? `${category.name} - Buy Online UK` : undefined);
+
   const isLoading = catLoading || prodsLoading;
 
   if (isLoading) {
@@ -53,8 +55,6 @@ export default function CategoryPage() {
       </div>
     );
   }
-
-  usePageTitle(category ? `${category.name} - Buy Online UK` : undefined);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
