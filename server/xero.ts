@@ -1,4 +1,3 @@
-import { XeroClient } from "xero-node";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { eq, desc } from "drizzle-orm";
 import { xeroTokens } from "@shared/schema";
@@ -10,86 +9,124 @@ const XERO_SCOPES = "openid profile email accounting.transactions accounting.con
 
 const db = drizzle(process.env.DATABASE_URL!);
 
-let xeroClient: XeroClient | null = null;
-
-function getXeroClient(): XeroClient {
-  if (!xeroClient) {
-    xeroClient = new XeroClient({
-      clientId: XERO_CLIENT_ID,
-      clientSecret: XERO_CLIENT_SECRET,
-      redirectUris: [XERO_REDIRECT_URI],
-      scopes: XERO_SCOPES.split(" "),
-    });
-  }
-  return xeroClient;
-}
-
 export function getAuthUrl(): string {
-  const client = getXeroClient();
-  const consentUrl = client.buildConsentUrl();
-  return consentUrl;
+  const params = new URLSearchParams({
+    response_type: "code",
+    client_id: XERO_CLIENT_ID,
+    redirect_uri: XERO_REDIRECT_URI,
+    scope: XERO_SCOPES,
+    state: "xero-connect",
+  });
+  return `https://login.xero.com/identity/connect/authorize?${params.toString()}`;
 }
 
-export async function handleCallback(url: string): Promise<{ tenantId: string; tenantName: string }> {
-  const client = getXeroClient();
-  const tokenSet = await client.apiCallback(url);
-  await client.updateTenants();
+async function exchangeCodeForTokens(code: string) {
+  const basicAuth = Buffer.from(`${XERO_CLIENT_ID}:${XERO_CLIENT_SECRET}`).toString("base64");
 
-  const activeTenant = client.tenants[0];
-  if (!activeTenant) {
+  const res = await fetch("https://identity.xero.com/connect/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: `Basic ${basicAuth}`,
+    },
+    body: new URLSearchParams({
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: XERO_REDIRECT_URI,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Token exchange failed: ${err}`);
+  }
+
+  return res.json();
+}
+
+async function refreshAccessToken(refreshToken: string) {
+  const basicAuth = Buffer.from(`${XERO_CLIENT_ID}:${XERO_CLIENT_SECRET}`).toString("base64");
+
+  const res = await fetch("https://identity.xero.com/connect/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: `Basic ${basicAuth}`,
+    },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Token refresh failed: ${err}`);
+  }
+
+  return res.json();
+}
+
+async function getTenants(accessToken: string) {
+  const res = await fetch("https://api.xero.com/connections", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!res.ok) throw new Error("Failed to get Xero tenants");
+  return res.json();
+}
+
+export async function handleCallback(callbackUrl: string): Promise<{ tenantId: string; tenantName: string }> {
+  const url = new URL(callbackUrl);
+  const code = url.searchParams.get("code");
+  if (!code) throw new Error("No authorization code received");
+
+  const tokenData = await exchangeCodeForTokens(code);
+  const tenants = await getTenants(tokenData.access_token);
+
+  if (!tenants || tenants.length === 0) {
     throw new Error("No Xero organisation found");
   }
+
+  const tenant = tenants[0];
 
   await db.delete(xeroTokens);
 
   await db.insert(xeroTokens).values({
-    accessToken: tokenSet.access_token!,
-    refreshToken: tokenSet.refresh_token!,
-    tenantId: activeTenant.tenantId,
-    tenantName: activeTenant.tenantName || null,
-    expiresAt: new Date(Date.now() + (tokenSet.expires_in || 1800) * 1000),
+    accessToken: tokenData.access_token,
+    refreshToken: tokenData.refresh_token,
+    tenantId: tenant.tenantId,
+    tenantName: tenant.tenantName || null,
+    expiresAt: new Date(Date.now() + (tokenData.expires_in || 1800) * 1000),
   });
 
-  return { tenantId: activeTenant.tenantId, tenantName: activeTenant.tenantName || "" };
+  return { tenantId: tenant.tenantId, tenantName: tenant.tenantName || "" };
 }
 
 async function getValidTokens() {
   const [token] = await db.select().from(xeroTokens).orderBy(desc(xeroTokens.id)).limit(1);
   if (!token) return null;
 
-  const client = getXeroClient();
-
   if (new Date() >= token.expiresAt) {
     try {
-      client.setTokenSet({
-        access_token: token.accessToken,
-        refresh_token: token.refreshToken,
-        token_type: "Bearer",
-      });
-      const newTokenSet = await client.refreshToken();
+      const newTokenData = await refreshAccessToken(token.refreshToken);
 
       await db.update(xeroTokens).set({
-        accessToken: newTokenSet.access_token!,
-        refreshToken: newTokenSet.refresh_token!,
-        expiresAt: new Date(Date.now() + (newTokenSet.expires_in || 1800) * 1000),
+        accessToken: newTokenData.access_token,
+        refreshToken: newTokenData.refresh_token,
+        expiresAt: new Date(Date.now() + (newTokenData.expires_in || 1800) * 1000),
       }).where(eq(xeroTokens.id, token.id));
 
       return {
         ...token,
-        accessToken: newTokenSet.access_token!,
-        refreshToken: newTokenSet.refresh_token!,
+        accessToken: newTokenData.access_token,
+        refreshToken: newTokenData.refresh_token,
       };
     } catch (e) {
       console.error("[Xero] Token refresh failed:", e);
       return null;
     }
   }
-
-  client.setTokenSet({
-    access_token: token.accessToken,
-    refresh_token: token.refreshToken,
-    token_type: "Bearer",
-  });
 
   return token;
 }
@@ -102,7 +139,28 @@ export async function isConnected(): Promise<{ connected: boolean; tenantName?: 
 
 export async function disconnect(): Promise<void> {
   await db.delete(xeroTokens);
-  xeroClient = null;
+}
+
+async function xeroApiRequest(method: string, url: string, accessToken: string, tenantId: string, body?: any) {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${accessToken}`,
+    "xero-tenant-id": tenantId,
+    Accept: "application/json",
+  };
+  if (body) headers["Content-Type"] = "application/json";
+
+  const res = await fetch(url, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Xero API error ${res.status}: ${errText}`);
+  }
+
+  return res.json();
 }
 
 export async function createInvoice(order: {
@@ -122,8 +180,6 @@ export async function createInvoice(order: {
     return null;
   }
 
-  const client = getXeroClient();
-
   try {
     let parsedItems: Array<{ name: string; price: number; quantity: number }> = [];
     try {
@@ -132,63 +188,77 @@ export async function createInvoice(order: {
       parsedItems = [{ name: "Order items", price: order.total, quantity: 1 }];
     }
 
-    const contactResponse = await client.accountingApi.getContacts(token.tenantId, undefined, `EmailAddress=="${order.email}"`);
+    const contactsResult = await xeroApiRequest(
+      "GET",
+      `https://api.xero.com/api.xro/2.0/Contacts?where=EmailAddress=="${encodeURIComponent(order.email)}"`,
+      token.accessToken,
+      token.tenantId
+    );
+
     let contactId: string;
 
-    if (contactResponse.body.contacts && contactResponse.body.contacts.length > 0) {
-      contactId = contactResponse.body.contacts[0].contactID!;
+    if (contactsResult.Contacts && contactsResult.Contacts.length > 0) {
+      contactId = contactsResult.Contacts[0].ContactID;
     } else {
       const nameParts = order.name.split(" ");
-      const newContact = await client.accountingApi.createContacts(token.tenantId, {
-        contacts: [{
-          name: order.name,
-          firstName: nameParts[0],
-          lastName: nameParts.slice(1).join(" ") || undefined,
-          emailAddress: order.email,
-          phones: order.phone ? [{
-            phoneType: 0,
-            phoneNumber: order.phone,
-          }] : undefined,
-          addresses: [{
-            addressType: 2,
-            addressLine1: order.address,
-            city: order.city,
-            postalCode: order.postcode,
-            country: "United Kingdom",
+      const newContact = await xeroApiRequest(
+        "POST",
+        "https://api.xero.com/api.xro/2.0/Contacts",
+        token.accessToken,
+        token.tenantId,
+        {
+          Name: order.name,
+          FirstName: nameParts[0],
+          LastName: nameParts.slice(1).join(" ") || undefined,
+          EmailAddress: order.email,
+          Phones: order.phone ? [{ PhoneType: "DEFAULT", PhoneNumber: order.phone }] : undefined,
+          Addresses: [{
+            AddressType: "POBOX",
+            AddressLine1: order.address,
+            City: order.city,
+            PostalCode: order.postcode,
+            Country: "United Kingdom",
           }],
-        }],
-      });
-      contactId = newContact.body.contacts![0].contactID!;
+        }
+      );
+      contactId = newContact.Contacts[0].ContactID;
     }
 
     const lineItems = parsedItems.map(item => ({
-      description: item.name,
-      quantity: item.quantity,
-      unitAmount: item.price,
-      accountCode: "200",
-      taxType: "OUTPUT2",
+      Description: item.name,
+      Quantity: item.quantity,
+      UnitAmount: item.price,
+      AccountCode: "200",
+      TaxType: "OUTPUT2",
     }));
 
-    const invoiceResponse = await client.accountingApi.createInvoices(token.tenantId, {
-      invoices: [{
-        type: 1,
-        contact: { contactID: contactId },
-        lineItems,
-        date: new Date().toISOString().split("T")[0],
-        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-        reference: `Order #${order.id}`,
-        status: 1,
-        lineAmountTypes: 1,
-        currencyCode: "GBP",
-      }],
-    });
+    const today = new Date().toISOString().split("T")[0];
+    const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
-    const invoice = invoiceResponse.body.invoices![0];
-    console.log(`[Xero] Invoice created: ${invoice.invoiceNumber} for order #${order.id}`);
+    const invoiceResult = await xeroApiRequest(
+      "POST",
+      "https://api.xero.com/api.xro/2.0/Invoices",
+      token.accessToken,
+      token.tenantId,
+      {
+        Type: "ACCREC",
+        Contact: { ContactID: contactId },
+        LineItems: lineItems,
+        Date: today,
+        DueDate: dueDate,
+        Reference: `Order #${order.id}`,
+        Status: "AUTHORISED",
+        LineAmountTypes: "Inclusive",
+        CurrencyCode: "GBP",
+      }
+    );
+
+    const invoice = invoiceResult.Invoices[0];
+    console.log(`[Xero] Invoice created: ${invoice.InvoiceNumber} for order #${order.id}`);
 
     return {
-      invoiceId: invoice.invoiceID!,
-      invoiceNumber: invoice.invoiceNumber!,
+      invoiceId: invoice.InvoiceID,
+      invoiceNumber: invoice.InvoiceNumber,
     };
   } catch (e: any) {
     console.error("[Xero] Invoice creation failed:", e.message || e);
