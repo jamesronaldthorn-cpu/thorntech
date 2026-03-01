@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Package, Tag, ShoppingCart, Plus, Pencil, Trash2, LogOut,
-  Eye, EyeOff, X, Save, Search, ChevronDown, ChevronUp, Rss, Upload, Copy, ExternalLink, Download, Loader2, CheckCircle, AlertCircle, Users, KeyRound, BarChart3, TrendingUp, Globe, Calendar
+  Eye, EyeOff, X, Save, Search, ChevronDown, ChevronUp, Rss, Upload, Copy, ExternalLink, Download, Loader2, CheckCircle, AlertCircle, Users, KeyRound, BarChart3, TrendingUp, Globe, Calendar, RotateCcw
 } from "lucide-react";
 import type { Product, Category, Order, CustomFeed, FeedSource, BlogPost } from "@shared/schema";
 import { FileText } from "lucide-react";
@@ -439,6 +439,9 @@ export default function AdminPage() {
   const [runningSource, setRunningSource] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [expandedOrder, setExpandedOrder] = useState<number | null>(null);
+  const [refundingOrder, setRefundingOrder] = useState<number | null>(null);
+  const [refundAmount, setRefundAmount] = useState("");
+  const [refundLoading, setRefundLoading] = useState(false);
   const [xeroStatus, setXeroStatus] = useState<{ connected: boolean; tenantName?: string }>({ connected: false });
   const [xeroLoading, setXeroLoading] = useState(false);
 
@@ -513,6 +516,35 @@ export default function AdminPage() {
   const updateOrderStatus = async (id: number, status: string) => {
     await adminFetch(`/api/admin/orders/${id}/status`, { method: "PUT", body: JSON.stringify({ status }) });
     loadData();
+  };
+
+  const processRefund = async (orderId: number, total: number) => {
+    const amount = parseFloat(refundAmount) || total;
+    if (amount <= 0 || amount > total) {
+      alert(`Refund amount must be between £0.01 and £${total.toFixed(2)}`);
+      return;
+    }
+    if (!confirm(`Process a £${amount.toFixed(2)} refund for order #${orderId}? This will refund the customer via their original payment method and create a credit note in Xero.`)) return;
+    setRefundLoading(true);
+    try {
+      const res = await adminFetch(`/api/admin/orders/${orderId}/refund`, {
+        method: "POST",
+        body: JSON.stringify({ amount }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Refund failed");
+      } else {
+        alert(`Refund of £${amount.toFixed(2)} processed successfully for order #${orderId}` +
+          (data.xero?.creditNoteNumber ? `\nXero credit note: ${data.xero.creditNoteNumber}` : ""));
+        setRefundingOrder(null);
+        setRefundAmount("");
+        loadData();
+      }
+    } catch (e: any) {
+      alert("Refund error: " + e.message);
+    }
+    setRefundLoading(false);
   };
 
   const saveFeed = async (data: any) => {
@@ -710,6 +742,7 @@ export default function AdminPage() {
     delivered: "bg-emerald-500/20 text-emerald-400",
     cancelled: "bg-red-500/20 text-red-400",
     refunded: "bg-gray-500/20 text-gray-400",
+    partial_refund: "bg-orange-500/20 text-orange-400",
   };
 
   return (
@@ -1043,7 +1076,7 @@ export default function AdminPage() {
                           </div>
                         ))}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <Label className="text-gray-500 text-xs">Update Status:</Label>
                         <select
                           value={o.status}
@@ -1058,8 +1091,67 @@ export default function AdminPage() {
                           <option value="delivered">Delivered</option>
                           <option value="cancelled">Cancelled</option>
                           <option value="refunded">Refunded</option>
+                          <option value="partial_refund">Partial Refund</option>
                         </select>
+                        {(o.status === "paid" || o.status === "shipped" || o.status === "delivered") && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => { setRefundingOrder(refundingOrder === o.id ? null : o.id); setRefundAmount(o.total.toFixed(2)); }}
+                            className="border-red-500/30 text-red-400 hover:bg-red-500/10 ml-2"
+                            data-testid={`button-refund-${o.id}`}
+                          >
+                            <RotateCcw className="w-3 h-3 mr-1" /> Refund
+                          </Button>
+                        )}
+                        {o.status === "refunded" && (
+                          <span className="text-xs text-red-400 ml-2">Fully refunded</span>
+                        )}
+                        {o.status === "partial_refund" && (
+                          <span className="text-xs text-yellow-400 ml-2">Partially refunded</span>
+                        )}
                       </div>
+                      {refundingOrder === o.id && (
+                        <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-4 space-y-3 mt-2">
+                          <h4 className="text-sm font-medium text-red-400">Process Refund — Order #{o.id}</h4>
+                          <p className="text-xs text-gray-400">This will refund the customer via {o.paymentMethod === "stripe" ? "Stripe" : "PayPal"} and create a credit note in Xero (if connected).</p>
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
+                              <Label className="text-gray-400 text-xs whitespace-nowrap">Refund Amount (£):</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                max={o.total}
+                                value={refundAmount}
+                                onChange={e => setRefundAmount(e.target.value)}
+                                className="w-32 bg-white/5 border-white/10 text-white"
+                                data-testid={`input-refund-amount-${o.id}`}
+                              />
+                              <span className="text-xs text-gray-500">of £{o.total.toFixed(2)}</span>
+                            </div>
+                            <Button
+                              size="sm"
+                              onClick={() => processRefund(o.id, o.total)}
+                              disabled={refundLoading}
+                              className="bg-red-600 hover:bg-red-700 text-white"
+                              data-testid={`button-confirm-refund-${o.id}`}
+                            >
+                              {refundLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+                              Confirm Refund
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => { setRefundingOrder(null); setRefundAmount(""); }}
+                              className="text-gray-400"
+                              data-testid={`button-cancel-refund-${o.id}`}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

@@ -648,6 +648,127 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/admin/orders/:id/refund", adminAuth, async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      const order = await storage.getOrder(orderId);
+      if (!order) return res.status(404).json({ error: "Order not found" });
+
+      if (order.status === "refunded") {
+        return res.status(400).json({ error: "Order has already been refunded" });
+      }
+
+      if (order.status !== "paid" && order.status !== "shipped" && order.status !== "delivered") {
+        return res.status(400).json({ error: "Only paid, shipped, or delivered orders can be refunded" });
+      }
+
+      const refundAmount = req.body.amount ? parseFloat(req.body.amount) : order.total;
+      if (refundAmount <= 0 || refundAmount > order.total) {
+        return res.status(400).json({ error: `Refund amount must be between £0.01 and £${order.total.toFixed(2)}` });
+      }
+
+      const results: { stripe?: any; paypal?: any; xero?: any; error?: string } = {};
+
+      if (order.paymentMethod === "stripe" && order.paymentId) {
+        try {
+          const stripe = await getUncachableStripeClient();
+          const refund = await stripe.refunds.create({
+            payment_intent: order.paymentId,
+            amount: Math.round(refundAmount * 100),
+          });
+          results.stripe = { id: refund.id, status: refund.status };
+          console.log(`[Refund] Stripe refund ${refund.id} created for order #${orderId}`);
+        } catch (e: any) {
+          console.error("[Refund] Stripe refund failed:", e.message);
+          return res.status(500).json({ error: `Stripe refund failed: ${e.message}` });
+        }
+      } else if (order.paymentMethod === "paypal" && order.paymentId) {
+        try {
+          const { PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET } = process.env;
+          if (!PAYPAL_CLIENT_ID || !PAYPAL_CLIENT_SECRET) {
+            return res.status(500).json({ error: "PayPal credentials not configured" });
+          }
+
+          const isProduction = process.env.NODE_ENV === "production";
+          const paypalBase = isProduction
+            ? "https://api-m.paypal.com"
+            : "https://api-m.sandbox.paypal.com";
+
+          const authRes = await fetch(`${paypalBase}/v1/oauth2/token`, {
+            method: "POST",
+            headers: {
+              Authorization: `Basic ${Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`).toString("base64")}`,
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: "grant_type=client_credentials",
+          });
+
+          if (!authRes.ok) throw new Error("Failed to get PayPal access token");
+          const authData = await authRes.json();
+
+          const captureRes = await fetch(`${paypalBase}/v2/checkout/orders/${order.paymentId}`, {
+            headers: { Authorization: `Bearer ${authData.access_token}` },
+          });
+          const captureData = await captureRes.json();
+
+          const captureId = captureData?.purchase_units?.[0]?.payments?.captures?.[0]?.id;
+          if (!captureId) throw new Error("Could not find PayPal capture ID");
+
+          const refundRes = await fetch(`${paypalBase}/v2/payments/captures/${captureId}/refund`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${authData.access_token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              amount: {
+                value: refundAmount.toFixed(2),
+                currency_code: "GBP",
+              },
+              note_to_payer: `Refund for Order #${orderId} from Thorn Tech Solutions Ltd`,
+            }),
+          });
+
+          if (!refundRes.ok) {
+            const errData = await refundRes.text();
+            throw new Error(`PayPal refund failed: ${errData}`);
+          }
+
+          const refundData = await refundRes.json();
+          results.paypal = { id: refundData.id, status: refundData.status };
+          console.log(`[Refund] PayPal refund ${refundData.id} created for order #${orderId}`);
+        } catch (e: any) {
+          console.error("[Refund] PayPal refund failed:", e.message);
+          return res.status(500).json({ error: `PayPal refund failed: ${e.message}` });
+        }
+      }
+
+      const isFullRefund = refundAmount >= order.total;
+      await storage.updateOrderStatus(orderId, isFullRefund ? "refunded" : "partial_refund");
+
+      try {
+        const creditNote = await xero.createCreditNote(order, refundAmount);
+        if (creditNote) {
+          results.xero = creditNote;
+        }
+      } catch (e: any) {
+        console.error("[Refund] Xero credit note failed:", e.message);
+        results.xero = { error: e.message };
+      }
+
+      res.json({
+        success: true,
+        orderId,
+        refundAmount,
+        isFullRefund,
+        ...results,
+      });
+    } catch (e: any) {
+      console.error("[Refund] Error:", e);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.get("/api/admin/feeds", adminAuth, async (_req, res) => {
     const feeds = await storage.getCustomFeeds();
     res.json(feeds);

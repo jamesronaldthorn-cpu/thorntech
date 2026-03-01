@@ -265,3 +265,74 @@ export async function createInvoice(order: {
     return null;
   }
 }
+
+export async function createCreditNote(order: {
+  id: number;
+  email: string;
+  name: string;
+  total: number;
+  items: string;
+  address: string;
+  city: string;
+  postcode: string;
+  phone?: string | null;
+}, refundAmount: number): Promise<{ creditNoteId: string; creditNoteNumber: string } | null> {
+  const token = await getValidTokens();
+  if (!token) {
+    console.log("[Xero] Not connected, skipping credit note creation");
+    return null;
+  }
+
+  try {
+    const contactsResult = await xeroApiRequest(
+      "GET",
+      `https://api.xero.com/api.xro/2.0/Contacts?where=EmailAddress=="${encodeURIComponent(order.email)}"`,
+      token.accessToken,
+      token.tenantId
+    );
+
+    let contactId: string;
+    if (contactsResult.Contacts && contactsResult.Contacts.length > 0) {
+      contactId = contactsResult.Contacts[0].ContactID;
+    } else {
+      console.log("[Xero] Contact not found for credit note, skipping");
+      return null;
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+
+    const creditNoteResult = await xeroApiRequest(
+      "POST",
+      "https://api.xero.com/api.xro/2.0/CreditNotes",
+      token.accessToken,
+      token.tenantId,
+      {
+        Type: "ACCRECCREDIT",
+        Contact: { ContactID: contactId },
+        LineItems: [{
+          Description: `Refund for Order #${order.id}`,
+          Quantity: 1,
+          UnitAmount: refundAmount,
+          AccountCode: "200",
+          TaxType: "OUTPUT2",
+        }],
+        Date: today,
+        Reference: `Refund - Order #${order.id}`,
+        Status: "AUTHORISED",
+        LineAmountTypes: "Inclusive",
+        CurrencyCode: "GBP",
+      }
+    );
+
+    const creditNote = creditNoteResult.CreditNotes[0];
+    console.log(`[Xero] Credit note created: ${creditNote.CreditNoteNumber} for order #${order.id} — £${refundAmount}`);
+
+    return {
+      creditNoteId: creditNote.CreditNoteID,
+      creditNoteNumber: creditNote.CreditNoteNumber,
+    };
+  } catch (e: any) {
+    console.error("[Xero] Credit note creation failed:", e.message || e);
+    return null;
+  }
+}
