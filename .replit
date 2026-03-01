@@ -44,3 +44,8 @@ waitForPort = 5000
 stack = "MOCKUP_JS"
 mockupState = "FULLSTACK"
 integrations = ["stripe:2.0.0", "javascript_paypal:1.0.0"]
+
+[userenv]
+
+[userenv.shared]
+XERO_CLIENT_ID = "B2ECF9DAE6594E4FA5F1A3F56DF2588F"
