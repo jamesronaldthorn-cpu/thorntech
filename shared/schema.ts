@@ -89,6 +89,16 @@ export const blogPosts = pgTable("blog_posts", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const xeroTokens = pgTable("xero_tokens", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token").notNull(),
+  tenantId: text("tenant_id").notNull(),
+  tenantName: text("tenant_name"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const pageViews = pgTable("page_views", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   path: text("path").notNull(),

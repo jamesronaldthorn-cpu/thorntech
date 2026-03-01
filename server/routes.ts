@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { registerSchema, loginSchema } from "@shared/schema";
 import type { Product, Category } from "@shared/schema";
+import * as xero from "./xero";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -311,6 +312,10 @@ export async function registerRoutes(
         const orderId = session.metadata?.orderId;
         if (orderId) {
           await storage.updateOrderStatus(parseInt(orderId), "paid", session.payment_intent as string);
+          const fullOrder = await storage.getOrder(parseInt(orderId));
+          if (fullOrder) {
+            xero.createInvoice(fullOrder).catch(e => console.error("[Xero] Background invoice error:", e));
+          }
         }
         res.json({ status: "paid", orderId });
       } else {
@@ -421,6 +426,10 @@ export async function registerRoutes(
 
       if (captureBody.status === "COMPLETED") {
         await storage.updateOrderStatus(parseInt(orderId), "paid", paypalOrderId);
+        const fullOrder = await storage.getOrder(parseInt(orderId));
+        if (fullOrder) {
+          xero.createInvoice(fullOrder).catch(e => console.error("[Xero] Background invoice error:", e));
+        }
         res.redirect(`/order-confirmation?order_id=${orderId}&method=paypal`);
       } else {
         res.redirect(`/checkout?error=payment_not_completed`);
@@ -436,6 +445,10 @@ export async function registerRoutes(
       const { orderId, paypalOrderId } = req.body;
       if (!orderId || !paypalOrderId) return res.status(400).json({ error: "Missing fields" });
       await storage.updateOrderStatus(orderId, "paid", paypalOrderId);
+      const fullOrder = await storage.getOrder(orderId);
+      if (fullOrder) {
+        xero.createInvoice(fullOrder).catch(e => console.error("[Xero] Background invoice error:", e));
+      }
       res.json({ success: true, orderId });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -780,6 +793,45 @@ export async function registerRoutes(
     const post = await storage.getBlogPostBySlug(req.params.slug);
     if (!post || !post.published) return res.status(404).json({ error: "Post not found" });
     res.json(post);
+  });
+
+  // Xero routes
+  app.get("/api/xero/connect", adminAuth, async (_req, res) => {
+    try {
+      const url = xero.getAuthUrl();
+      res.json({ url });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/xero/callback", async (req, res) => {
+    try {
+      const fullUrl = `${req.protocol}://${req.get("host")}${req.originalUrl}`;
+      const result = await xero.handleCallback(fullUrl);
+      res.redirect("/admin?xero=connected&org=" + encodeURIComponent(result.tenantName));
+    } catch (e: any) {
+      console.error("[Xero] Callback error:", e);
+      res.redirect("/admin?xero=error&message=" + encodeURIComponent(e.message));
+    }
+  });
+
+  app.get("/api/xero/status", adminAuth, async (_req, res) => {
+    try {
+      const status = await xero.isConnected();
+      res.json(status);
+    } catch (e: any) {
+      res.json({ connected: false });
+    }
+  });
+
+  app.post("/api/xero/disconnect", adminAuth, async (_req, res) => {
+    try {
+      await xero.disconnect();
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
   });
 
   app.post("/api/admin/login", (req, res) => {

@@ -20,6 +20,7 @@ A fully functional e-commerce store for Thorn Tech Solutions Ltd (Company Reg: 1
 - **CustomFeeds**: id, name, slug, content, createdAt, updatedAt
 - **FeedSources**: id, name, url, categoryId, intervalHours, enabled, lastImportAt, lastImportCount, lastError, createdAt
 - **BlogPosts**: id, title, slug, excerpt, content, image, published, createdAt, updatedAt
+- **XeroTokens**: id, accessToken, refreshToken, tenantId, tenantName, expiresAt, createdAt
 
 ## Pages
 - `/` — Home (hero, categories, product grid, value props)

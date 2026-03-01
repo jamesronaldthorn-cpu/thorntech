@@ -439,6 +439,8 @@ export default function AdminPage() {
   const [runningSource, setRunningSource] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [expandedOrder, setExpandedOrder] = useState<number | null>(null);
+  const [xeroStatus, setXeroStatus] = useState<{ connected: boolean; tenantName?: string }>({ connected: false });
+  const [xeroLoading, setXeroLoading] = useState(false);
 
   const loadData = async () => {
     try {
@@ -461,6 +463,10 @@ export default function AdminPage() {
       setUsersList(await uRes.json());
       if (stRes.ok) setStats(await stRes.json());
       if (bRes.ok) setBlogPosts(await bRes.json());
+      try {
+        const xRes = await adminFetch("/api/xero/status");
+        if (xRes.ok) setXeroStatus(await xRes.json());
+      } catch {}
     } catch {}
   };
 
@@ -549,6 +555,30 @@ export default function AdminPage() {
       body: JSON.stringify({ published: !post.published }),
     });
     loadData();
+  };
+
+  const connectXero = async () => {
+    setXeroLoading(true);
+    try {
+      const res = await adminFetch("/api/xero/connect");
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (e: any) {
+      alert("Failed to connect to Xero: " + e.message);
+    }
+    setXeroLoading(false);
+  };
+
+  const disconnectXero = async () => {
+    if (!confirm("Disconnect Xero? New orders will no longer create invoices automatically.")) return;
+    setXeroLoading(true);
+    try {
+      await adminFetch("/api/xero/disconnect", { method: "POST" });
+      setXeroStatus({ connected: false });
+    } catch {}
+    setXeroLoading(false);
   };
 
   const importFromFeed = async () => {
@@ -824,6 +854,47 @@ export default function AdminPage() {
                 </div>
               </div>
             )}
+
+            <div className="bg-white/5 border border-white/10 rounded-lg p-5">
+              <h3 className="text-sm font-display text-gray-400 mb-4">XERO ACCOUNTING</h3>
+              {xeroStatus.connected ? (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+                    <div>
+                      <p className="text-white font-medium" data-testid="text-xero-org">{xeroStatus.tenantName || "Connected"}</p>
+                      <p className="text-xs text-gray-500">Invoices are created automatically when orders are paid</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={disconnectXero}
+                    disabled={xeroLoading}
+                    className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                    data-testid="button-xero-disconnect"
+                  >
+                    {xeroLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Disconnect"}
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-300">Not connected</p>
+                    <p className="text-xs text-gray-500">Connect Xero to automatically create invoices for paid orders</p>
+                  </div>
+                  <Button
+                    onClick={connectXero}
+                    disabled={xeroLoading}
+                    className="bg-[#13B5EA] hover:bg-[#0e9cc8] text-white"
+                    data-testid="button-xero-connect"
+                  >
+                    {xeroLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+                    Connect Xero
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
