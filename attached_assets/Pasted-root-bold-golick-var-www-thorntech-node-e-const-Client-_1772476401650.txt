@@ -1,0 +1,60 @@
+root@bold-golick:/var/www/thorntech# node -e "
+const { Client } = require('pg');
+const c = new Client({ connectionString: process.env.DATABASE_URL });
+c.connect().then(async () => {
+  const cats = [
+    ['Adapters & Docks','adapters-docks','USB adapters, docking stations and connectivity solutions','Cable'],
+    ['Cables','cables','HDMI, USB, DisplayPort, ethernet and power cables','Cable'],
+    ['Capture Cards','capture-cards','Video capture cards for streaming and recording','MonitorSpeaker'],
+    ['Chargers','chargers','Phone chargers, laptop chargers and USB power adapters','Zap'],
+    ['Coolers','coolers','CPU coolers, AIO liquid coolers and thermal solutions','Fan'],
+    ['DJ Equipment','dj-equipment','DJ controllers, mixers and DJ accessories','Speaker'],
+    ['Display Accessories','display-accessories','Monitor arms, screen protectors and display accessories','Monitor'],
+    ['Exclusive Bundles','exclusive-bundles','Great value PC component bundles','Box'],
+    ['External Storage','external-storage','External hard drives and portable SSDs','HardDrive'],
+    ['Gaming Accessories','gaming-accessories','Gaming peripherals, accessories and gear','Gamepad2'],
+    ['Gaming Furniture','gaming-furniture','Gaming desks, chairs and furniture','Box'],
+    ['Gaming Surfaces/Mats','gaming-surfaces-mats','Mouse mats, desk pads and gaming surfaces','Gamepad2'],
+    ['Graphics Cards','graphics-cards-gpu','NVIDIA and AMD graphics cards','Zap'],
+    ['Hard Drives','hard-drives','Internal hard disk drives for desktop and NAS','HardDrive'],
+    ['Headsets','headsets','Gaming headsets, wireless headsets and audio gear','Headset'],
+    ['I/O Cards','io-cards','Expansion cards, USB cards and I/O controllers','CircuitBoard'],
+    ['Networking Wired','networking-wired','Ethernet adapters, switches and wired networking','Cable'],
+    ['Networking Wireless','networking-wireless','WiFi adapters, routers and wireless networking','Wifi'],
+    ['Notebooks','notebooks','Laptops and notebooks for work and play','Monitor'],
+    ['Power Supply Units','power-supply-units','ATX power supplies for PC builds','Zap'],
+    ['Projectors','projectors','Home and office projectors','Monitor'],
+    ['Server Boards/Systems','server-boards-systems','Server motherboards and complete server systems','Server'],
+    ['Solid State Drives','solid-state-drives','NVMe and SATA SSDs for fast storage','HardDrive'],
+    ['Speakers','speakers','Desktop speakers, soundbars and PC audio','Speaker'],
+    ['Streaming','streaming','Streaming gear, stream decks and accessories','MonitorSpeaker'],
+    ['Systems','systems','Complete pre-built desktop systems','Server'],
+    ['Toys','toys','Tech toys, gadgets and novelties','Gamepad2'],
+    ['Webcams','webcams','Webcams for streaming, video calls and content creation','Monitor'],
+  ];
+  for (const [name,slug,desc,icon] of cats) {
+    const exists = await c.query('SELECT id FROM categories WHERE slug=\$1', [slug]);
+    if (exists.rows.length === 0) {
+      await c.query('INSERT INTO categories (name,slug,description,icon) VALUES (\$1,\$2,\$3,\$4)', [name,slug,desc,icon]);
+      console.log('Added:', name);
+    }
+  }
+  console.log('Done');
+  c.end();
+});
+"
+/var/www/thorntech/node_modules/pg/lib/crypto/sasl.js:36
+    throw new Error('SASL: SCRAM-SERVER-FIRST-MESSAGE: client password must be a string')
+          ^
+
+Error: SASL: SCRAM-SERVER-FIRST-MESSAGE: client password must be a string
+    at Object.continueSession (/var/www/thorntech/node_modules/pg/lib/crypto/sasl.js:36:11)
+    at Client._handleAuthSASLContinue (/var/www/thorntech/node_modules/pg/lib/client.js:316:18)
+    at Connection.emit (node:events:524:28)
+    at /var/www/thorntech/node_modules/pg/lib/connection.js:116:12
+    at Parser.parse (/var/www/thorntech/node_modules/pg-protocol/dist/parser.js:38:17)
+    at Socket.<anonymous> (/var/www/thorntech/node_modules/pg-protocol/dist/index.js:11:42)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
