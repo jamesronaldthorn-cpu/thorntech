@@ -44,7 +44,9 @@ export default function CheckoutPage() {
   }, [user]);
 
   const subtotal = getTotal();
-  const shipping = subtotal >= 200 ? 0 : 7.99;
+  const [deliveryOption, setDeliveryOption] = useState<"standard" | "free">("standard");
+  const isFreeDelivery = subtotal >= 200;
+  const shipping = isFreeDelivery ? 0 : 7.99;
   const total = subtotal + shipping;
 
   const updateField = (field: string, value: string) => {
@@ -186,6 +188,38 @@ export default function CheckoutPage() {
             </div>
 
             <div className="bg-card border border-white/10 rounded-xl p-6">
+              <h2 className="font-display font-bold text-lg mb-4">DELIVERY METHOD</h2>
+              <div className="space-y-3">
+                <label
+                  className={`flex items-center gap-4 p-4 rounded-lg border cursor-pointer transition-colors ${
+                    true ? "border-primary bg-primary/5" : "border-white/10 hover:border-white/20"
+                  }`}
+                  data-testid="delivery-option-standard"
+                >
+                  <div className="w-5 h-5 rounded-full border-2 border-primary flex items-center justify-center">
+                    <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+                  </div>
+                  <Truck className="w-5 h-5 text-primary" />
+                  <div className="flex-1">
+                    <p className="font-medium text-white">
+                      {isFreeDelivery ? "Free Delivery" : "Standard Delivery — £7.99"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">1-3 working days — Royal Mail / courier</p>
+                  </div>
+                  {isFreeDelivery && (
+                    <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded font-medium">FREE</span>
+                  )}
+                </label>
+                {!isFreeDelivery && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Truck className="w-3 h-3" />
+                    Spend £{(200 - subtotal).toFixed(2)} more for free delivery
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-card border border-white/10 rounded-xl p-6">
               <h2 className="font-display font-bold text-lg mb-4">PAYMENT METHOD</h2>
               {error && (
                 <div className="mb-4 p-3 rounded-lg bg-red-600/20 border border-red-600/30 text-red-400 text-sm">{error}</div>
@@ -245,16 +279,16 @@ export default function CheckoutPage() {
                   <span>{formatPrice(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Delivery</span>
-                  <span className={shipping === 0 ? "text-green-400" : ""}>{shipping === 0 ? "FREE" : formatPrice(shipping)}</span>
+                  <span className="text-muted-foreground">Delivery (1-3 working days)</span>
+                  <span className={shipping === 0 ? "text-green-400 font-medium" : ""}>{shipping === 0 ? "FREE" : formatPrice(shipping)}</span>
                 </div>
                 <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>VAT (included)</span>
+                  <span>VAT (included at 20%)</span>
                   <span>{formatPrice(total / 6)}</span>
                 </div>
                 <div className="border-t border-white/10 pt-2 flex justify-between text-lg font-bold">
-                  <span>Total</span>
-                  <span className="font-display text-primary">{formatPrice(total)}</span>
+                  <span>Total (inc. VAT)</span>
+                  <span className="font-display text-primary" data-testid="text-checkout-total">{formatPrice(total)}</span>
                 </div>
               </div>
 
@@ -265,8 +299,9 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Truck className="w-4 h-4 text-primary" />
-                  <span>{subtotal >= 200 ? "Free 1-3 day delivery" : "Free delivery over £200"}</span>
+                  <span>{isFreeDelivery ? "Free delivery on this order" : "Free delivery on orders over £200"}</span>
                 </div>
+                <p className="text-[10px] text-muted-foreground/60 mt-2">All prices include VAT at 20%. VAT Reg: Pending</p>
               </div>
             </div>
           </div>

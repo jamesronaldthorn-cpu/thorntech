@@ -282,11 +282,11 @@ export async function registerRoutes(
           {
             shipping_rate_data: {
               type: "fixed_amount",
-              fixed_amount: { amount: total >= 150 ? 0 : 599, currency: "gbp" },
-              display_name: total >= 150 ? "Free Next Day DPD Delivery" : "Next Day DPD Delivery",
+              fixed_amount: { amount: total >= 200 ? 0 : 799, currency: "gbp" },
+              display_name: total >= 200 ? "Free Delivery (1-3 Working Days)" : "Standard Delivery (1-3 Working Days)",
               delivery_estimate: {
                 minimum: { unit: "business_day", value: 1 },
-                maximum: { unit: "business_day", value: 2 },
+                maximum: { unit: "business_day", value: 3 },
               },
             },
           },
@@ -341,7 +341,7 @@ export async function registerRoutes(
         return sum + (product ? product.price * item.quantity : 0);
       }, 0);
 
-      const shipping = total >= 150 ? 0 : 5.99;
+      const shipping = total >= 200 ? 0 : 7.99;
       const grandTotal = total + shipping;
 
       const order = await storage.createOrder({
