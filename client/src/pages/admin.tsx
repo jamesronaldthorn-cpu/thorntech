@@ -1319,6 +1319,9 @@ export default function AdminPage() {
                         <CheckCircle className="w-4 h-4 text-green-400" />
                         <span className="text-green-400 font-medium">Imported {importResult.imported} of {importResult.totalInFeed} products</span>
                       </div>
+                      {importResult.updated > 0 && (
+                        <p className="text-gray-400 text-xs ml-6">Updated stock/images on {importResult.updated} existing products</p>
+                      )}
                       {importResult.categoriesMatched > 0 && (
                         <p className="text-gray-400 text-xs ml-6">{importResult.categoriesMatched} products auto-matched to categories from feed</p>
                       )}

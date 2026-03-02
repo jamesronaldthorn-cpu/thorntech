@@ -809,7 +809,7 @@ export async function registerRoutes(
       if (!url) return res.status(400).json({ error: "Feed URL is required" });
       const { importFromUrl } = await import("./feedImporter");
       const result = await importFromUrl(url, categoryId ? parseInt(categoryId) : null);
-      res.json({ ...result, totalInFeed: result.imported + result.skipped });
+      res.json({ ...result, totalInFeed: result.imported + result.skipped + result.updated });
     } catch (e: any) {
       console.error("Feed import error:", e);
       res.status(500).json({ error: e.message });
@@ -862,7 +862,7 @@ export async function registerRoutes(
         lastImportCount: result.imported,
         lastError: null,
       });
-      res.json({ ...result, totalInFeed: result.imported + result.skipped });
+      res.json({ ...result, totalInFeed: result.imported + result.skipped + result.updated });
     } catch (e: any) {
       await storage.updateFeedSource(parseInt(req.params.id), {
         lastImportAt: new Date(),

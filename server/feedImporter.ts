@@ -102,22 +102,43 @@ function matchCategory(feedCategory: string | null, storeCategories: { id: numbe
   return null;
 }
 
-export async function importProducts(items: any[], fallbackCategoryId: number | null): Promise<{ imported: number; skipped: number; products: any[]; skippedNames: string[]; categoriesMatched: number }> {
+export async function importProducts(items: any[], fallbackCategoryId: number | null): Promise<{ imported: number; updated: number; skipped: number; products: any[]; skippedNames: string[]; categoriesMatched: number }> {
   const created: any[] = [];
   const skipped: string[] = [];
+  let updatedCount = 0;
   let categoriesMatched = 0;
   const existingProducts = await storage.getProducts();
-  const existingSlugs = new Set(existingProducts.map(p => p.slug));
+  const existingBySlug = new Map(existingProducts.map(p => [p.slug, p]));
   const storeCategories = await storage.getCategories();
 
   for (const item of items) {
     if (item.price <= 0 && !item.name) continue;
     const slug = item.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "").substring(0, 80);
-    if (existingSlugs.has(slug)) {
+
+    const existing = existingBySlug.get(slug);
+    if (existing) {
+      const updates: Record<string, any> = {};
+      const newInStock = item.inStock !== false;
+      if (existing.inStock !== newInStock) {
+        updates.inStock = newInStock;
+      }
+      if (item.image && item.image !== existing.image) {
+        updates.image = item.image;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        try {
+          await storage.updateProduct(existing.id, updates);
+          updatedCount++;
+        } catch (e: any) {
+          console.error(`[Feed] Failed to update ${item.name}: ${e.message}`);
+        }
+      }
+
       skipped.push(item.name);
       continue;
     }
-    existingSlugs.add(slug);
+    existingBySlug.set(slug, null as any);
 
     let categoryId = matchCategory(item.feedCategory, storeCategories);
     if (categoryId) {
@@ -147,7 +168,7 @@ export async function importProducts(items: any[], fallbackCategoryId: number | 
     }
   }
 
-  return { imported: created.length, skipped: skipped.length, products: created, skippedNames: skipped, categoriesMatched };
+  return { imported: created.length, updated: updatedCount, skipped: skipped.length, products: created, skippedNames: skipped, categoriesMatched };
 }
 
 export async function importFromUrl(url: string, categoryId: number | null) {
@@ -189,7 +210,7 @@ export function startFeedScheduler() {
             lastImportCount: result.imported,
             lastError: null,
           });
-          console.log(`[Feed Scheduler] ${source.name}: imported ${result.imported}, skipped ${result.skipped}, categories matched ${result.categoriesMatched}`);
+          console.log(`[Feed Scheduler] ${source.name}: imported ${result.imported}, updated ${result.updated}, skipped ${result.skipped}, categories matched ${result.categoriesMatched}`);
         } catch (e: any) {
           await storage.updateFeedSource(source.id, {
             lastImportAt: now,
