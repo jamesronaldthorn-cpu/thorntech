@@ -299,7 +299,7 @@ export async function syncVipProducts(markupPercent?: number): Promise<VipSyncRe
         continue;
       }
 
-      const sellPrice = Math.ceil(buyPrice * markup * 100) / 100;
+      const sellPrice = Math.ceil(buyPrice * markup * 1.2 * 100) / 100;
       const isInStock = stock ? stock.AvailQty > 0 : false;
       if (!isInStock) result.outOfStock++;
 
