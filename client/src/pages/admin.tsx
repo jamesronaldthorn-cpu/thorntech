@@ -444,6 +444,9 @@ export default function AdminPage() {
   const [refundLoading, setRefundLoading] = useState(false);
   const [xeroStatus, setXeroStatus] = useState<{ connected: boolean; tenantName?: string }>({ connected: false });
   const [xeroLoading, setXeroLoading] = useState(false);
+  const [vipSyncing, setVipSyncing] = useState(false);
+  const [vipResult, setVipResult] = useState<any>(null);
+  const [vipMarkup, setVipMarkup] = useState("25");
 
   const loadData = async () => {
     try {
@@ -587,6 +590,27 @@ export default function AdminPage() {
       body: JSON.stringify({ published: !post.published }),
     });
     loadData();
+  };
+
+  const syncVip = async () => {
+    setVipSyncing(true);
+    setVipResult(null);
+    try {
+      const res = await adminFetch("/api/admin/vip/sync", {
+        method: "POST",
+        body: JSON.stringify({ markup: parseFloat(vipMarkup) || 25 }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setVipResult({ error: data.error || "Sync failed" });
+      } else {
+        setVipResult(data);
+        loadData();
+      }
+    } catch (e: any) {
+      setVipResult({ error: e.message });
+    }
+    setVipSyncing(false);
   };
 
   const connectXero = async () => {
@@ -927,6 +951,57 @@ export default function AdminPage() {
                   </Button>
                 </div>
               )}
+            </div>
+
+            <div className="bg-white/5 border border-white/10 rounded-lg p-5">
+              <h3 className="text-sm font-display text-gray-400 mb-4">VIP COMPUTERS — XML V3 SYNC</h3>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-gray-400 text-xs whitespace-nowrap">Markup %:</Label>
+                    <Input
+                      type="number"
+                      value={vipMarkup}
+                      onChange={e => setVipMarkup(e.target.value)}
+                      className="w-20 bg-white/5 border-white/10 text-white h-9"
+                      data-testid="input-vip-markup"
+                    />
+                  </div>
+                  <Button
+                    onClick={syncVip}
+                    disabled={vipSyncing}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    data-testid="button-vip-sync"
+                  >
+                    {vipSyncing ? <><Loader2 className="w-4 h-4 animate-spin mr-1" /> Syncing...</> : <><Download className="w-4 h-4 mr-1" /> Sync Products</>}
+                  </Button>
+                  <p className="text-xs text-gray-500">Pulls products, prices & stock from VIP Computers. Auto-syncs every 6 hours.</p>
+                </div>
+                {vipResult && (
+                  <div className={`p-3 rounded-lg text-sm ${vipResult.error ? "bg-red-500/10 border border-red-500/20" : "bg-green-500/10 border border-green-500/20"}`}>
+                    {vipResult.error ? (
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+                        <span className="text-red-400">{vipResult.error}</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-400" />
+                          <span className="text-green-400 font-medium">VIP sync complete — {vipResult.totalProducts} products processed</span>
+                        </div>
+                        <p className="text-gray-400 text-xs ml-6">{vipResult.imported} new products imported</p>
+                        <p className="text-gray-400 text-xs ml-6">{vipResult.updated} existing products updated (stock/price/images)</p>
+                        <p className="text-gray-400 text-xs ml-6">{vipResult.categoriesMatched} auto-matched to categories</p>
+                        <p className="text-gray-400 text-xs ml-6">{vipResult.outOfStock} currently out of stock</p>
+                        {vipResult.errors?.length > 0 && (
+                          <p className="text-red-400 text-xs ml-6">{vipResult.errors.length} errors</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}

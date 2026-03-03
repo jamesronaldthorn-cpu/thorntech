@@ -5,6 +5,7 @@ import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClie
 import { registerSchema, loginSchema } from "@shared/schema";
 import type { Product, Category } from "@shared/schema";
 import * as xero from "./xero";
+import * as vipApi from "./vipApi";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -951,6 +952,26 @@ export async function registerRoutes(
       await xero.disconnect();
       res.json({ success: true });
     } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/admin/vip/test", adminAuth, async (_req, res) => {
+    try {
+      const result = await vipApi.testConnection();
+      res.json(result);
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  app.post("/api/admin/vip/sync", adminAuth, async (req, res) => {
+    try {
+      const markup = req.body.markup ? parseFloat(req.body.markup) : undefined;
+      const result = await vipApi.syncVipProducts(markup);
+      res.json(result);
+    } catch (e: any) {
+      console.error("[VIP] Sync error:", e);
       res.status(500).json({ error: e.message });
     }
   });
