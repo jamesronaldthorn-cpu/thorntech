@@ -206,6 +206,13 @@ export async function registerRoutes(
     res.json(prods);
   });
 
+  app.get("/api/products/search", async (req, res) => {
+    const q = (req.query.q as string || "").trim();
+    if (!q || q.length < 2) return res.json([]);
+    const results = await storage.searchProducts(q);
+    res.json(results);
+  });
+
   app.get("/api/products/:slug", async (req, res) => {
     const product = await storage.getProductBySlug(req.params.slug);
     if (!product) return res.status(404).json({ error: "Product not found" });

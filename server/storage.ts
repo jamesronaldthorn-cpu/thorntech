@@ -15,6 +15,7 @@ export interface IStorage {
   updateCategory(id: number, cat: Partial<InsertCategory>): Promise<Category | undefined>;
   deleteCategory(id: number): Promise<boolean>;
   getProducts(): Promise<Product[]>;
+  searchProducts(query: string): Promise<Product[]>;
   getProductsByCategory(categoryId: number): Promise<Product[]>;
   getProductBySlug(slug: string): Promise<Product | undefined>;
   getProduct(id: number): Promise<Product | undefined>;
@@ -94,6 +95,13 @@ export class DatabaseStorage implements IStorage {
 
   async getProducts(): Promise<Product[]> {
     return this.db.select().from(products);
+  }
+
+  async searchProducts(query: string): Promise<Product[]> {
+    const term = `%${query.toLowerCase()}%`;
+    return this.db.select().from(products).where(
+      sql`(LOWER(${products.name}) LIKE ${term} OR LOWER(${products.description}) LIKE ${term} OR LOWER(${products.vendor}) LIKE ${term})`
+    );
   }
 
   async getProductsByCategory(categoryId: number): Promise<Product[]> {

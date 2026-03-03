@@ -1,5 +1,6 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { ShoppingBasket, Search, Menu, X, Minus, Plus, User } from "lucide-react";
+import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -14,8 +15,18 @@ function formatPrice(price: number) {
 export default function NavBar() {
   const { items, isOpen, setOpen, updateQuantity, removeItem, getTotal, getCount } = useCart();
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  const [searchQuery, setSearchQuery] = useState("");
   const cartCount = getCount();
   const cartTotal = getTotal();
+
+  const handleSearch = (e: FormEvent) => {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    if (q.length >= 2) {
+      setLocation(`/search?q=${encodeURIComponent(q)}`);
+    }
+  };
 
   return (
     <nav className="sticky top-0 z-50 glass-panel border-b border-white/10">
@@ -30,10 +41,19 @@ export default function NavBar() {
           </Link>
         </div>
 
-        <div className="hidden md:flex flex-1 max-w-md mx-8 relative">
-          <Input type="text" placeholder="Search components..." className="w-full bg-black/50 border-white/20 focus-visible:ring-primary pl-4 pr-10 h-10" data-testid="input-search" />
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        </div>
+        <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-md mx-8 relative">
+          <Input
+            type="text"
+            placeholder="Search components..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full bg-black/50 border-white/20 focus-visible:ring-primary pl-4 pr-10 h-10"
+            data-testid="input-search"
+          />
+          <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2">
+            <Search className="w-4 h-4 text-muted-foreground hover:text-primary transition-colors" />
+          </button>
+        </form>
 
         <div className="flex items-center gap-4">
           <Sheet open={isOpen} onOpenChange={setOpen}>
@@ -101,7 +121,9 @@ export default function NavBar() {
               <Button variant="outline" className="hidden sm:flex border-primary/50 hover:bg-primary/20 hover:text-white transition-all font-display tracking-widest" data-testid="button-signin">SIGN IN</Button>
             </Link>
           )}
-          <Button variant="ghost" size="icon" className="md:hidden"><Menu className="w-6 h-6" /></Button>
+          <Link href="/search">
+            <Button variant="ghost" size="icon" className="md:hidden" data-testid="button-search-mobile"><Search className="w-5 h-5" /></Button>
+          </Link>
         </div>
       </div>
     </nav>
