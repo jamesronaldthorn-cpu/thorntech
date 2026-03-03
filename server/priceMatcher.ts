@@ -2,7 +2,6 @@ import { storage } from "./storage";
 
 const MIN_MARGIN = 0.05;
 const UK_PRICE_REGEX = /£\s?([\d,]+(?:\.\d{2})?)/g;
-const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
 interface PriceMatchResult {
   totalProcessed: number;
@@ -14,41 +13,6 @@ interface PriceMatchResult {
 
 function delay(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function searchProductPrice(productName: string, manufacturer?: string): Promise<number | null> {
-  try {
-    const searchTerm = manufacturer
-      ? `${manufacturer} ${productName} buy UK price`
-      : `${productName} buy UK price`;
-
-    const query = encodeURIComponent(searchTerm);
-    const url = `https://www.google.com/search?q=${query}&gl=uk&hl=en&tbm=shop`;
-
-    const res = await fetch(url, {
-      headers: {
-        "User-Agent": USER_AGENT,
-        "Accept": "text/html,application/xhtml+xml",
-        "Accept-Language": "en-GB,en;q=0.9",
-      },
-    });
-
-    if (!res.ok) {
-      const textUrl = `https://html.duckduckgo.com/html/?q=${query}`;
-      const res2 = await fetch(textUrl, {
-        headers: { "User-Agent": USER_AGENT },
-      });
-      if (!res2.ok) return null;
-      const html = await res2.text();
-      return extractPricesFromHtml(html);
-    }
-
-    const html = await res.text();
-    return extractPricesFromHtml(html);
-  } catch (e: any) {
-    console.error(`[PriceMatcher] Search error for "${productName}":`, e.message);
-    return null;
-  }
 }
 
 function extractPricesFromHtml(html: string): number | null {
@@ -80,6 +44,95 @@ function extractPricesFromHtml(html: string): number | null {
   return Math.round(median * 100) / 100;
 }
 
+async function tryDuckDuckGo(searchTerm: string): Promise<number | null> {
+  try {
+    const query = encodeURIComponent(searchTerm);
+    const url = `https://html.duckduckgo.com/html/?q=${query}`;
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "text/html",
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    if (html.includes("<html") && html.includes("£")) {
+      return extractPricesFromHtml(html);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function tryBingSearch(searchTerm: string): Promise<number | null> {
+  try {
+    const query = encodeURIComponent(searchTerm);
+    const url = `https://www.bing.com/search?q=${query}&cc=gb`;
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml",
+        "Accept-Language": "en-GB,en;q=0.9",
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    if (html.includes("<html") && html.includes("£")) {
+      return extractPricesFromHtml(html);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function tryPriceSpy(productName: string): Promise<number | null> {
+  try {
+    const query = encodeURIComponent(productName);
+    const url = `https://pricespy.co.uk/search?search=${query}`;
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html",
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    if (html.includes("£")) {
+      return extractPricesFromHtml(html);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function searchProductPrice(productName: string, manufacturer?: string): Promise<number | null> {
+  const searchTerm = manufacturer
+    ? `${manufacturer} ${productName} price UK buy`
+    : `${productName} price UK buy`;
+
+  let price = await tryDuckDuckGo(searchTerm);
+  if (price) return price;
+
+  await delay(1000);
+
+  price = await tryBingSearch(searchTerm);
+  if (price) return price;
+
+  await delay(1000);
+
+  const shortName = productName.length > 50 ? productName.substring(0, 50) : productName;
+  price = await tryPriceSpy(shortName);
+  if (price) return price;
+
+  return null;
+}
+
 export async function matchInternetPrices(batchSize = 50): Promise<PriceMatchResult> {
   const allProducts = await storage.getProducts();
   const productsWithCost = allProducts.filter(p => p.costPrice && p.costPrice > 0);
@@ -105,8 +158,7 @@ export async function matchInternetPrices(batchSize = 50): Promise<PriceMatchRes
 
       if (!internetPrice) {
         result.noResultsFound++;
-        console.log(`[PriceMatcher] No price found for: ${product.name}`);
-        await delay(2000);
+        await delay(1500);
         continue;
       }
 
@@ -133,7 +185,7 @@ export async function matchInternetPrices(batchSize = 50): Promise<PriceMatchRes
         result.keptExisting++;
       }
 
-      await delay(2000);
+      await delay(3000);
     } catch (e: any) {
       result.errors++;
       console.error(`[PriceMatcher] Error matching ${product.name}:`, e.message);
