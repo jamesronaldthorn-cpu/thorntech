@@ -37,11 +37,12 @@ interface VipStock {
   ProductStatus: number;
 }
 
-function ftpToHttpImage(ftpUrl: string): string | null {
-  if (!ftpUrl) return null;
-  const match = ftpUrl.match(/\/(\d+)\.jpg$/i);
-  if (match) {
-    return `https://www.vip-computers.com/uk/images/products/${match[1]}.jpg`;
+function buildImageUrl(product: VipProduct): string | null {
+  if (product.ProductImage) {
+    const match = product.ProductImage.match(/\/(\d+)\.jpg$/i);
+    if (match) {
+      return `https://www.vip-computers.com/uk/images/products/${match[1]}.jpg`;
+    }
   }
   return null;
 }
@@ -304,7 +305,7 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
 
       const name = getProductName(vp);
       let slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "").substring(0, 80);
-      const imageUrl = ftpToHttpImage(vp.ProductImage);
+      const imageUrl = buildImageUrl(vp);
 
       const catSlug = vipCategoryMap[vp.ProductGroup];
       let categoryId: number | null = catSlug ? (catBySlug.get(catSlug) || null) : null;

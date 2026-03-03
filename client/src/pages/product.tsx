@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
-import { ChevronRight, ShieldCheck, Truck, Package, Box, CheckCircle, XCircle } from "lucide-react";
+import { ChevronRight, ShieldCheck, Truck, Package, Box, CheckCircle, XCircle, Cpu, Monitor, HardDrive, Zap, Fan, Keyboard, MemoryStick, Cable, Mouse, Wifi, Speaker, Headset, CircuitBoard, Server } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import NavBar from "@/components/NavBar";
@@ -106,9 +106,9 @@ export default function ProductPage() {
 
       <section className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <div className="aspect-square bg-white rounded-2xl border border-white/10 flex items-center justify-center relative overflow-hidden">
+          <div className={`aspect-square rounded-2xl border border-white/10 flex items-center justify-center relative overflow-hidden ${product.image && !imgError ? "bg-white" : ""}`}>
             {product.badge && (
-              <div className={`absolute top-4 left-4 z-10 text-sm font-bold px-3 py-1 rounded ${product.badge === "Sale" ? "bg-red-600" : "bg-primary"}`}>{product.badge}</div>
+              <div className={`absolute top-4 left-4 z-10 text-sm font-bold px-3 py-1 rounded ${product.badge === "Sale" ? "bg-red-600" : "bg-primary"} text-white`}>{product.badge}</div>
             )}
             {product.image && !imgError ? (
               <img
@@ -118,7 +118,14 @@ export default function ProductPage() {
                 onError={() => setImgError(true)}
               />
             ) : (
-              <Box className="w-24 h-24 text-gray-300" />
+              <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+                <div className="text-primary/30 mb-4">
+                  <Box className="w-20 h-20" />
+                </div>
+                {product.vendor && (
+                  <span className="text-sm uppercase tracking-[0.2em] text-white/25 font-display">{product.vendor}</span>
+                )}
+              </div>
             )}
           </div>
 

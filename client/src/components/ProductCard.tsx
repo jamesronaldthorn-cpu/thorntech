@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Box, ShoppingBasket } from "lucide-react";
+import { Cpu, Monitor, HardDrive, Zap, Fan, Box, Keyboard, MemoryStick, Cable, Mouse, Wifi, Speaker, Headset, CircuitBoard, Server, ShoppingBasket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
 import type { Product, Category } from "@shared/schema";
@@ -9,32 +9,65 @@ function formatPrice(price: number) {
   return `£${price.toFixed(2)}`;
 }
 
+const categoryIcons: Record<string, React.ReactNode> = {
+  processors: <Cpu className="w-12 h-12" />,
+  "graphics-cards": <Monitor className="w-12 h-12" />,
+  motherboards: <CircuitBoard className="w-12 h-12" />,
+  memory: <MemoryStick className="w-12 h-12" />,
+  storage: <HardDrive className="w-12 h-12" />,
+  "power-supplies": <Zap className="w-12 h-12" />,
+  cooling: <Fan className="w-12 h-12" />,
+  cases: <Box className="w-12 h-12" />,
+  keyboards: <Keyboard className="w-12 h-12" />,
+  mice: <Mouse className="w-12 h-12" />,
+  networking: <Wifi className="w-12 h-12" />,
+  speakers: <Speaker className="w-12 h-12" />,
+  headsets: <Headset className="w-12 h-12" />,
+  cables: <Cable className="w-12 h-12" />,
+  servers: <Server className="w-12 h-12" />,
+};
+
+function PlaceholderImage({ product, category }: { product: Product; category?: Category }) {
+  const icon = category?.slug ? categoryIcons[category.slug] : null;
+  const brandInitial = product.vendor ? product.vendor.charAt(0).toUpperCase() : "";
+
+  return (
+    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-4">
+      <div className="text-primary/40 mb-3">
+        {icon || <Box className="w-12 h-12" />}
+      </div>
+      {product.vendor && (
+        <span className="text-[10px] uppercase tracking-[0.2em] text-white/30 font-display">{product.vendor}</span>
+      )}
+    </div>
+  );
+}
+
 export default function ProductCard({ product, category }: { product: Product; category?: Category }) {
   const { addItem } = useCart();
   const [imgError, setImgError] = useState(false);
+  const hasImage = product.image && !imgError;
 
   return (
     <div className="group flex flex-col bg-card border border-white/5 rounded-xl overflow-hidden hover:border-primary/50 transition-colors" data-testid={`card-product-${product.id}`}>
       <Link href={`/product/${product.slug}`}>
-        <div className="relative aspect-square bg-white flex items-center justify-center overflow-hidden cursor-pointer">
+        <div className={`relative aspect-square flex items-center justify-center overflow-hidden cursor-pointer ${hasImage ? "bg-white" : ""}`}>
           {product.badge && (
-            <div className={`absolute top-3 left-3 z-10 text-xs font-bold px-2 py-1 rounded ${product.badge === "Sale" ? "bg-red-600" : "bg-primary"}`}>{product.badge}</div>
+            <div className={`absolute top-3 left-3 z-10 text-xs font-bold px-2 py-1 rounded ${product.badge === "Sale" ? "bg-red-600" : "bg-primary"} text-white`}>{product.badge}</div>
           )}
           {!product.inStock && (
             <div className="absolute top-3 right-3 z-10 text-xs font-bold px-2 py-1 rounded bg-gray-600/80 text-white">Out of Stock</div>
           )}
-          {product.image && !imgError ? (
+          {hasImage ? (
             <img
-              src={product.image}
+              src={product.image!}
               alt={product.name}
               className="w-full h-full object-contain p-3 product-image"
               onError={() => setImgError(true)}
               loading="lazy"
             />
           ) : (
-            <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center">
-              <Box className="w-10 h-10 text-gray-300" />
-            </div>
+            <PlaceholderImage product={product} category={category} />
           )}
         </div>
       </Link>
