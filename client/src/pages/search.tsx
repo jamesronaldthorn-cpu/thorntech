@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
+import ProductFilters, { useProductFilters } from "@/components/ProductFilters";
 import { usePageTitle } from "@/components/SEO";
 import type { Product, Category } from "@shared/schema";
 
@@ -29,6 +30,7 @@ export default function SearchPage() {
     enabled: query.length >= 2,
   });
 
+  const { filters, setFilters, filtered, availableBrands, priceRange, activeCount, clearAll } = useProductFilters(products);
   const catMap = new Map(categories.map(c => [c.id, c]));
 
   return (
@@ -69,7 +71,8 @@ export default function SearchPage() {
           </h1>
           {query && !isLoading && (
             <p className="text-muted-foreground" data-testid="text-search-count">
-              {products.length} product{products.length !== 1 ? "s" : ""} found
+              {filtered.length} product{filtered.length !== 1 ? "s" : ""} found
+              {activeCount > 0 && ` (filtered from ${products.length})`}
             </p>
           )}
           <div className="h-1 w-20 bg-primary rounded-full mt-4"></div>
@@ -100,10 +103,34 @@ export default function SearchPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {products.map(p => (
-              <ProductCard key={p.id} product={p} category={p.categoryId ? catMap.get(p.categoryId) : undefined} />
-            ))}
+          <div className="flex gap-8">
+            <ProductFilters
+              filters={filters}
+              setFilters={setFilters}
+              availableBrands={availableBrands}
+              priceRange={priceRange}
+              activeCount={activeCount}
+              clearAll={clearAll}
+              totalCount={products.length}
+              filteredCount={filtered.length}
+            />
+
+            <div className="flex-1 min-w-0">
+              {filtered.length === 0 ? (
+                <div className="text-center py-20 text-muted-foreground">
+                  <p className="text-lg mb-2">No products match your filters.</p>
+                  <button onClick={clearAll} className="text-primary hover:text-primary/80 text-sm" data-testid="button-clear-filters-empty">
+                    Clear all filters
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {filtered.map(p => (
+                    <ProductCard key={p.id} product={p} category={p.categoryId ? catMap.get(p.categoryId) : undefined} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </section>

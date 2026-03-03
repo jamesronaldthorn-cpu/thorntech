@@ -106,7 +106,7 @@ export default function ProductPage() {
 
       <section className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <div className="aspect-square bg-black/40 rounded-2xl border border-white/5 flex items-center justify-center relative overflow-hidden">
+          <div className="aspect-square bg-white rounded-2xl border border-white/10 flex items-center justify-center relative overflow-hidden">
             {product.badge && (
               <div className={`absolute top-4 left-4 z-10 text-sm font-bold px-3 py-1 rounded ${product.badge === "Sale" ? "bg-red-600" : "bg-primary"}`}>{product.badge}</div>
             )}
@@ -114,11 +114,11 @@ export default function ProductPage() {
               <img
                 src={product.image}
                 alt={product.name}
-                className="w-full h-full object-contain p-8"
+                className="w-full h-full object-contain p-6 product-image"
                 onError={() => setImgError(true)}
               />
             ) : (
-              <Box className="w-24 h-24 text-muted-foreground/20" />
+              <Box className="w-24 h-24 text-gray-300" />
             )}
           </div>
 

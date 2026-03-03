@@ -16,24 +16,24 @@ export default function ProductCard({ product, category }: { product: Product; c
   return (
     <div className="group flex flex-col bg-card border border-white/5 rounded-xl overflow-hidden hover:border-primary/50 transition-colors" data-testid={`card-product-${product.id}`}>
       <Link href={`/product/${product.slug}`}>
-        <div className="relative aspect-square bg-black/40 flex items-center justify-center overflow-hidden cursor-pointer">
+        <div className="relative aspect-square bg-white flex items-center justify-center overflow-hidden cursor-pointer">
           {product.badge && (
             <div className={`absolute top-3 left-3 z-10 text-xs font-bold px-2 py-1 rounded ${product.badge === "Sale" ? "bg-red-600" : "bg-primary"}`}>{product.badge}</div>
           )}
           {!product.inStock && (
-            <div className="absolute top-3 right-3 z-10 text-xs font-bold px-2 py-1 rounded bg-gray-600/80">Out of Stock</div>
+            <div className="absolute top-3 right-3 z-10 text-xs font-bold px-2 py-1 rounded bg-gray-600/80 text-white">Out of Stock</div>
           )}
           {product.image && !imgError ? (
             <img
               src={product.image}
               alt={product.name}
-              className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-500"
+              className="w-full h-full object-contain p-3 product-image"
               onError={() => setImgError(true)}
               loading="lazy"
             />
           ) : (
-            <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-              <Box className="w-10 h-10 text-muted-foreground/30" />
+            <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center">
+              <Box className="w-10 h-10 text-gray-300" />
             </div>
           )}
         </div>
