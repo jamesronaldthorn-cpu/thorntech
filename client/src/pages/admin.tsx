@@ -448,7 +448,7 @@ export default function AdminPage() {
   const [vipResult, setVipResult] = useState<any>(null);
   const [priceMatching, setPriceMatching] = useState(false);
   const [priceMatchResult, setPriceMatchResult] = useState<any>(null);
-  const [priceMatchBatch, setPriceMatchBatch] = useState("50");
+  const [priceMatchBatch, setPriceMatchBatch] = useState("500");
 
   const loadData = async () => {
     try {

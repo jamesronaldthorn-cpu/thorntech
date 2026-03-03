@@ -401,7 +401,7 @@ export function startVipScheduler(intervalHours = 6) {
       const result = await syncVipProducts();
       console.log(`[VIP Scheduler] Done: ${result.imported} new, ${result.updated} updated, ${result.outOfStock} out of stock`);
       console.log("[VIP Scheduler] Starting internet price matching...");
-      const priceResult = await matchInternetPrices(100);
+      const priceResult = await matchInternetPrices(500);
       console.log(`[VIP Scheduler] Price match done: ${priceResult.priceUpdated} updated, ${priceResult.noResultsFound} no results`);
     } catch (e: any) {
       console.error("[VIP Scheduler] Error:", e.message);
