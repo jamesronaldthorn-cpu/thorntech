@@ -1,13 +1,11 @@
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import {
-  ChevronRight, ShieldCheck, Truck, Headset, ChevronDown, Box
-} from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { ShieldCheck, Truck, Headset } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
+import CategoryDropdown from "@/components/CategoryDropdown";
 import { usePageTitle } from "@/components/SEO";
 import type { Product, Category } from "@shared/schema";
 import heroBgImg from "@/assets/images/hero-bg.png";
@@ -27,52 +25,14 @@ export default function Home() {
   const catMap = new Map(categories.map(c => [c.id, c]));
   const latestProducts = [...products].reverse().slice(0, 10);
 
-  const [dropOpen, setDropOpen] = useState(false);
-  const dropRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setDropOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       <NavBar />
 
       <div className="sticky top-20 z-40 border-b border-white/10 bg-background/95 backdrop-blur-md">
         <div className="container mx-auto px-4">
-          <div className="flex items-center h-12 gap-6 overflow-x-auto scrollbar-hide">
-            <div className="relative" ref={dropRef}>
-              <button
-                onClick={() => setDropOpen(!dropOpen)}
-                className="flex items-center gap-1.5 text-sm font-display font-bold tracking-wider text-white hover:text-primary transition-colors whitespace-nowrap"
-                data-testid="button-categories-dropdown"
-              >
-                COMPONENTS
-                <ChevronDown className={`w-4 h-4 transition-transform ${dropOpen ? "rotate-180" : ""}`} />
-              </button>
-              {dropOpen && (
-                <div className="absolute top-full left-0 mt-2 w-64 bg-card border border-white/10 rounded-xl shadow-2xl shadow-black/50 py-2 z-50">
-                  {categories.map(cat => (
-                    <Link
-                      key={cat.id}
-                      href={`/category/${cat.slug}`}
-                      onClick={() => setDropOpen(false)}
-                    >
-                      <div
-                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 transition-colors cursor-pointer"
-                        data-testid={`link-dropdown-category-${cat.slug}`}
-                      >
-                        <span className="text-sm text-foreground">{cat.name}</span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
+          <div className="flex items-center h-12 gap-6">
+            <CategoryDropdown />
             <Link href="/blog" className="text-sm font-display tracking-wider text-muted-foreground hover:text-primary transition-colors whitespace-nowrap">BLOG</Link>
             <Link href="/contact" className="text-sm font-display tracking-wider text-muted-foreground hover:text-primary transition-colors whitespace-nowrap">CONTACT</Link>
             <Link href="/returns" className="text-sm font-display tracking-wider text-muted-foreground hover:text-primary transition-colors whitespace-nowrap">RETURNS</Link>
