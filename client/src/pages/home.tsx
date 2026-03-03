@@ -31,8 +31,9 @@ export default function Home() {
 
       <div className="sticky top-20 z-40 border-b border-white/10 bg-background/95 backdrop-blur-md">
         <div className="container mx-auto px-4">
-          <div className="flex items-center h-12 gap-6">
+          <div className="flex items-center h-12 gap-4">
             <CategoryDropdown />
+            <div className="h-5 w-px bg-white/10 flex-shrink-0"></div>
             <Link href="/blog" className="text-sm font-display tracking-wider text-muted-foreground hover:text-primary transition-colors whitespace-nowrap">BLOG</Link>
             <Link href="/contact" className="text-sm font-display tracking-wider text-muted-foreground hover:text-primary transition-colors whitespace-nowrap">CONTACT</Link>
             <Link href="/returns" className="text-sm font-display tracking-wider text-muted-foreground hover:text-primary transition-colors whitespace-nowrap">RETURNS</Link>
