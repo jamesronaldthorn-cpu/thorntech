@@ -133,11 +133,22 @@ async function searchProductPrice(productName: string, manufacturer?: string): P
   return null;
 }
 
+const matchedProductIds = new Set<number>();
+
+export function getMatchProgress() {
+  return { matched: matchedProductIds.size };
+}
+
+export function resetMatchProgress() {
+  matchedProductIds.clear();
+}
+
 export async function matchInternetPrices(batchSize = 50): Promise<PriceMatchResult> {
   const allProducts = await storage.getProducts();
   const productsWithCost = allProducts.filter(p => p.costPrice && p.costPrice > 0);
+  const unmatched = productsWithCost.filter(p => !matchedProductIds.has(p.id));
 
-  console.log(`[PriceMatcher] Starting price match for ${productsWithCost.length} products with cost prices (batch: ${batchSize})`);
+  console.log(`[PriceMatcher] ${productsWithCost.length} total with cost, ${matchedProductIds.size} already matched this session, ${unmatched.length} remaining`);
 
   const result: PriceMatchResult = {
     totalProcessed: 0,
@@ -147,7 +158,13 @@ export async function matchInternetPrices(batchSize = 50): Promise<PriceMatchRes
     errors: 0,
   };
 
-  const batch = productsWithCost.slice(0, batchSize);
+  if (unmatched.length === 0) {
+    console.log(`[PriceMatcher] All products have been matched this session. Use "Reset" to start over.`);
+    matchedProductIds.clear();
+    return { ...result, totalProcessed: 0 };
+  }
+
+  const batch = unmatched.slice(0, batchSize);
 
   for (const product of batch) {
     try {
@@ -185,9 +202,11 @@ export async function matchInternetPrices(batchSize = 50): Promise<PriceMatchRes
         result.keptExisting++;
       }
 
+      matchedProductIds.add(product.id);
       await delay(3000);
     } catch (e: any) {
       result.errors++;
+      matchedProductIds.add(product.id);
       console.error(`[PriceMatcher] Error matching ${product.name}:`, e.message);
     }
   }

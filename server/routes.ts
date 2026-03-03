@@ -6,7 +6,7 @@ import { registerSchema, loginSchema } from "@shared/schema";
 import type { Product, Category } from "@shared/schema";
 import * as xero from "./xero";
 import * as vipApi from "./vipApi";
-import { matchInternetPrices } from "./priceMatcher";
+import { matchInternetPrices, getMatchProgress, resetMatchProgress } from "./priceMatcher";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -1008,7 +1008,13 @@ export async function registerRoutes(
   });
 
   app.get("/api/admin/vip/match-prices/status", adminAuth, async (_req, res) => {
-    res.json(priceMatchStatus);
+    const progress = getMatchProgress();
+    res.json({ ...priceMatchStatus, matchedSoFar: progress.matched });
+  });
+
+  app.post("/api/admin/vip/match-prices/reset", adminAuth, async (_req, res) => {
+    resetMatchProgress();
+    res.json({ success: true, message: "Price match progress reset. Next batch will start from the beginning." });
   });
 
   app.post("/api/admin/login", (req, res) => {

@@ -1046,6 +1046,18 @@ export default function AdminPage() {
                   >
                     {priceMatching ? <><Loader2 className="w-4 h-4 animate-spin mr-1" /> Matching...</> : <><TrendingUp className="w-4 h-4 mr-1" /> Match Internet Prices</>}
                   </Button>
+                  <Button
+                    onClick={async () => {
+                      await adminFetch("/api/admin/vip/match-prices/reset", { method: "POST" });
+                      setPriceMatchResult({ message: "Progress reset — next batch starts from the beginning." });
+                    }}
+                    disabled={priceMatching}
+                    variant="outline"
+                    className="border-white/20 text-white hover:bg-white/10"
+                    data-testid="button-reset-match"
+                  >
+                    Reset Progress
+                  </Button>
                 </div>
                 {priceMatchResult && (
                   <div className={`p-3 rounded-lg text-sm ${priceMatchResult.error ? "bg-red-500/10 border border-red-500/20" : priceMatchResult.message ? "bg-blue-500/10 border border-blue-500/20" : "bg-green-500/10 border border-green-500/20"}`}>
@@ -1063,7 +1075,7 @@ export default function AdminPage() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <CheckCircle className="w-4 h-4 text-green-400" />
-                          <span className="text-green-400 font-medium">Price matching complete — {priceMatchResult.totalProcessed} products checked</span>
+                          <span className="text-green-400 font-medium">Price matching complete — {priceMatchResult.totalProcessed} products checked{priceMatchResult.totalProcessed === 0 ? " (all products already matched this session)" : ""}</span>
                         </div>
                         <p className="text-gray-400 text-xs ml-6">{priceMatchResult.priceUpdated} prices updated to match internet</p>
                         <p className="text-gray-400 text-xs ml-6">{priceMatchResult.keptExisting} prices already competitive</p>
