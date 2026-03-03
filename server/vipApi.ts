@@ -304,7 +304,7 @@ export async function syncVipProducts(markupPercent?: number): Promise<VipSyncRe
       if (!isInStock) result.outOfStock++;
 
       const name = getProductName(vp);
-      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "").substring(0, 80);
+      let slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "").substring(0, 80);
       const imageUrl = ftpToHttpImage(vp.ProductImage);
 
       const catSlug = vipCategoryMap[vp.ProductGroup];
@@ -328,22 +328,51 @@ export async function syncVipProducts(markupPercent?: number): Promise<VipSyncRe
         continue;
       }
 
+      if (existingBySlug.has(slug)) {
+        slug = `${slug}-${vp.ProdID}`.substring(0, 100);
+      }
+
       const description = getProductDescription(vp);
-      await storage.createProduct({
-        name,
-        slug,
-        description,
-        price: sellPrice,
-        compareAtPrice: null,
-        categoryId,
-        image: imageUrl,
-        badge: vp.Manufacturer ? null : null,
-        inStock: isInStock,
-        vendor: vp.Manufacturer || null,
-        stripeProductId: null,
-        stripePriceId: null,
-      });
-      result.imported++;
+      try {
+        await storage.createProduct({
+          name,
+          slug,
+          description,
+          price: sellPrice,
+          compareAtPrice: null,
+          categoryId,
+          image: imageUrl,
+          badge: vp.Manufacturer ? null : null,
+          inStock: isInStock,
+          vendor: vp.Manufacturer || null,
+          stripeProductId: null,
+          stripePriceId: null,
+        });
+        existingBySlug.set(slug, { id: 0, slug, inStock: isInStock, image: imageUrl, price: sellPrice, vendor: vp.Manufacturer || null } as any);
+        result.imported++;
+      } catch (dupErr: any) {
+        if (dupErr.message?.includes("duplicate key")) {
+          slug = `${slug}-${vp.ProdID}`.substring(0, 100);
+          await storage.createProduct({
+            name,
+            slug,
+            description,
+            price: sellPrice,
+            compareAtPrice: null,
+            categoryId,
+            image: imageUrl,
+            badge: vp.Manufacturer ? null : null,
+            inStock: isInStock,
+            vendor: vp.Manufacturer || null,
+            stripeProductId: null,
+            stripePriceId: null,
+          });
+          existingBySlug.set(slug, { id: 0, slug, inStock: isInStock, image: imageUrl, price: sellPrice, vendor: vp.Manufacturer || null } as any);
+          result.imported++;
+        } else {
+          throw dupErr;
+        }
+      }
     } catch (e: any) {
       result.errors.push(`${vp.Description}: ${e.message}`);
     }

@@ -1,0 +1,33 @@
+root@bold-golick:/var/www/thorntech# pm2 logs thorntech --lines 200 | grep -i "vip\|error"
+/root/.pm2/logs/thorntech-error.log last 200 lines:
+0|thorntec | [Xero] Callback error: Error: No authorization code received
+0|thorntec |   error: StripeInvalidRequestError: No such webhook endpoint: 'we_1T64bPAaj2T9w8Au6WwHwLJ9'
+0|thorntec |       at generateV1Error (file:///var/www/thorntech/node_modules/stripe/esm/Error.js:8:20)
+0|thorntec |       at res.toJSON.then.StripeAPIError.message (file:///var/www/thorntech/node_modules/stripe/esm/RequestSender.js:111:31)
+0|thorntec |     type: 'StripeInvalidRequestError',
+0|thorntec |       doc_url: 'https://stripe.com/docs/error-codes/resource-missing',
+0|thorntec |       type: 'invalid_request_error',
+0|thorntec |     rawType: 'invalid_request_error',
+0|thorntec |     doc_url: 'https://stripe.com/docs/error-codes/resource-missing',
+0|thorntec |   error: StripeInvalidRequestError: No such webhook endpoint: 'we_1T6bGbAaj2T9w8AuQt28ZJNT'
+0|thorntec |       at generateV1Error (file:///var/www/thorntech/node_modules/stripe/esm/Error.js:8:20)
+0|thorntec |       at res.toJSON.then.StripeAPIError.message (file:///var/www/thorntech/node_modules/stripe/esm/RequestSender.js:111:31)
+0|thorntec |     type: 'StripeInvalidRequestError',
+0|thorntec |       doc_url: 'https://stripe.com/docs/error-codes/resource-missing',
+0|thorntec |       type: 'invalid_request_error',
+0|thorntec |     rawType: 'invalid_request_error',
+0|thorntec |     doc_url: 'https://stripe.com/docs/error-codes/resource-missing',
+0|thorntec |   error: StripeInvalidRequestError: No such webhook endpoint: 'we_1T6bVgAaj2T9w8Aum6Kv8VIf'
+0|thorntec |       at generateV1Error (file:///var/www/thorntech/node_modules/stripe/esm/Error.js:8:20)
+0|thorntec |       at res.toJSON.then.StripeAPIError.message (file:///var/www/thorntech/node_modules/stripe/esm/RequestSender.js:111:31)
+0|thorntec |     type: 'StripeInvalidRequestError',
+0|thorntec |       doc_url: 'https://stripe.com/docs/error-codes/resource-missing',
+0|thorntec |       type: 'invalid_request_error',
+0|thorntec |     rawType: 'invalid_request_error',
+0|thorntec |     doc_url: 'https://stripe.com/docs/error-codes/resource-missing',
+0|thorntec | [VIP Scheduler] Started — syncing every 6 hours
+0|thorntec | [VIP] Logging in...
+0|thorntec | [VIP] Authenticated, fetching data...
+0|thorntec | [VIP] Fetched 2055 products, 2256 prices, 2257 stock entries
+0|thorntec | [VIP] Sync complete: 2034 imported, 0 updated, 0 skipped, 871 out of stock
+0|thorntec | 6:25:55 PM [express] POST /api/admin/vip/sync 200 in 13610ms :: {"totalProducts":2055,"imported":2034,"updated":0,"skipped":0,"outOfStock":871,"categoriesMatched":2051,"errors":["COOLER MASTER 27 IPS SPK TEMPEST GP27Q: duplicate key value violates unique constrain
