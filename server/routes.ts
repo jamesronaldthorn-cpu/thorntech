@@ -1026,6 +1026,19 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/robots.txt", (req, res) => {
+    const siteUrl = buildSiteUrl(req);
+    res.set("Content-Type", "text/plain");
+    res.send(`User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Disallow: /checkout
+
+Sitemap: ${siteUrl}/sitemap.xml
+`);
+  });
+
   app.get("/sitemap.xml", async (req, res) => {
     const [prods, cats, posts] = await Promise.all([storage.getProducts(), storage.getCategories(), storage.getBlogPosts(true)]);
     const siteUrl = buildSiteUrl(req);
