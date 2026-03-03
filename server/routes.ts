@@ -7,6 +7,7 @@ import type { Product, Category } from "@shared/schema";
 import * as xero from "./xero";
 import * as vipApi from "./vipApi";
 import { matchInternetPrices, getMatchProgress, resetMatchProgress } from "./priceMatcher";
+import { enrichProducts, getEnrichProgress, resetEnrichProgress } from "./productEnricher";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -1015,6 +1016,35 @@ export async function registerRoutes(
   app.post("/api/admin/vip/match-prices/reset", adminAuth, async (_req, res) => {
     resetMatchProgress();
     res.json({ success: true, message: "Price match progress reset. Next batch will start from the beginning." });
+  });
+
+  let enrichStatus: { running: boolean; result: any } = { running: false, result: null };
+
+  app.post("/api/admin/enrich-products", adminAuth, async (req, res) => {
+    if (enrichStatus.running) {
+      return res.json({ status: "running", message: "Product enrichment is already in progress" });
+    }
+    const batchSize = req.body.batchSize ? parseInt(req.body.batchSize) : 50;
+    enrichStatus = { running: true, result: null };
+    res.json({ status: "started", message: `Enriching ${batchSize} products — pulling specs, features & images from the web...` });
+
+    try {
+      const result = await enrichProducts(batchSize);
+      enrichStatus = { running: false, result };
+    } catch (e: any) {
+      console.error("[Enricher] Error:", e);
+      enrichStatus = { running: false, result: { error: e.message } };
+    }
+  });
+
+  app.get("/api/admin/enrich-products/status", adminAuth, async (_req, res) => {
+    const progress = getEnrichProgress();
+    res.json({ ...enrichStatus, enrichedSoFar: progress.enriched });
+  });
+
+  app.post("/api/admin/enrich-products/reset", adminAuth, async (_req, res) => {
+    resetEnrichProgress();
+    res.json({ success: true, message: "Enrichment progress reset." });
   });
 
   app.post("/api/admin/login", (req, res) => {

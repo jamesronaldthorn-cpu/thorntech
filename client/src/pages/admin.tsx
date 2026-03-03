@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Package, Tag, ShoppingCart, Plus, Pencil, Trash2, LogOut,
-  Eye, EyeOff, X, Save, Search, ChevronDown, ChevronUp, Rss, Upload, Copy, ExternalLink, Download, Loader2, CheckCircle, AlertCircle, Users, KeyRound, BarChart3, TrendingUp, Globe, Calendar, RotateCcw
+  Eye, EyeOff, X, Save, Search, ChevronDown, ChevronUp, Rss, Upload, Copy, ExternalLink, Download, Loader2, CheckCircle, AlertCircle, Users, KeyRound, BarChart3, TrendingUp, Globe, Calendar, RotateCcw, Sparkles
 } from "lucide-react";
 import type { Product, Category, Order, CustomFeed, FeedSource, BlogPost } from "@shared/schema";
 import { FileText } from "lucide-react";
@@ -449,6 +449,9 @@ export default function AdminPage() {
   const [priceMatching, setPriceMatching] = useState(false);
   const [priceMatchResult, setPriceMatchResult] = useState<any>(null);
   const [priceMatchBatch, setPriceMatchBatch] = useState("500");
+  const [enriching, setEnriching] = useState(false);
+  const [enrichResult, setEnrichResult] = useState<any>(null);
+  const [enrichBatch, setEnrichBatch] = useState("50");
 
   const loadData = async () => {
     try {
@@ -615,6 +618,33 @@ export default function AdminPage() {
           clearInterval(poll);
           setPriceMatchResult(st.result);
           setPriceMatching(false);
+          loadData();
+        }
+      } catch {}
+    }, 10000);
+  };
+
+  const enrichProductsAction = async () => {
+    setEnriching(true);
+    setEnrichResult({ message: "Starting product enrichment..." });
+    try {
+      adminFetch("/api/admin/enrich-products", {
+        method: "POST",
+        body: JSON.stringify({ batchSize: parseInt(enrichBatch) || 50 }),
+      }).catch(() => {});
+    } catch {}
+    await new Promise(r => setTimeout(r, 3000));
+    setEnrichResult({ message: "Enrichment in progress — pulling specs, features & images from the web..." });
+    const poll = setInterval(async () => {
+      try {
+        const sr = await adminFetch("/api/admin/enrich-products/status");
+        const text = await sr.text();
+        if (!text.startsWith("{")) return;
+        const st = JSON.parse(text);
+        if (!st.running && st.result) {
+          clearInterval(poll);
+          setEnrichResult(st.result);
+          setEnriching(false);
           loadData();
         }
       } catch {}
@@ -1082,6 +1112,73 @@ export default function AdminPage() {
                         <p className="text-gray-400 text-xs ml-6">{priceMatchResult.noResultsFound} no internet price found</p>
                         {priceMatchResult.errors > 0 && (
                           <p className="text-red-400 text-xs ml-6">{priceMatchResult.errors} errors</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6 pt-6 border-t border-white/10">
+                <h3 className="text-white font-medium mb-3 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-purple-400" />
+                  Product Enrichment
+                </h3>
+                <p className="text-gray-400 text-xs mb-3">Pull detailed specs, features, and images from UK retailer websites to make product pages look professional.</p>
+                <div className="flex items-center gap-4 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-gray-400 text-xs whitespace-nowrap">Batch Size:</Label>
+                    <Input
+                      type="number"
+                      value={enrichBatch}
+                      onChange={e => setEnrichBatch(e.target.value)}
+                      className="w-20 bg-white/5 border-white/10 text-white h-9"
+                      data-testid="input-enrich-batch"
+                    />
+                  </div>
+                  <Button
+                    onClick={enrichProductsAction}
+                    disabled={enriching}
+                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                    data-testid="button-enrich-products"
+                  >
+                    {enriching ? <><Loader2 className="w-4 h-4 animate-spin mr-1" /> Enriching...</> : <><Sparkles className="w-4 h-4 mr-1" /> Enrich Products</>}
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      await adminFetch("/api/admin/enrich-products/reset", { method: "POST" });
+                      setEnrichResult({ message: "Progress reset — next batch starts from unenriched products." });
+                    }}
+                    disabled={enriching}
+                    variant="outline"
+                    className="border-white/20 text-white hover:bg-white/10"
+                    data-testid="button-reset-enrich"
+                  >
+                    Reset Progress
+                  </Button>
+                </div>
+                {enrichResult && (
+                  <div className={`mt-3 p-3 rounded-lg text-sm ${enrichResult.error ? "bg-red-500/10 border border-red-500/20" : enrichResult.message ? "bg-purple-500/10 border border-purple-500/20" : "bg-green-500/10 border border-green-500/20"}`}>
+                    {enrichResult.error ? (
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+                        <span className="text-red-400">{enrichResult.error}</span>
+                      </div>
+                    ) : enrichResult.message ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
+                        <span className="text-purple-400">{enrichResult.message}</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-400" />
+                          <span className="text-green-400 font-medium">Enrichment complete — {enrichResult.totalProcessed} products processed</span>
+                        </div>
+                        <p className="text-gray-400 text-xs ml-6">{enrichResult.enriched} products enriched with web data</p>
+                        <p className="text-gray-400 text-xs ml-6">{enrichResult.noDataFound} no data found online</p>
+                        {enrichResult.errors > 0 && (
+                          <p className="text-red-400 text-xs ml-6">{enrichResult.errors} errors</p>
                         )}
                       </div>
                     )}

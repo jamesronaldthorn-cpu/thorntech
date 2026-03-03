@@ -15,7 +15,7 @@ A fully functional e-commerce store for Thorn Tech Solutions Ltd (Company Reg: 1
 ## Data Model
 - **Users**: id, email, passwordHash, name, phone, address, city, postcode, createdAt
 - **Categories**: id, name, slug, description, icon
-- **Products**: id, name, slug, description, price, compareAtPrice, categoryId, image, badge, inStock, vendor, stripeProductId, stripePriceId
+- **Products**: id, name, slug, description, price, costPrice, compareAtPrice, categoryId, image, images (JSON array), specs (JSON obj), features (JSON array), badge, inStock, vendor, mpn, ean, enrichedAt, stripeProductId, stripePriceId
 - **Orders**: id, userId (nullable), email, name, address, city, postcode, phone, total, status, paymentMethod, paymentId, items, createdAt
 - **CustomFeeds**: id, name, slug, content, createdAt, updatedAt
 - **FeedSources**: id, name, url, categoryId, intervalHours, enabled, lastImportAt, lastImportCount, lastError, createdAt
@@ -24,8 +24,9 @@ A fully functional e-commerce store for Thorn Tech Solutions Ltd (Company Reg: 1
 
 ## Pages
 - `/` — Home (hero, categories, product grid, value props)
-- `/product/:slug` — Product detail with add to basket, related products
-- `/category/:slug` — Category listing with filter tabs
+- `/product/:slug` — Product detail with image gallery, specs, features, related products
+- `/category/:slug` — Category listing with brand/price/model filters
+- `/search?q=` — Search results with brand/price/model filters
 - `/checkout` — Checkout form with Stripe and PayPal payment options
 - `/order-confirmation` — Order confirmation with payment verification
 - `/login` — User login
@@ -36,82 +37,72 @@ A fully functional e-commerce store for Thorn Tech Solutions Ltd (Company Reg: 1
 - `/order-status` — Public order lookup by order number + email, with visual status tracker
 - `/blog` — Blog listing (published posts)
 - `/blog/:slug` — Individual blog post
-- `/admin` — Admin panel (products, categories, orders, feeds, blog)
+- `/admin` — Admin panel (products, categories, orders, feeds, blog, VIP sync, price matching, enrichment)
 
-## API Routes
-### Auth
-- `POST /api/auth/register` — Create user account
-- `POST /api/auth/login` — Login, returns JWT
-- `GET /api/auth/me` — Get current user profile (JWT required)
-- `PUT /api/auth/me` — Update user profile (JWT required)
-- `PUT /api/auth/password` — Change password (JWT required)
-- `GET /api/auth/orders` — Get user's order history (JWT required)
+## VIP Computers Integration
+- SOAP API at xml3.vip-computers.com (Account THO23865)
+- Syncs products, prices, stock every 6 hours
+- Stores MPN and EAN for enrichment lookups
+- costPrice stored but NEVER exposed in public API responses
+- Pricing: internet-matched price if above cost+VAT+5%; otherwise cost×1.2×1.05 minimum
 
-### Public
-- `GET /api/categories` — All categories
-- `GET /api/categories/:slug` — Single category
-- `GET /api/categories/:slug/products` — Products in category
-- `GET /api/products` — All products
-- `GET /api/products/:slug` — Single product
-- `GET /api/orders/:id` — Get order details
+## Product Enrichment
+- `server/productEnricher.ts` — Scrapes UK retailer sites (Scan, Overclockers, eBuyer, etc.) for specs, features, images
+- Stores enriched data in: specs (JSON), features (JSON array), images (JSON array of URLs)
+- Admin panel has "Enrich Products" button with batch size control
+- Tracks progress across batches (continues from where it left off)
+- Product page displays: image gallery, key features, full specs table
 
-### Checkout
-- `POST /api/checkout/stripe` — Create Stripe Checkout Session
-- `GET /api/checkout/stripe/verify/:sessionId` — Verify Stripe payment
-- `POST /api/checkout/paypal/create` — Create PayPal order
-- `GET /api/checkout/paypal/return` — PayPal return/capture
-- `POST /api/checkout/paypal/confirm` — Confirm PayPal payment
-- `GET /api/stripe/publishable-key` — Stripe publishable key
-- `POST /api/stripe/webhook` — Stripe webhook handler
+## Price Matching
+- `server/priceMatcher.ts` — Searches DuckDuckGo, Bing, PriceSpy for internet prices
+- Runs as background job (500 per batch by default)
+- Auto-runs after each VIP sync
+- Tracks progress across batches
 
-### Admin (requires ADMIN_PASSWORD)
-- Full CRUD for products, categories, orders, custom feeds, feed sources
-- `POST /api/admin/import-feed` — Import products from XML feed URL
-- `POST /api/admin/feed-sources/:id/run` — Manually trigger feed import
+## Product Filters
+- `client/src/components/ProductFilters.tsx` — Reusable filter sidebar
+- Filters by: brand (checkbox), price range (min/max + presets), model/keyword search
+- Sort by: price, name
+- Used on category and search pages
 
-## XML Feeds
-- `/sitemap.xml` — XML sitemap
-- `/feeds/custom/:slug` — Custom uploaded feeds
-- `/feeds` — Feed index
+## SEO
+- Dynamic page titles, Open Graph + Twitter Card meta tags
+- JSON-LD structured data (Store, Product, Breadcrumb)
+- Dynamic sitemap.xml with all products, categories, blog posts
+- robots.txt blocking /admin and /api/
+- Google site verification tag
 
 ## Key Files
-- `shared/schema.ts` — Drizzle schema (users, categories, products, orders, customFeeds, feedSources)
-- `server/routes.ts` — All API routes including auth
+- `shared/schema.ts` — Drizzle schema
+- `server/routes.ts` — All API routes
 - `server/storage.ts` — Database storage interface
-- `server/feedImporter.ts` — XML feed parser, importer, and auto-scheduler
-- `server/stripeClient.ts` — Stripe SDK client (Replit connector)
-- `server/webhookHandlers.ts` — Stripe webhook processing
-- `server/paypalDirect.ts` — PayPal direct checkout (redirects to PayPal)
-- `server/paypal.ts` — PayPal SDK integration
-- `client/src/lib/auth.tsx` — Auth context provider (JWT, login, register, logout)
-- `client/src/lib/cart.ts` — Zustand cart store
-- `client/src/pages/account.tsx` — Login, Register, and Account dashboard pages
-- `client/src/components/NavBar.tsx` — Navigation with cart drawer and user account link
-- `client/src/components/Footer.tsx` — Site footer
-- `client/src/components/ProductCard.tsx` — Reusable product card
-- `client/src/pages/returns.tsx` — Returns & Warranty policy page
-- `client/src/pages/contact.tsx` — Contact Us page with form
-
-## Integrations
-- **Stripe**: Works with Replit connector or standard env vars (STRIPE_SECRET_KEY / STRIPE_PUBLISHABLE_KEY)
-- **PayPal**: Requires PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET env vars
+- `server/vipApi.ts` — VIP Computers SOAP API sync
+- `server/priceMatcher.ts` — Internet price matching
+- `server/productEnricher.ts` — Web enrichment (specs, features, images)
+- `server/feedImporter.ts` — XML feed parser, importer, scheduler
+- `server/stripeClient.ts` — Stripe SDK client
+- `server/paypalDirect.ts` — PayPal direct checkout
+- `client/src/components/ProductCard.tsx` — Product card with placeholder fallback
+- `client/src/components/ProductFilters.tsx` — Brand/price/model filters
+- `client/src/pages/product.tsx` — Product detail with gallery, specs, features
 
 ## Environment Variables
 - `DATABASE_URL` — PostgreSQL connection string
 - `ADMIN_PASSWORD` — Admin panel password (default: thorntech2024)
-- `JWT_SECRET` — JWT signing secret (set a strong random value for production)
+- `JWT_SECRET` — JWT signing secret
 - `STRIPE_SECRET_KEY` / `STRIPE_PUBLISHABLE_KEY` — Stripe API keys
 - `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` — PayPal API keys
+- `VIP_ACCOUNT_ID` / `VIP_USERNAME` / `VIP_PASSWORD` — VIP Computers API
+- `XERO_CLIENT_ID` / `XERO_CLIENT_SECRET` — Xero accounting
 
-## Self-Hosting
-- See `DEPLOY.md` for full self-hosting guide
-- See `.env.example` for required environment variables
-- Build: `npm run build` → output in `dist/`
-- Start: `npm start` (runs `dist/index.cjs`)
-- Uses `dotenv` to load `.env` file automatically
-- VPS deploy: `git pull && npm install && npm run db:push && npm run build && pm2 restart thorntech`
+## VPS Deployment
+- Domain: thorntechsolutionsltd.com
+- GitHub: github.com/jamesronaldthorn-cpu/thorntech.git
+- Deploy: `git pull && npm install && npx drizzle-kit push && npm run build && pm2 restart thorntech`
+- Schema changes require `npx drizzle-kit push`
 
 ## Design
 - Dark tech aesthetic with Orbitron (headings) + Rajdhani (body) fonts
 - Purple primary accent (#8b5cf6)
 - UK market formatting (£ prices, VAT included, DPD delivery)
+- White background for product images, dark gradient placeholder when no image

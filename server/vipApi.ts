@@ -333,6 +333,8 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
       }
 
       const description = getProductDescription(vp);
+      const mpn = vp.ManufacturersPartNumber?.trim() || null;
+      const ean = vp.EAN ? String(vp.EAN).trim() : null;
       const productData = {
         name,
         slug,
@@ -345,6 +347,8 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         badge: null as string | null,
         inStock: isInStock,
         vendor: vp.Manufacturer || null,
+        mpn,
+        ean,
         stripeProductId: null,
         stripePriceId: null,
       };
