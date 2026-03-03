@@ -1,11 +1,9 @@
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Cpu, Monitor, HardDrive, Zap, ChevronRight,
-  ShieldCheck, Truck, Headset,
-  Fan, Box, Keyboard, CircuitBoard,
-  MemoryStick, Cable, Mouse, Wifi, Speaker, Gamepad2, Disc, Server, MonitorSpeaker
+  ChevronRight, ShieldCheck, Truck, Headset, ChevronDown, Box
 } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
@@ -13,27 +11,6 @@ import ProductCard from "@/components/ProductCard";
 import { usePageTitle } from "@/components/SEO";
 import type { Product, Category } from "@shared/schema";
 import heroBgImg from "@/assets/images/hero-bg.png";
-
-const iconMap: Record<string, React.ReactNode> = {
-  Monitor: <Monitor className="w-6 h-6 text-primary" />,
-  Cpu: <Cpu className="w-6 h-6 text-primary" />,
-  CircuitBoard: <CircuitBoard className="w-6 h-6 text-primary" />,
-  Zap: <Zap className="w-6 h-6 text-primary" />,
-  HardDrive: <HardDrive className="w-6 h-6 text-primary" />,
-  Fan: <Fan className="w-6 h-6 text-primary" />,
-  Box: <Box className="w-6 h-6 text-primary" />,
-  Keyboard: <Keyboard className="w-6 h-6 text-primary" />,
-  MemoryStick: <MemoryStick className="w-6 h-6 text-primary" />,
-  Cable: <Cable className="w-6 h-6 text-primary" />,
-  Mouse: <Mouse className="w-6 h-6 text-primary" />,
-  Wifi: <Wifi className="w-6 h-6 text-primary" />,
-  Speaker: <Speaker className="w-6 h-6 text-primary" />,
-  Headset: <Headset className="w-6 h-6 text-primary" />,
-  Gamepad2: <Gamepad2 className="w-6 h-6 text-primary" />,
-  Disc: <Disc className="w-6 h-6 text-primary" />,
-  Server: <Server className="w-6 h-6 text-primary" />,
-  MonitorSpeaker: <MonitorSpeaker className="w-6 h-6 text-primary" />,
-};
 
 export default function Home() {
   const { data: categories = [] } = useQuery<Category[]>({
@@ -48,10 +25,60 @@ export default function Home() {
 
   usePageTitle();
   const catMap = new Map(categories.map(c => [c.id, c]));
+  const latestProducts = [...products].reverse().slice(0, 10);
+
+  const [dropOpen, setDropOpen] = useState(false);
+  const dropRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setDropOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       <NavBar />
+
+      <div className="sticky top-20 z-40 border-b border-white/10 bg-background/95 backdrop-blur-md">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center h-12 gap-6 overflow-x-auto scrollbar-hide">
+            <div className="relative" ref={dropRef}>
+              <button
+                onClick={() => setDropOpen(!dropOpen)}
+                className="flex items-center gap-1.5 text-sm font-display font-bold tracking-wider text-white hover:text-primary transition-colors whitespace-nowrap"
+                data-testid="button-categories-dropdown"
+              >
+                COMPONENTS
+                <ChevronDown className={`w-4 h-4 transition-transform ${dropOpen ? "rotate-180" : ""}`} />
+              </button>
+              {dropOpen && (
+                <div className="absolute top-full left-0 mt-2 w-64 bg-card border border-white/10 rounded-xl shadow-2xl shadow-black/50 py-2 z-50">
+                  {categories.map(cat => (
+                    <Link
+                      key={cat.id}
+                      href={`/category/${cat.slug}`}
+                      onClick={() => setDropOpen(false)}
+                    >
+                      <div
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 transition-colors cursor-pointer"
+                        data-testid={`link-dropdown-category-${cat.slug}`}
+                      >
+                        <span className="text-sm text-foreground">{cat.name}</span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+            <Link href="/blog" className="text-sm font-display tracking-wider text-muted-foreground hover:text-primary transition-colors whitespace-nowrap">BLOG</Link>
+            <Link href="/contact" className="text-sm font-display tracking-wider text-muted-foreground hover:text-primary transition-colors whitespace-nowrap">CONTACT</Link>
+            <Link href="/returns" className="text-sm font-display tracking-wider text-muted-foreground hover:text-primary transition-colors whitespace-nowrap">RETURNS</Link>
+          </div>
+        </div>
+      </div>
 
       <section className="relative h-[80vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
@@ -83,41 +110,23 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="products" className="py-20 relative z-20 -mt-20">
-        <div className="container px-4 mx-auto">
-          <div className="flex items-end justify-between mb-10">
-            <div>
-              <h2 className="text-3xl font-display font-bold mb-2">OUR <span className="text-primary">COMPONENTS</span></h2>
-              <div className="h-1 w-20 bg-primary rounded-full"></div>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {categories.map((cat) => (
-              <Link key={cat.id} href={`/category/${cat.slug}`} className="tech-border glass-panel p-4 rounded-lg group cursor-pointer hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center" data-testid={`link-category-${cat.slug}`}>
-                <div className="p-3 rounded-full bg-white/5 group-hover:bg-primary/20 transition-colors mb-3">
-                  {iconMap[cat.icon || ""] || <Box className="w-6 h-6 text-primary" />}
-                </div>
-                <h3 className="font-display font-bold text-sm group-hover:text-primary transition-colors">{cat.name}</h3>
-              </Link>
-            ))}
-          </div>
-          {products.length > 0 && (
-            <div className="mt-16">
-              <div className="flex items-end justify-between mb-10">
-                <div>
-                  <h2 className="text-3xl font-display font-bold mb-2">LATEST <span className="text-primary">PRODUCTS</span></h2>
-                  <div className="h-1 w-20 bg-primary rounded-full"></div>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {products.map((product) => (
-                  <ProductCard key={product.id} product={product} category={catMap.get(product.categoryId ?? 0)} />
-                ))}
+      {latestProducts.length > 0 && (
+        <section id="products" className="py-20">
+          <div className="container px-4 mx-auto">
+            <div className="flex items-end justify-between mb-10">
+              <div>
+                <h2 className="text-3xl font-display font-bold mb-2">LATEST <span className="text-primary">PRODUCTS</span></h2>
+                <div className="h-1 w-20 bg-primary rounded-full"></div>
               </div>
             </div>
-          )}
-        </div>
-      </section>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5">
+              {latestProducts.map((product) => (
+                <ProductCard key={product.id} product={product} category={catMap.get(product.categoryId ?? 0)} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="py-16 border-t border-b border-white/5 bg-white/[0.02]">
         <div className="container mx-auto px-4">
@@ -135,6 +144,7 @@ export default function Home() {
             <div className="flex flex-col items-center">
               <Headset className="w-10 h-10 text-primary mb-4" />
               <h4 className="font-display font-bold text-lg mb-2">UK Based Support</h4>
+              <p className="text-sm text-muted-foreground max-w-xs">Friendly help from our team, Monday to Friday.</p>
             </div>
           </div>
         </div>
