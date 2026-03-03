@@ -596,41 +596,29 @@ export default function AdminPage() {
 
   const matchPrices = async () => {
     setPriceMatching(true);
-    setPriceMatchResult(null);
+    setPriceMatchResult({ message: "Starting price matching..." });
     try {
-      const res = await adminFetch("/api/admin/vip/match-prices", {
+      adminFetch("/api/admin/vip/match-prices", {
         method: "POST",
         body: JSON.stringify({ batchSize: parseInt(priceMatchBatch) || 50 }),
-      });
-      const text = await res.text();
-      try { JSON.parse(text); } catch { setPriceMatchResult({ error: "Server returned invalid response" }); setPriceMatching(false); return; }
-      const data = JSON.parse(text);
-      if (data.status === "started" || data.status === "running") {
-        setPriceMatchResult({ message: data.message || "Price matching in progress..." });
-        const poll = setInterval(async () => {
-          try {
-            const sr = await adminFetch("/api/admin/vip/match-prices/status");
-            const st = await sr.json();
-            if (!st.running && st.result) {
-              clearInterval(poll);
-              setPriceMatchResult(st.result);
-              setPriceMatching(false);
-              loadData();
-            }
-          } catch { /* keep polling */ }
-        }, 5000);
-      } else if (data.error) {
-        setPriceMatchResult({ error: data.error });
-        setPriceMatching(false);
-      } else {
-        setPriceMatchResult(data);
-        setPriceMatching(false);
-        loadData();
-      }
-    } catch (e: any) {
-      setPriceMatchResult({ error: e.message });
-      setPriceMatching(false);
-    }
+      }).catch(() => {});
+    } catch {}
+    await new Promise(r => setTimeout(r, 3000));
+    setPriceMatchResult({ message: "Price matching in progress — this may take several minutes..." });
+    const poll = setInterval(async () => {
+      try {
+        const sr = await adminFetch("/api/admin/vip/match-prices/status");
+        const text = await sr.text();
+        if (!text.startsWith("{")) return;
+        const st = JSON.parse(text);
+        if (!st.running && st.result) {
+          clearInterval(poll);
+          setPriceMatchResult(st.result);
+          setPriceMatching(false);
+          loadData();
+        }
+      } catch {}
+    }, 10000);
   };
 
   const syncVip = async () => {
