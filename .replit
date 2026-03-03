@@ -49,3 +49,5 @@ integrations = ["stripe:2.0.0", "javascript_paypal:1.0.0"]
 
 [userenv.shared]
 XERO_CLIENT_ID = "B2ECF9DAE6594E4FA5F1A3F56DF2588F"
+VIP_ACCOUNT_ID = "THO23865"
+VIP_USERNAME = "THO23865"
