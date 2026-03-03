@@ -988,15 +988,27 @@ export async function registerRoutes(
     }
   });
 
+  let priceMatchStatus: { running: boolean; result: any } = { running: false, result: null };
+
   app.post("/api/admin/vip/match-prices", adminAuth, async (req, res) => {
+    if (priceMatchStatus.running) {
+      return res.json({ status: "running", message: "Price matching is already in progress" });
+    }
+    const batchSize = req.body.batchSize ? parseInt(req.body.batchSize) : 50;
+    priceMatchStatus = { running: true, result: null };
+    res.json({ status: "started", message: `Price matching started for ${batchSize} products. Check status below.` });
+
     try {
-      const batchSize = req.body.batchSize ? parseInt(req.body.batchSize) : 50;
       const result = await matchInternetPrices(batchSize);
-      res.json(result);
+      priceMatchStatus = { running: false, result };
     } catch (e: any) {
       console.error("[PriceMatcher] Error:", e);
-      res.status(500).json({ error: e.message });
+      priceMatchStatus = { running: false, result: { error: e.message } };
     }
+  });
+
+  app.get("/api/admin/vip/match-prices/status", adminAuth, async (_req, res) => {
+    res.json(priceMatchStatus);
   });
 
   app.post("/api/admin/login", (req, res) => {

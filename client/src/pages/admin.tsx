@@ -602,17 +602,35 @@ export default function AdminPage() {
         method: "POST",
         body: JSON.stringify({ batchSize: parseInt(priceMatchBatch) || 50 }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setPriceMatchResult({ error: data.error || "Price matching failed" });
+      const text = await res.text();
+      try { JSON.parse(text); } catch { setPriceMatchResult({ error: "Server returned invalid response" }); setPriceMatching(false); return; }
+      const data = JSON.parse(text);
+      if (data.status === "started" || data.status === "running") {
+        setPriceMatchResult({ message: data.message || "Price matching in progress..." });
+        const poll = setInterval(async () => {
+          try {
+            const sr = await adminFetch("/api/admin/vip/match-prices/status");
+            const st = await sr.json();
+            if (!st.running && st.result) {
+              clearInterval(poll);
+              setPriceMatchResult(st.result);
+              setPriceMatching(false);
+              loadData();
+            }
+          } catch { /* keep polling */ }
+        }, 5000);
+      } else if (data.error) {
+        setPriceMatchResult({ error: data.error });
+        setPriceMatching(false);
       } else {
         setPriceMatchResult(data);
+        setPriceMatching(false);
         loadData();
       }
     } catch (e: any) {
       setPriceMatchResult({ error: e.message });
+      setPriceMatching(false);
     }
-    setPriceMatching(false);
   };
 
   const syncVip = async () => {
@@ -1042,11 +1060,16 @@ export default function AdminPage() {
                   </Button>
                 </div>
                 {priceMatchResult && (
-                  <div className={`p-3 rounded-lg text-sm ${priceMatchResult.error ? "bg-red-500/10 border border-red-500/20" : "bg-green-500/10 border border-green-500/20"}`}>
+                  <div className={`p-3 rounded-lg text-sm ${priceMatchResult.error ? "bg-red-500/10 border border-red-500/20" : priceMatchResult.message ? "bg-blue-500/10 border border-blue-500/20" : "bg-green-500/10 border border-green-500/20"}`}>
                     {priceMatchResult.error ? (
                       <div className="flex items-start gap-2">
                         <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
                         <span className="text-red-400">{priceMatchResult.error}</span>
+                      </div>
+                    ) : priceMatchResult.message ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                        <span className="text-blue-400">{priceMatchResult.message}</span>
                       </div>
                     ) : (
                       <div className="space-y-1">
