@@ -451,7 +451,7 @@ export default function AdminPage() {
   const [priceMatchBatch, setPriceMatchBatch] = useState("500");
   const [enriching, setEnriching] = useState(false);
   const [enrichResult, setEnrichResult] = useState<any>(null);
-  const [enrichBatch, setEnrichBatch] = useState("50");
+  const [enrichBatch, setEnrichBatch] = useState("500");
 
   const loadData = async () => {
     try {
