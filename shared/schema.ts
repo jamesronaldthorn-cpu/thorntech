@@ -28,6 +28,7 @@ export const products = pgTable("products", {
   slug: text("slug").notNull().unique(),
   description: text("description"),
   price: doublePrecision("price").notNull(),
+  costPrice: doublePrecision("cost_price"),
   compareAtPrice: doublePrecision("compare_at_price"),
   categoryId: integer("category_id").references(() => categories.id),
   image: text("image"),

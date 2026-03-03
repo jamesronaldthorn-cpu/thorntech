@@ -447,6 +447,9 @@ export default function AdminPage() {
   const [vipSyncing, setVipSyncing] = useState(false);
   const [vipResult, setVipResult] = useState<any>(null);
   const [vipMarkup, setVipMarkup] = useState("25");
+  const [priceMatching, setPriceMatching] = useState(false);
+  const [priceMatchResult, setPriceMatchResult] = useState<any>(null);
+  const [priceMatchBatch, setPriceMatchBatch] = useState("50");
 
   const loadData = async () => {
     try {
@@ -590,6 +593,27 @@ export default function AdminPage() {
       body: JSON.stringify({ published: !post.published }),
     });
     loadData();
+  };
+
+  const matchPrices = async () => {
+    setPriceMatching(true);
+    setPriceMatchResult(null);
+    try {
+      const res = await adminFetch("/api/admin/vip/match-prices", {
+        method: "POST",
+        body: JSON.stringify({ batchSize: parseInt(priceMatchBatch) || 50 }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPriceMatchResult({ error: data.error || "Price matching failed" });
+      } else {
+        setPriceMatchResult(data);
+        loadData();
+      }
+    } catch (e: any) {
+      setPriceMatchResult({ error: e.message });
+    }
+    setPriceMatching(false);
   };
 
   const syncVip = async () => {
@@ -996,6 +1020,56 @@ export default function AdminPage() {
                         <p className="text-gray-400 text-xs ml-6">{vipResult.outOfStock} currently out of stock</p>
                         {vipResult.errors?.length > 0 && (
                           <p className="text-red-400 text-xs ml-6">{vipResult.errors.length} errors</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 rounded-lg p-5">
+              <h3 className="text-sm font-display text-gray-400 mb-4">INTERNET PRICE MATCHING</h3>
+              <div className="space-y-4">
+                <p className="text-xs text-gray-500">Searches UK retailers for competitive prices. Uses the internet price if above cost, otherwise keeps cost + 5% minimum margin. Run after VIP sync to update prices.</p>
+                <div className="flex items-center gap-4 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-gray-400 text-xs whitespace-nowrap">Batch Size:</Label>
+                    <Input
+                      type="number"
+                      value={priceMatchBatch}
+                      onChange={e => setPriceMatchBatch(e.target.value)}
+                      className="w-20 bg-white/5 border-white/10 text-white h-9"
+                      data-testid="input-price-batch"
+                    />
+                  </div>
+                  <Button
+                    onClick={matchPrices}
+                    disabled={priceMatching}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    data-testid="button-match-prices"
+                  >
+                    {priceMatching ? <><Loader2 className="w-4 h-4 animate-spin mr-1" /> Matching...</> : <><TrendingUp className="w-4 h-4 mr-1" /> Match Internet Prices</>}
+                  </Button>
+                </div>
+                {priceMatchResult && (
+                  <div className={`p-3 rounded-lg text-sm ${priceMatchResult.error ? "bg-red-500/10 border border-red-500/20" : "bg-green-500/10 border border-green-500/20"}`}>
+                    {priceMatchResult.error ? (
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+                        <span className="text-red-400">{priceMatchResult.error}</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-400" />
+                          <span className="text-green-400 font-medium">Price matching complete — {priceMatchResult.totalProcessed} products checked</span>
+                        </div>
+                        <p className="text-gray-400 text-xs ml-6">{priceMatchResult.priceUpdated} prices updated to match internet</p>
+                        <p className="text-gray-400 text-xs ml-6">{priceMatchResult.keptExisting} prices already competitive</p>
+                        <p className="text-gray-400 text-xs ml-6">{priceMatchResult.noResultsFound} no internet price found</p>
+                        {priceMatchResult.errors > 0 && (
+                          <p className="text-red-400 text-xs ml-6">{priceMatchResult.errors} errors</p>
                         )}
                       </div>
                     )}

@@ -6,6 +6,7 @@ import { registerSchema, loginSchema } from "@shared/schema";
 import type { Product, Category } from "@shared/schema";
 import * as xero from "./xero";
 import * as vipApi from "./vipApi";
+import { matchInternetPrices } from "./priceMatcher";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -979,6 +980,17 @@ export async function registerRoutes(
       res.json(result);
     } catch (e: any) {
       console.error("[VIP] Sync error:", e);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/admin/vip/match-prices", adminAuth, async (req, res) => {
+    try {
+      const batchSize = req.body.batchSize ? parseInt(req.body.batchSize) : 50;
+      const result = await matchInternetPrices(batchSize);
+      res.json(result);
+    } catch (e: any) {
+      console.error("[PriceMatcher] Error:", e);
       res.status(500).json({ error: e.message });
     }
   });
