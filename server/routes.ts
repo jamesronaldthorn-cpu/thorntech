@@ -199,25 +199,30 @@ export async function registerRoutes(
     const cat = await storage.getCategoryBySlug(req.params.slug);
     if (!cat) return res.status(404).json({ error: "Category not found" });
     const prods = await storage.getProductsByCategory(cat.id);
-    res.json(prods);
+    res.json(prods.map((p: any) => { const { costPrice, ...pub } = p; return pub; }));
   });
+
+  function stripCostPrice(product: any) {
+    const { costPrice, ...pub } = product;
+    return pub;
+  }
 
   app.get("/api/products", async (_req, res) => {
     const prods = await storage.getProducts();
-    res.json(prods);
+    res.json(prods.map(stripCostPrice));
   });
 
   app.get("/api/products/search", async (req, res) => {
     const q = (req.query.q as string || "").trim();
     if (!q || q.length < 2) return res.json([]);
     const results = await storage.searchProducts(q);
-    res.json(results);
+    res.json(results.map(stripCostPrice));
   });
 
   app.get("/api/products/:slug", async (req, res) => {
     const product = await storage.getProductBySlug(req.params.slug);
     if (!product) return res.status(404).json({ error: "Product not found" });
-    res.json(product);
+    res.json(stripCostPrice(product));
   });
 
   app.get("/api/stripe/publishable-key", async (_req, res) => {
@@ -973,10 +978,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/admin/vip/sync", adminAuth, async (req, res) => {
+  app.post("/api/admin/vip/sync", adminAuth, async (_req, res) => {
     try {
-      const markup = req.body.markup ? parseFloat(req.body.markup) : undefined;
-      const result = await vipApi.syncVipProducts(markup);
+      const result = await vipApi.syncVipProducts();
       res.json(result);
     } catch (e: any) {
       console.error("[VIP] Sync error:", e);

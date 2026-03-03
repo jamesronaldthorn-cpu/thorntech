@@ -8,7 +8,6 @@ const VIP_PRODUCTS_URL = "https://xml3.vip-computers.com/Products.asmx";
 const SECURITY_NS = "http://vip.group/VIPXML3/Security";
 const PRODUCTS_NS = "http://vip.group/VIPXML3/Products";
 
-const DEFAULT_MARKUP = 1.25;
 
 interface VipProduct {
   ProdID: number;
@@ -258,9 +257,7 @@ export interface VipSyncResult {
   errors: string[];
 }
 
-export async function syncVipProducts(markupPercent?: number): Promise<VipSyncResult> {
-  const markup = markupPercent ? (1 + markupPercent / 100) : DEFAULT_MARKUP;
-
+export async function syncVipProducts(): Promise<VipSyncResult> {
   console.log("[VIP] Logging in...");
   const sessionKey = await login();
   console.log("[VIP] Authenticated, fetching data...");
@@ -301,7 +298,7 @@ export async function syncVipProducts(markupPercent?: number): Promise<VipSyncRe
       }
 
       const costPriceExVat = buyPrice;
-      const sellPrice = Math.ceil(buyPrice * markup * 1.2 * 100) / 100;
+      const minSellPrice = Math.ceil(costPriceExVat * 1.2 * 1.05 * 100) / 100;
       const isInStock = stock ? stock.AvailQty > 0 : false;
       if (!isInStock) result.outOfStock++;
 
@@ -318,7 +315,6 @@ export async function syncVipProducts(markupPercent?: number): Promise<VipSyncRe
         const updates: Record<string, any> = {};
         if (existing.inStock !== isInStock) updates.inStock = isInStock;
         if (imageUrl && imageUrl !== existing.image) updates.image = imageUrl;
-        if (Math.abs(existing.price - sellPrice) > 0.01) updates.price = sellPrice;
         if (vp.Manufacturer && vp.Manufacturer !== existing.vendor) updates.vendor = vp.Manufacturer;
         if (!existing.costPrice || Math.abs(existing.costPrice - costPriceExVat) > 0.01) updates.costPrice = costPriceExVat;
 
@@ -340,7 +336,7 @@ export async function syncVipProducts(markupPercent?: number): Promise<VipSyncRe
         name,
         slug,
         description,
-        price: sellPrice,
+        price: minSellPrice,
         costPrice: costPriceExVat,
         compareAtPrice: null,
         categoryId,
@@ -353,14 +349,14 @@ export async function syncVipProducts(markupPercent?: number): Promise<VipSyncRe
       };
       try {
         await storage.createProduct(productData);
-        existingBySlug.set(slug, { id: 0, slug, inStock: isInStock, image: imageUrl, price: sellPrice, costPrice: costPriceExVat, vendor: vp.Manufacturer || null } as any);
+        existingBySlug.set(slug, { id: 0, slug, inStock: isInStock, image: imageUrl, price: minSellPrice, costPrice: costPriceExVat, vendor: vp.Manufacturer || null } as any);
         result.imported++;
       } catch (dupErr: any) {
         if (dupErr.message?.includes("duplicate key")) {
           slug = `${slug}-${vp.ProdID}`.substring(0, 100);
           productData.slug = slug;
           await storage.createProduct(productData);
-          existingBySlug.set(slug, { id: 0, slug, inStock: isInStock, image: imageUrl, price: sellPrice, costPrice: costPriceExVat, vendor: vp.Manufacturer || null } as any);
+          existingBySlug.set(slug, { id: 0, slug, inStock: isInStock, image: imageUrl, price: minSellPrice, costPrice: costPriceExVat, vendor: vp.Manufacturer || null } as any);
           result.imported++;
         } else {
           throw dupErr;

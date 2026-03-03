@@ -446,7 +446,6 @@ export default function AdminPage() {
   const [xeroLoading, setXeroLoading] = useState(false);
   const [vipSyncing, setVipSyncing] = useState(false);
   const [vipResult, setVipResult] = useState<any>(null);
-  const [vipMarkup, setVipMarkup] = useState("25");
   const [priceMatching, setPriceMatching] = useState(false);
   const [priceMatchResult, setPriceMatchResult] = useState<any>(null);
   const [priceMatchBatch, setPriceMatchBatch] = useState("50");
@@ -622,7 +621,7 @@ export default function AdminPage() {
     try {
       const res = await adminFetch("/api/admin/vip/sync", {
         method: "POST",
-        body: JSON.stringify({ markup: parseFloat(vipMarkup) || 25 }),
+        body: JSON.stringify({}),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -981,16 +980,6 @@ export default function AdminPage() {
               <h3 className="text-sm font-display text-gray-400 mb-4">VIP COMPUTERS — XML V3 SYNC</h3>
               <div className="space-y-4">
                 <div className="flex items-center gap-4 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-gray-400 text-xs whitespace-nowrap">Markup %:</Label>
-                    <Input
-                      type="number"
-                      value={vipMarkup}
-                      onChange={e => setVipMarkup(e.target.value)}
-                      className="w-20 bg-white/5 border-white/10 text-white h-9"
-                      data-testid="input-vip-markup"
-                    />
-                  </div>
                   <Button
                     onClick={syncVip}
                     disabled={vipSyncing}
@@ -999,7 +988,7 @@ export default function AdminPage() {
                   >
                     {vipSyncing ? <><Loader2 className="w-4 h-4 animate-spin mr-1" /> Syncing...</> : <><Download className="w-4 h-4 mr-1" /> Sync Products</>}
                   </Button>
-                  <p className="text-xs text-gray-500">Pulls products, prices & stock from VIP Computers. Auto-syncs every 6 hours.</p>
+                  <p className="text-xs text-gray-500">Pulls products, stock & cost prices from VIP. Prices are set by internet price matching (below). Auto-syncs every 6 hours.</p>
                 </div>
                 {vipResult && (
                   <div className={`p-3 rounded-lg text-sm ${vipResult.error ? "bg-red-500/10 border border-red-500/20" : "bg-green-500/10 border border-green-500/20"}`}>
