@@ -998,7 +998,11 @@ export async function registerRoutes(
   app.post("/api/admin/vip/sync", adminAuth, async (_req, res) => {
     try {
       const result = await vipApi.syncVipProducts();
-      res.json(result);
+      const dedupRemoved = await vipApi.deduplicateProducts();
+      if (dedupRemoved > 0) {
+        console.log(`[VIP] Post-sync dedup: removed ${dedupRemoved} duplicates`);
+      }
+      res.json({ ...result, dedupRemoved });
     } catch (e: any) {
       console.error("[VIP] Sync error:", e);
       res.status(500).json({ error: e.message });
@@ -1073,54 +1077,7 @@ export async function registerRoutes(
 
   app.post("/api/admin/deduplicate", adminAuth, async (_req, res) => {
     try {
-      const allProducts = await storage.getProducts();
-      const mpnGroups = new Map<string, typeof allProducts>();
-      const nameGroups = new Map<string, typeof allProducts>();
-
-      for (const p of allProducts) {
-        if (p.mpn && p.mpn.length > 3) {
-          const key = p.mpn.toLowerCase().trim();
-          if (!mpnGroups.has(key)) mpnGroups.set(key, []);
-          mpnGroups.get(key)!.push(p);
-        }
-        const nameKey = p.name.toLowerCase().replace(/[^a-z0-9]/g, "");
-        if (!nameGroups.has(nameKey)) nameGroups.set(nameKey, []);
-        nameGroups.get(nameKey)!.push(p);
-      }
-
-      let removed = 0;
-      const removedIds = new Set<number>();
-
-      for (const [, group] of mpnGroups) {
-        if (group.length <= 1) continue;
-        group.sort((a, b) => a.id - b.id);
-        const keep = group[0];
-        for (let i = 1; i < group.length; i++) {
-          if (!removedIds.has(group[i].id)) {
-            await storage.deleteProduct(group[i].id);
-            removedIds.add(group[i].id);
-            removed++;
-            console.log(`[Dedup] Removed duplicate (MPN): "${group[i].name}" (id ${group[i].id}), keeping "${keep.name}" (id ${keep.id})`);
-          }
-        }
-      }
-
-      for (const [, group] of nameGroups) {
-        if (group.length <= 1) continue;
-        const active = group.filter(p => !removedIds.has(p.id));
-        if (active.length <= 1) continue;
-        active.sort((a, b) => a.id - b.id);
-        const keep = active[0];
-        for (let i = 1; i < active.length; i++) {
-          if (!removedIds.has(active[i].id)) {
-            await storage.deleteProduct(active[i].id);
-            removedIds.add(active[i].id);
-            removed++;
-            console.log(`[Dedup] Removed duplicate (name): "${active[i].name}" (id ${active[i].id}), keeping "${keep.name}" (id ${keep.id})`);
-          }
-        }
-      }
-
+      const removed = await vipApi.deduplicateProducts();
       res.json({ success: true, removed, message: `Removed ${removed} duplicate products.` });
     } catch (e: any) {
       res.status(500).json({ error: e.message });

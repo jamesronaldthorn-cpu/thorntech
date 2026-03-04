@@ -414,6 +414,12 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
 
   const existingProducts = await storage.getProducts();
   const existingBySlug = new Map(existingProducts.map(p => [p.slug, p]));
+  const existingByMpn = new Map<string, typeof existingProducts[0]>();
+  for (const p of existingProducts) {
+    if (p.mpn && p.mpn.length > 3) {
+      existingByMpn.set(p.mpn.toLowerCase().trim(), p);
+    }
+  }
 
   const result: VipSyncResult = {
     totalProducts: vipProducts.length,
@@ -449,13 +455,17 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
       let categoryId: number | null = catSlug ? (catBySlug.get(catSlug) || null) : null;
       if (categoryId) result.categoriesMatched++;
 
-      const existing = existingBySlug.get(slug);
+      const mpn = vp.ManufacturersPartNumber?.trim() || null;
+      const mpnKey = mpn && mpn.length > 3 ? mpn.toLowerCase().trim() : null;
+      const existing = (mpnKey && existingByMpn.get(mpnKey)) || existingBySlug.get(slug);
       if (existing) {
         const updates: Record<string, any> = {};
         if (existing.name !== name) updates.name = name;
+        if (existing.slug !== slug) updates.slug = slug;
         if (existing.inStock !== isInStock) updates.inStock = isInStock;
         if (imageUrl && imageUrl !== existing.image) updates.image = imageUrl;
         if (vp.Manufacturer && vp.Manufacturer !== existing.vendor) updates.vendor = vp.Manufacturer;
+        if (mpn && existing.mpn !== mpn) updates.mpn = mpn;
 
         const costChanged = !existing.costPrice || Math.abs(existing.costPrice - costPriceExVat) > 0.01;
         if (costChanged) {
@@ -481,7 +491,6 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
       }
 
       const description = getProductDescription(vp);
-      const mpn = vp.ManufacturersPartNumber?.trim() || null;
       const ean = vp.EAN ? String(vp.EAN).trim() : null;
       const productData = {
         name,
@@ -534,6 +543,58 @@ export async function testConnection(): Promise<{ success: boolean; productCount
   }
 }
 
+export async function deduplicateProducts(): Promise<number> {
+  const allProducts = await storage.getProducts();
+  const mpnGroups = new Map<string, typeof allProducts>();
+  const nameGroups = new Map<string, typeof allProducts>();
+
+  for (const p of allProducts) {
+    if (p.mpn && p.mpn.length > 3) {
+      const key = p.mpn.toLowerCase().trim();
+      if (!mpnGroups.has(key)) mpnGroups.set(key, []);
+      mpnGroups.get(key)!.push(p);
+    }
+    const nameKey = p.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (!nameGroups.has(nameKey)) nameGroups.set(nameKey, []);
+    nameGroups.get(nameKey)!.push(p);
+  }
+
+  let removed = 0;
+  const removedIds = new Set<number>();
+
+  for (const [, group] of mpnGroups) {
+    if (group.length <= 1) continue;
+    group.sort((a, b) => a.id - b.id);
+    const keep = group[0];
+    for (let i = 1; i < group.length; i++) {
+      if (!removedIds.has(group[i].id)) {
+        await storage.deleteProduct(group[i].id);
+        removedIds.add(group[i].id);
+        removed++;
+        console.log(`[Dedup] Removed (MPN): "${group[i].name}" (id ${group[i].id}), kept "${keep.name}" (id ${keep.id})`);
+      }
+    }
+  }
+
+  for (const [, group] of nameGroups) {
+    if (group.length <= 1) continue;
+    const active = group.filter(p => !removedIds.has(p.id));
+    if (active.length <= 1) continue;
+    active.sort((a, b) => a.id - b.id);
+    const keep = active[0];
+    for (let i = 1; i < active.length; i++) {
+      if (!removedIds.has(active[i].id)) {
+        await storage.deleteProduct(active[i].id);
+        removedIds.add(active[i].id);
+        removed++;
+        console.log(`[Dedup] Removed (name): "${active[i].name}" (id ${active[i].id}), kept "${keep.name}" (id ${keep.id})`);
+      }
+    }
+  }
+
+  return removed;
+}
+
 let vipSyncInterval: ReturnType<typeof setInterval> | null = null;
 
 export function startVipScheduler(intervalHours = 6) {
@@ -552,6 +613,8 @@ export function startVipScheduler(intervalHours = 6) {
       console.log("[VIP Scheduler] Running scheduled sync...");
       const result = await syncVipProducts();
       console.log(`[VIP Scheduler] Done: ${result.imported} new, ${result.updated} updated, ${result.outOfStock} out of stock`);
+      const dedupResult = await deduplicateProducts();
+      if (dedupResult > 0) console.log(`[VIP Scheduler] Dedup: removed ${dedupResult} duplicates`);
       console.log("[VIP Scheduler] Starting internet price matching...");
       const priceResult = await matchInternetPrices(500);
       console.log(`[VIP Scheduler] Price match done: ${priceResult.priceUpdated} updated, ${priceResult.noResultsFound} no results`);
