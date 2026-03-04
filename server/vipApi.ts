@@ -38,21 +38,22 @@ interface VipPrice {
 }
 
 function getBestCostPrice(price: VipPrice): number {
-  const candidates: number[] = [];
-
-  if (price.OnOffer === "True") {
-    if (price.OfferDiscount1 > 0) candidates.push(price.OfferDiscount1);
-    if (price.OfferDiscount2 && price.OfferDiscount2 > 0) candidates.push(price.OfferDiscount2);
-    if (price.OfferDiscount3 && price.OfferDiscount3 > 0) candidates.push(price.OfferDiscount3);
+  if (price.OnOffer === "True" && price.OfferDiscount1 > 0) {
+    return price.OfferDiscount1;
   }
 
-  if (price.Discount1 > 0) candidates.push(price.Discount1);
-  if (price.Discount2 && price.Discount2 > 0) candidates.push(price.Discount2);
-  if (price.Discount3 && price.Discount3 > 0) candidates.push(price.Discount3);
-  if (price.TradePrice && price.TradePrice > 0) candidates.push(price.TradePrice);
+  if (price.Discount1 > 0) {
+    return price.Discount1;
+  }
 
-  if (candidates.length === 0) return 0;
-  return Math.min(...candidates);
+  if (price.TradePrice && price.TradePrice > 0) {
+    return price.TradePrice;
+  }
+
+  const fallbacks = [price.Discount2, price.Discount3, price.OfferDiscount1, price.OfferDiscount2, price.OfferDiscount3].filter((v): v is number => typeof v === 'number' && v > 0);
+  if (fallbacks.length > 0) return Math.min(...fallbacks);
+
+  return 0;
 }
 
 interface VipStock {
