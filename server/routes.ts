@@ -1118,13 +1118,26 @@ export async function registerRoutes(
     res.json({ success: true, message: `Enrichment progress reset. Cleared ${cleared} products for re-enrichment.` });
   });
 
+  let purgeStatus: { running: boolean; result: any } = { running: false, result: null };
+
   app.post("/api/admin/purge-dead-products", adminAuth, async (_req, res) => {
+    if (purgeStatus.running) {
+      return res.json({ status: "running", message: "Purge is already in progress" });
+    }
+    purgeStatus = { running: true, result: null };
+    res.json({ status: "started", message: "Purging dead products in background..." });
+
     try {
       const result = await vipApi.purgeDeadProducts();
-      res.json({ success: true, ...result, message: `Removed ${result.removed} dead products. ${result.total - result.removed} remaining (VIP has ${result.vipCount}).` });
+      purgeStatus = { running: false, result: { ...result, message: `Removed ${result.removed} dead products. ${result.total - result.removed} remaining (VIP has ${result.vipCount}).` } };
     } catch (e: any) {
-      res.status(500).json({ error: e.message });
+      console.error("[Purge] Error:", e);
+      purgeStatus = { running: false, result: { error: e.message } };
     }
+  });
+
+  app.get("/api/admin/purge-dead-products/status", adminAuth, async (_req, res) => {
+    res.json(purgeStatus);
   });
 
   app.post("/api/admin/deduplicate", adminAuth, async (_req, res) => {
