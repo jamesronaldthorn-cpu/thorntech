@@ -1118,6 +1118,15 @@ export async function registerRoutes(
     res.json({ success: true, message: `Enrichment progress reset. Cleared ${cleared} products for re-enrichment.` });
   });
 
+  app.post("/api/admin/purge-dead-products", adminAuth, async (_req, res) => {
+    try {
+      const result = await vipApi.purgeDeadProducts();
+      res.json({ success: true, ...result, message: `Removed ${result.removed} dead products. ${result.total - result.removed} remaining (VIP has ${result.vipCount}).` });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.post("/api/admin/deduplicate", adminAuth, async (_req, res) => {
     try {
       const removed = await vipApi.deduplicateProducts();

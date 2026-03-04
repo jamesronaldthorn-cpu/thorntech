@@ -682,6 +682,48 @@ export async function deduplicateProducts(): Promise<number> {
   return removed;
 }
 
+export async function purgeDeadProducts(): Promise<{ removed: number; total: number; vipCount: number }> {
+  const sessionKey = await login();
+  const vipProducts = await getProducts(sessionKey);
+
+  const vipMpns = new Set<string>();
+  const vipNames = new Set<string>();
+  for (const vp of vipProducts) {
+    const mpn = vp.ManufacturersPartNumber != null ? String(vp.ManufacturersPartNumber).trim().toLowerCase() : null;
+    if (mpn && mpn.length > 3) vipMpns.add(mpn);
+    const name = (vp.Description || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (name.length > 5) vipNames.add(name);
+  }
+
+  const allProducts = await storage.getProducts();
+  let removed = 0;
+  const testSlug = "test-product-do-not-buy";
+
+  for (const p of allProducts) {
+    if (p.slug === testSlug) continue;
+
+    let foundInVip = false;
+
+    if (p.mpn && p.mpn.length > 3) {
+      if (vipMpns.has(p.mpn.toLowerCase().trim())) foundInVip = true;
+    }
+
+    if (!foundInVip) {
+      const nameKey = p.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (vipNames.has(nameKey)) foundInVip = true;
+    }
+
+    if (!foundInVip) {
+      console.log(`[Purge] Removing: "${p.name}" (id ${p.id}, mpn=${p.mpn})`);
+      await storage.deleteProduct(p.id);
+      removed++;
+    }
+  }
+
+  console.log(`[Purge] Complete: removed ${removed} dead products. ${allProducts.length - removed} remaining. VIP has ${vipProducts.length} products.`);
+  return { removed, total: allProducts.length, vipCount: vipProducts.length };
+}
+
 let vipSyncInterval: ReturnType<typeof setInterval> | null = null;
 
 export function startVipScheduler(intervalHours = 6) {
