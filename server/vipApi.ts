@@ -379,7 +379,7 @@ function getProductName(product: VipProduct): string {
     const nameAttr = attrs.find((a: any) => a.AttributeName === "Product Name");
     if (nameAttr?.AttributeValue) raw = String(nameAttr.AttributeValue);
   }
-  return cleanProductTitle(raw, product.Manufacturer, product.ProductGroup, product.ManufacturersPartNumber);
+  return cleanProductTitle(raw, product.Manufacturer, product.ProductGroup, product.ManufacturersPartNumber != null ? String(product.ManufacturersPartNumber) : undefined);
 }
 
 function getProductDescription(product: VipProduct): string {
@@ -509,7 +509,7 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
       let categoryId: number | null = catSlug ? (catBySlug.get(catSlug) || null) : null;
       if (categoryId) result.categoriesMatched++;
 
-      const mpn = vp.ManufacturersPartNumber?.trim() || null;
+      const mpn = vp.ManufacturersPartNumber != null ? String(vp.ManufacturersPartNumber).trim() : null;
       const mpnKey = mpn && mpn.length > 3 ? mpn.toLowerCase().trim() : null;
       const existing = (mpnKey && existingByMpn.get(mpnKey)) || existingBySlug.get(slug);
       if (existing) {
