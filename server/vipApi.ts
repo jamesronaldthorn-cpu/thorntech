@@ -586,7 +586,8 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         }
       }
     } catch (e: any) {
-      result.errors.push(`${vp.Description}: ${e.message}`);
+      const errMsg = e?.message || e?.detail || String(e) || "unknown error";
+      result.errors.push(`ProdID=${vp.ProdID} SKU=${vp.SKU} "${vp.Description || 'no desc'}": ${errMsg}`);
     }
   }
 
