@@ -1005,18 +1005,31 @@ export async function registerRoutes(
     }
   });
 
+  let syncStatus: { running: boolean; result: any; error: string | null } = { running: false, result: null, error: null };
+
   app.post("/api/admin/vip/sync", adminAuth, async (_req, res) => {
+    if (syncStatus.running) {
+      return res.json({ status: "running", message: "Sync is already in progress. Check status endpoint." });
+    }
+    syncStatus = { running: true, result: null, error: null };
+    res.json({ status: "started", message: "VIP sync started in background. Check status for results." });
+
     try {
       const result = await vipApi.syncVipProducts();
       const dedupRemoved = await vipApi.deduplicateProducts();
       if (dedupRemoved > 0) {
         console.log(`[VIP] Post-sync dedup: removed ${dedupRemoved} duplicates`);
       }
-      res.json({ ...result, dedupRemoved });
+      syncStatus = { running: false, result: { ...result, dedupRemoved }, error: null };
+      console.log(`[VIP] Sync complete: ${result.imported} new, ${result.updated} updated`);
     } catch (e: any) {
       console.error("[VIP] Sync error:", e);
-      res.status(500).json({ error: e.message });
+      syncStatus = { running: false, result: null, error: e.message };
     }
+  });
+
+  app.get("/api/admin/vip/sync/status", adminAuth, async (_req, res) => {
+    res.json(syncStatus);
   });
 
   let priceMatchStatus: { running: boolean; result: any } = { running: false, result: null };

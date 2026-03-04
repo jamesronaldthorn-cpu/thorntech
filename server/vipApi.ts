@@ -83,17 +83,24 @@ async function soapRequest(url: string, action: string, body: string, headers?: 
   </soap:Body>
 </soap:Envelope>`;
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "text/xml; charset=utf-8",
-      SOAPAction: action,
-    },
-    body: envelope,
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120000);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/xml; charset=utf-8",
+        SOAPAction: action,
+      },
+      body: envelope,
+      signal: controller.signal,
+    });
 
-  if (!res.ok) throw new Error(`SOAP request failed: ${res.status}`);
-  return res.text();
+    if (!res.ok) throw new Error(`SOAP request failed: ${res.status}`);
+    return res.text();
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function login(): Promise<string> {

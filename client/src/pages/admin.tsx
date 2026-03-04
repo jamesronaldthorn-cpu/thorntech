@@ -662,14 +662,30 @@ export default function AdminPage() {
       const data = await res.json();
       if (!res.ok) {
         setVipResult({ error: data.error || "Sync failed" });
-      } else {
-        setVipResult(data);
-        loadData();
+        setVipSyncing(false);
+        return;
       }
+      setVipResult({ message: "Sync started — checking progress..." });
+      const poll = setInterval(async () => {
+        try {
+          const sr = await adminFetch("/api/admin/vip/sync/status");
+          const st = await sr.json();
+          if (!st.running) {
+            clearInterval(poll);
+            if (st.error) {
+              setVipResult({ error: st.error });
+            } else {
+              setVipResult(st.result);
+              loadData();
+            }
+            setVipSyncing(false);
+          }
+        } catch {}
+      }, 5000);
     } catch (e: any) {
       setVipResult({ error: e.message });
+      setVipSyncing(false);
     }
-    setVipSyncing(false);
   };
 
   const connectXero = async () => {
