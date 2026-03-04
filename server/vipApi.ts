@@ -491,12 +491,9 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         if (costChanged) {
           updates.costPrice = costPriceExVat;
           const newMinSell = Math.ceil(costPriceExVat * 1.2 * 1.02 * 100) / 100;
-          if (existing.price < newMinSell) {
+          if (Math.abs(existing.price - newMinSell) > 0.01) {
             updates.price = newMinSell;
-            console.log(`[VIP] Price raised: ${existing.name} — cost £${costPriceExVat.toFixed(2)} → sell £${newMinSell.toFixed(2)} (was £${existing.price.toFixed(2)})`);
-          } else if (costPriceExVat < (existing.costPrice || 0) && existing.price > newMinSell) {
-            updates.price = newMinSell;
-            console.log(`[VIP] Price lowered (cost dropped): ${existing.name} — cost £${costPriceExVat.toFixed(2)} → sell £${newMinSell.toFixed(2)} (was £${existing.price.toFixed(2)})`);
+            console.log(`[VIP] Price updated: ${existing.name} — cost £${costPriceExVat.toFixed(2)} → sell £${newMinSell.toFixed(2)} (was £${existing.price.toFixed(2)})`);
           }
         }
 
