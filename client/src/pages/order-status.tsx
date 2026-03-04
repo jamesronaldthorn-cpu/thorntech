@@ -133,7 +133,7 @@ export default function OrderStatusPage() {
         {order && (
           <div className="bg-white/5 border border-white/10 rounded-lg p-6 space-y-6" data-testid="card-order-result">
             <div className="flex items-center justify-between">
-              <h2 className="font-display font-bold text-xl text-white" data-testid="text-order-number">Order #{order.id}</h2>
+              <h2 className="font-display font-bold text-xl text-white" data-testid="text-order-number">Order TTS-{String(order.id).padStart(5, "0")}</h2>
               <span className="text-gray-500 text-sm">{new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</span>
             </div>
 

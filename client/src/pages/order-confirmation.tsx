@@ -77,7 +77,7 @@ export default function OrderConfirmationPage() {
 
             <div className="bg-card border border-white/10 rounded-xl p-6 mb-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="font-display font-bold">Order #{order.id}</h2>
+                <h2 className="font-display font-bold">Order TTS-{String(order.id).padStart(5, "0")}</h2>
                 <span className="text-sm px-3 py-1 rounded-full bg-green-600/20 text-green-400 font-medium capitalize">{order.status}</span>
               </div>
 

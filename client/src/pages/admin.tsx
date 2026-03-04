@@ -532,7 +532,7 @@ export default function AdminPage() {
       alert(`Refund amount must be between £0.01 and £${total.toFixed(2)}`);
       return;
     }
-    if (!confirm(`Process a £${amount.toFixed(2)} refund for order #${orderId}? This will refund the customer via their original payment method and create a credit note in Xero.`)) return;
+    if (!confirm(`Process a £${amount.toFixed(2)} refund for order TTS-${String(orderId).padStart(5, "0")}? This will refund the customer via their original payment method and create a credit note in Xero.`)) return;
     setRefundLoading(true);
     try {
       const res = await adminFetch(`/api/admin/orders/${orderId}/refund`, {
@@ -543,7 +543,7 @@ export default function AdminPage() {
       if (!res.ok) {
         alert(data.error || "Refund failed");
       } else {
-        alert(`Refund of £${amount.toFixed(2)} processed successfully for order #${orderId}` +
+        alert(`Refund of £${amount.toFixed(2)} processed successfully for order TTS-${String(orderId).padStart(5, "0")}` +
           (data.xero?.creditNoteNumber ? `\nXero credit note: ${data.xero.creditNoteNumber}` : ""));
         setRefundingOrder(null);
         setRefundAmount("");
@@ -1310,7 +1310,7 @@ export default function AdminPage() {
                     data-testid={`button-toggle-order-${o.id}`}
                   >
                     <div className="flex items-center gap-4 flex-wrap">
-                      <span className="text-gray-500 text-sm font-mono">#{o.id}</span>
+                      <span className="text-gray-500 text-sm font-mono">TTS-{String(o.id).padStart(5, "0")}</span>
                       <span className="text-white font-medium">{o.name}</span>
                       <span className="text-gray-400 text-sm">{o.email}</span>
                       <span className={`text-xs px-2 py-0.5 rounded ${statusColors[o.status] || "bg-gray-500/20 text-gray-400"}`}>
@@ -1374,7 +1374,7 @@ export default function AdminPage() {
                       </div>
                       {refundingOrder === o.id && (
                         <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-4 space-y-3 mt-2">
-                          <h4 className="text-sm font-medium text-red-400">Process Refund — Order #{o.id}</h4>
+                          <h4 className="text-sm font-medium text-red-400">Process Refund — Order TTS-{String(o.id).padStart(5, "0")}</h4>
                           <p className="text-xs text-gray-400">This will refund the customer via {o.paymentMethod === "stripe" ? "Stripe" : "PayPal"} and create a credit note in Xero (if connected).</p>
                           <div className="flex items-center gap-3">
                             <div className="flex items-center gap-2">
