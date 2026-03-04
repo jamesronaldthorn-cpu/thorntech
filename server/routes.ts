@@ -1054,7 +1054,15 @@ export async function registerRoutes(
 
   app.post("/api/admin/enrich-products/reset", adminAuth, async (_req, res) => {
     resetEnrichProgress();
-    res.json({ success: true, message: "Enrichment progress reset." });
+    const allProducts = await storage.getProducts();
+    let cleared = 0;
+    for (const p of allProducts) {
+      if (p.enrichedAt) {
+        await storage.updateProduct(p.id, { enrichedAt: null } as any);
+        cleared++;
+      }
+    }
+    res.json({ success: true, message: `Enrichment progress reset. Cleared ${cleared} products for re-enrichment.` });
   });
 
   app.post("/api/admin/login", (req, res) => {
