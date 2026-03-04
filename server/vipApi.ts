@@ -590,7 +590,11 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
     }
   }
 
-  console.log(`[VIP] Sync complete: ${result.imported} imported, ${result.updated} updated, ${result.skipped} skipped, ${result.outOfStock} out of stock`);
+  console.log(`[VIP] Sync complete: ${result.imported} imported, ${result.updated} updated, ${result.skipped} skipped, ${result.outOfStock} out of stock, ${result.errors.length} errors`);
+  if (result.errors.length > 0) {
+    console.log(`[VIP] First 10 errors:`);
+    result.errors.slice(0, 10).forEach((e, i) => console.log(`[VIP]   ${i + 1}. ${e}`));
+  }
   return result;
 }
 
