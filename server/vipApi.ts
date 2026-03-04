@@ -566,12 +566,14 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
       try {
         await storage.createProduct(productData);
         existingBySlug.set(slug, { id: 0, slug, inStock: isInStock, image: imageUrl, price: minSellPrice, costPrice: costPriceExVat, vendor: vp.Manufacturer || null } as any);
+        if (mpnKey) existingByMpn.set(mpnKey, existingBySlug.get(slug)!);
         result.imported++;
-      } catch (dupErr: any) {
-        if (dupErr.message?.includes("duplicate key")) {
+      } catch (insertErr: any) {
+        const msg = String(insertErr?.message || insertErr?.detail || insertErr || "");
+        if (msg.includes("duplicate") || msg.includes("unique") || msg.includes("constraint")) {
           result.skipped++;
         } else {
-          throw dupErr;
+          throw insertErr;
         }
       }
     } catch (e: any) {
