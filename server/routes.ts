@@ -266,6 +266,11 @@ export async function registerRoutes(
         return sum + (product ? product.price * item.quantity : 0);
       }, 0);
 
+      const isTestOrder = items.some((item: { productId: number; quantity: number }) => {
+        const product = productMap.get(item.productId);
+        return product && product.slug === "test-product-do-not-buy";
+      });
+
       const order = await storage.createOrder({
         userId: userId || null,
         email,
@@ -297,8 +302,8 @@ export async function registerRoutes(
           {
             shipping_rate_data: {
               type: "fixed_amount",
-              fixed_amount: { amount: total >= 200 ? 0 : 799, currency: "gbp" },
-              display_name: total >= 200 ? "Free Delivery (1-3 Working Days)" : "Standard Delivery (1-3 Working Days)",
+              fixed_amount: { amount: (total >= 200 || isTestOrder) ? 0 : 799, currency: "gbp" },
+              display_name: (total >= 200 || isTestOrder) ? "Free Delivery (1-3 Working Days)" : "Standard Delivery (1-3 Working Days)",
               delivery_estimate: {
                 minimum: { unit: "business_day", value: 1 },
                 maximum: { unit: "business_day", value: 3 },
@@ -356,7 +361,12 @@ export async function registerRoutes(
         return sum + (product ? product.price * item.quantity : 0);
       }, 0);
 
-      const shipping = total >= 200 ? 0 : 7.99;
+      const isTestOrder = items.some((item: { productId: number; quantity: number }) => {
+        const product = productMap.get(item.productId);
+        return product && product.slug === "test-product-do-not-buy";
+      });
+
+      const shipping = (total >= 200 || isTestOrder) ? 0 : 7.99;
       const grandTotal = total + shipping;
 
       const order = await storage.createOrder({
@@ -1100,6 +1110,36 @@ Sitemap: ${siteUrl}/sitemap.xml
       },
     });
   });
+
+  (async () => {
+    try {
+      const existing = await storage.getProductBySlug("test-product-do-not-buy");
+      if (!existing) {
+        const cats = await storage.getCategories();
+        const catId = cats.length > 0 ? cats[0].id : null;
+        await storage.createProduct({
+          name: "TEST PRODUCT - DO NOT BUY",
+          slug: "test-product-do-not-buy",
+          description: "This is a test product for payment system testing only. Price: £0.01. Free delivery. Do not purchase.",
+          price: 0.01,
+          costPrice: 0,
+          compareAtPrice: null,
+          categoryId: catId,
+          image: null,
+          badge: "TEST",
+          inStock: true,
+          vendor: "Thorn Tech Solutions",
+          mpn: null,
+          ean: null,
+          stripeProductId: null,
+          stripePriceId: null,
+        });
+        console.log("[Seed] Test product created: test-product-do-not-buy (£0.01, free delivery)");
+      }
+    } catch (e: any) {
+      console.log("[Seed] Test product check:", e.message);
+    }
+  })();
 
   return httpServer;
 }
