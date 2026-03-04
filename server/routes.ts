@@ -311,7 +311,11 @@ export async function registerRoutes(
             },
           },
         ],
-        metadata: { orderId: order.id.toString() },
+        metadata: { orderId: order.id.toString(), orderNumber: `TTS-${String(order.id).padStart(5, "0")}` },
+        payment_intent_data: {
+          description: `Thorn Tech Solutions Order TTS-${String(order.id).padStart(5, "0")}`,
+          metadata: { orderId: order.id.toString(), orderNumber: `TTS-${String(order.id).padStart(5, "0")}` },
+        },
       });
 
       await storage.updateOrderStatus(order.id, "awaiting_payment", session.id);
@@ -399,7 +403,9 @@ export async function registerRoutes(
                 currencyCode: "GBP",
                 value: grandTotal.toFixed(2),
               },
-              description: `Thorn Tech Solutions Order #${order.id}`,
+              description: `Thorn Tech Solutions Order TTS-${String(order.id).padStart(5, "0")}`,
+              invoice_id: `TTS-${String(order.id).padStart(5, "0")}`,
+              custom_id: String(order.id),
             },
           ],
           paymentSource: {
