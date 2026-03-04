@@ -1121,6 +1121,32 @@ export default function AdminPage() {
 
               <div className="mt-6 pt-6 border-t border-white/10">
                 <h3 className="text-white font-medium mb-3 flex items-center gap-2">
+                  <Trash2 className="w-4 h-4 text-red-400" />
+                  Deduplicate Products
+                </h3>
+                <p className="text-gray-400 text-xs mb-3">Remove duplicate products by matching MPN codes and identical names. Keeps the oldest version of each product.</p>
+                <Button
+                  onClick={async () => {
+                    if (!confirm("Remove duplicate products? This keeps the oldest version and deletes newer copies.")) return;
+                    try {
+                      const r = await adminFetch("/api/admin/deduplicate", { method: "POST" });
+                      const data = await r.json();
+                      alert(data.message || `Removed ${data.removed} duplicates`);
+                      loadData();
+                    } catch (e: any) {
+                      alert("Error: " + e.message);
+                    }
+                  }}
+                  variant="outline"
+                  className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                  data-testid="button-deduplicate"
+                >
+                  <Trash2 className="w-4 h-4 mr-1" /> Remove Duplicates
+                </Button>
+              </div>
+
+              <div className="mt-6 pt-6 border-t border-white/10">
+                <h3 className="text-white font-medium mb-3 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-purple-400" />
                   Product Enrichment
                 </h3>
