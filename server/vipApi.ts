@@ -260,18 +260,28 @@ function cleanProductTitle(raw: string, manufacturer: string, productGroup: stri
     .replace(/\bEX\s*DISPLAY\b/gi, "")
     .replace(/\bREFURB(?:ISHED)?\b/gi, "Refurbished");
 
-  name = name.replace(/\s*\([^)]*(?:S-ATA|PCI Express|Socket\s+\d|LGA\s*\d|DDR[45]\b|\/[A-Z]-?ATX)[^)]*\)/gi, "");
-  name = name.replace(/\s*\((\d+GB\s+GDDR\d\w?)\/(PCI Express[^)]*)\)/gi, " $1");
-  name = name.replace(/\s*\(\d+GB\/s\/\d+MB\/\d+\s*RPM\)/gi, "");
-  name = name.replace(/\s*\(\d+x?\d*\/\d+ms\/[\dxHDMI/DisplayPort/VGA]+\)/gi, "");
-  name = name.replace(/\s*\([^)]*\/\d+\s*RPM\)/gi, "");
-  name = name.replace(/\s*\(\d+MHz\/\d+MHz\)/gi, "");
-  name = name.replace(/\s*\([^)]*\d+Gb\/s[^)]*\)/gi, "");
+  name = name.replace(/\s*\(([^)]*)\)/g, (_match, inner: string) => {
+    const kept: string[] = [];
+    const parts = inner.split("/");
+    for (const part of parts) {
+      const p = part.trim();
+      if (/^\d+\s*GB\s+GDDR\d\w?$/i.test(p)) { kept.push(p); continue; }
+      if (/^\d+\s*GB\s+DDR[45]\w?$/i.test(p)) { kept.push(p); continue; }
+      if (/^\d+\s*TB\b/i.test(p)) { kept.push(p); continue; }
+      if (/^\d+\s*GB\b/i.test(p) && !/Gb\/s/i.test(p)) { kept.push(p); continue; }
+      if (/^\d+x\d+\s*GB$/i.test(p)) { kept.push(p); continue; }
+      if (/^(?:E-?ATX|ATX|Micro\s*ATX|M-?ATX|M-?ITX|Mini[- ]ITX)$/i.test(p)) { kept.push(p); continue; }
+      if (/^[A-Z]\d{3,4}\w?$/i.test(p)) { kept.push(p); continue; }
+      if (/^(?:Socket\s+)?(?:AM[45]|1[78]\d{2}|LGA\s*\d+)/i.test(p)) { kept.push(p); continue; }
+      if (/^\d+["']\s*(IPS|VA|TN|OLED)/i.test(p)) { kept.push(p); continue; }
+    }
+    return kept.length > 0 ? " " + kept.join(" ") : "";
+  });
 
-  if (manufacturer && name.startsWith(manufacturer + " ") && /^\w+\s+\(/.test(name)) {
-    const bracketStart = name.indexOf("(");
-    const beforeBracket = name.substring(0, bracketStart).trim();
-    if (beforeBracket === manufacturer) {
+  if (manufacturer) {
+    const nameNoSpaces = name.replace(/\s+/g, "").toLowerCase();
+    const mfgNoSpaces = manufacturer.replace(/\s+/g, "").toLowerCase();
+    if (nameNoSpaces === mfgNoSpaces || name.trim().toLowerCase() === manufacturer.toLowerCase()) {
       const pg = productGroup || "";
       name = `${manufacturer} ${pg}`.trim();
     }
