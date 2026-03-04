@@ -532,8 +532,24 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         }
 
         if (Object.keys(updates).length > 0) {
-          await storage.updateProduct(existing.id, updates);
-          result.updated++;
+          try {
+            await storage.updateProduct(existing.id, updates);
+            result.updated++;
+          } catch (updateErr: any) {
+            const msg = String(updateErr?.message || updateErr?.detail || updateErr || "");
+            if ((msg.includes("duplicate") || msg.includes("unique") || msg.includes("constraint")) && updates.slug) {
+              delete updates.slug;
+              delete updates.name;
+              if (Object.keys(updates).length > 0) {
+                await storage.updateProduct(existing.id, updates);
+                result.updated++;
+              } else {
+                result.skipped++;
+              }
+            } else {
+              throw updateErr;
+            }
+          }
         } else {
           result.skipped++;
         }
