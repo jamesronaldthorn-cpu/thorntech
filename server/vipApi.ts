@@ -634,6 +634,7 @@ export async function deduplicateProducts(): Promise<number> {
   const allProducts = await storage.getProducts();
   const mpnGroups = new Map<string, typeof allProducts>();
   const nameGroups = new Map<string, typeof allProducts>();
+  const slugGroups = new Map<string, typeof allProducts>();
 
   for (const p of allProducts) {
     if (p.mpn && p.mpn.length > 3) {
@@ -644,40 +645,39 @@ export async function deduplicateProducts(): Promise<number> {
     const nameKey = p.name.toLowerCase().replace(/[^a-z0-9]/g, "");
     if (!nameGroups.has(nameKey)) nameGroups.set(nameKey, []);
     nameGroups.get(nameKey)!.push(p);
+
+    const baseSlug = p.slug.replace(/-\d{4,6}$/, "");
+    if (!slugGroups.has(baseSlug)) slugGroups.set(baseSlug, []);
+    slugGroups.get(baseSlug)!.push(p);
   }
 
   let removed = 0;
   const removedIds = new Set<number>();
 
-  for (const [, group] of mpnGroups) {
-    if (group.length <= 1) continue;
-    group.sort((a, b) => a.id - b.id);
-    const keep = group[0];
-    for (let i = 1; i < group.length; i++) {
-      if (!removedIds.has(group[i].id)) {
-        await storage.deleteProduct(group[i].id);
-        removedIds.add(group[i].id);
-        removed++;
-        console.log(`[Dedup] Removed (MPN): "${group[i].name}" (id ${group[i].id}), kept "${keep.name}" (id ${keep.id})`);
+  function dedup(groups: Map<string, typeof allProducts>, label: string) {
+    for (const [, group] of groups) {
+      if (group.length <= 1) continue;
+      const active = group.filter(p => !removedIds.has(p.id));
+      if (active.length <= 1) continue;
+      active.sort((a, b) => {
+        if (a.inStock !== b.inStock) return a.inStock ? -1 : 1;
+        return a.id - b.id;
+      });
+      const keep = active[0];
+      for (let i = 1; i < active.length; i++) {
+        if (!removedIds.has(active[i].id)) {
+          storage.deleteProduct(active[i].id);
+          removedIds.add(active[i].id);
+          removed++;
+          console.log(`[Dedup] Removed (${label}): "${active[i].name}" (id ${active[i].id}), kept "${keep.name}" (id ${keep.id})`);
+        }
       }
     }
   }
 
-  for (const [, group] of nameGroups) {
-    if (group.length <= 1) continue;
-    const active = group.filter(p => !removedIds.has(p.id));
-    if (active.length <= 1) continue;
-    active.sort((a, b) => a.id - b.id);
-    const keep = active[0];
-    for (let i = 1; i < active.length; i++) {
-      if (!removedIds.has(active[i].id)) {
-        await storage.deleteProduct(active[i].id);
-        removedIds.add(active[i].id);
-        removed++;
-        console.log(`[Dedup] Removed (name): "${active[i].name}" (id ${active[i].id}), kept "${keep.name}" (id ${keep.id})`);
-      }
-    }
-  }
+  dedup(mpnGroups, "MPN");
+  dedup(nameGroups, "name");
+  dedup(slugGroups, "slug");
 
   return removed;
 }
