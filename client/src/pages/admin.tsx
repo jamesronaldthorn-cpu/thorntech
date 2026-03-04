@@ -1176,7 +1176,10 @@ export default function AdminPage() {
                           <span className="text-green-400 font-medium">Enrichment complete — {enrichResult.totalProcessed} products processed</span>
                         </div>
                         <p className="text-gray-400 text-xs ml-6">{enrichResult.enriched} products enriched with web data</p>
-                        <p className="text-gray-400 text-xs ml-6">{enrichResult.noDataFound} no data found online</p>
+                        {enrichResult.parsedFromName > 0 && (
+                          <p className="text-gray-400 text-xs ml-6">{enrichResult.parsedFromName} specs parsed from product name</p>
+                        )}
+                        <p className="text-gray-400 text-xs ml-6">{enrichResult.noDataFound} no data found</p>
                         {enrichResult.errors > 0 && (
                           <p className="text-red-400 text-xs ml-6">{enrichResult.errors} errors</p>
                         )}
