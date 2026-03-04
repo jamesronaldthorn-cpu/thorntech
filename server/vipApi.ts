@@ -502,7 +502,10 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
       if (!isInStock) result.outOfStock++;
 
       const name = getProductName(vp);
-      let slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "").substring(0, 80);
+      let slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "").replace(/^-+/, "").substring(0, 80);
+      if (slug.length < 10) {
+        slug = `${slug}-${vp.SKU || vp.ProdID}`.substring(0, 100);
+      }
       const imageUrl = buildImageUrl(vp);
 
       const catSlug = vipCategoryMap[vp.ProductGroup];
@@ -569,11 +572,15 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         result.imported++;
       } catch (dupErr: any) {
         if (dupErr.message?.includes("duplicate key")) {
-          slug = `${slug}-${vp.ProdID}`.substring(0, 100);
+          slug = `${slug}-${vp.SKU || vp.ProdID}`.substring(0, 100);
           productData.slug = slug;
-          await storage.createProduct(productData);
-          existingBySlug.set(slug, { id: 0, slug, inStock: isInStock, image: imageUrl, price: minSellPrice, costPrice: costPriceExVat, vendor: vp.Manufacturer || null } as any);
-          result.imported++;
+          try {
+            await storage.createProduct(productData);
+            existingBySlug.set(slug, { id: 0, slug, inStock: isInStock, image: imageUrl, price: minSellPrice, costPrice: costPriceExVat, vendor: vp.Manufacturer || null } as any);
+            result.imported++;
+          } catch {
+            result.skipped++;
+          }
         } else {
           throw dupErr;
         }
