@@ -1,6 +1,6 @@
 import { storage } from "./storage";
 
-const MIN_MARGIN = 0.05;
+const MIN_MARGIN = 0.02;
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
 interface PriceMatchResult {
@@ -277,14 +277,15 @@ export async function matchInternetPrices(batchSize = 500): Promise<PriceMatchRe
 
       let newPrice: number;
       if (internetPrice >= minSellPrice) {
-        if (internetPrice > product.price && internetPrice >= minSellPrice) {
-          newPrice = internetPrice;
-          console.log(`[PriceMatcher]   Raising price to match internet for more profit: £${product.price.toFixed(2)} → £${internetPrice.toFixed(2)}`);
-        } else {
-          newPrice = internetPrice;
+        newPrice = internetPrice;
+        if (internetPrice > product.price) {
+          console.log(`[PriceMatcher]   Raising to match internet: £${product.price.toFixed(2)} → £${internetPrice.toFixed(2)}`);
+        } else if (internetPrice < product.price) {
+          console.log(`[PriceMatcher]   Lowering to match internet: £${product.price.toFixed(2)} → £${internetPrice.toFixed(2)}`);
         }
       } else {
         newPrice = minSellPrice;
+        console.log(`[PriceMatcher]   Internet £${internetPrice.toFixed(2)} below min margin — set to floor £${minSellPrice.toFixed(2)}`);
       }
 
       if (Math.abs(product.price - newPrice) > 0.01) {
