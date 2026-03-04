@@ -1061,6 +1061,26 @@ export async function registerRoutes(
     res.json({ success: true, message: "Price match progress reset. Next batch will start from the beginning." });
   });
 
+  app.post("/api/admin/fix-prices", adminAuth, async (_req, res) => {
+    try {
+      const allProducts = await storage.getProducts();
+      let fixed = 0;
+      for (const p of allProducts) {
+        if (p.costPrice && p.costPrice > 0) {
+          const correctSell = Math.ceil(p.costPrice * 1.2 * 1.02 * 100) / 100;
+          if (Math.abs(p.price - correctSell) > 1) {
+            console.log(`[FixPrices] ${p.name}: £${p.price.toFixed(2)} → £${correctSell.toFixed(2)} (cost £${p.costPrice.toFixed(2)})`);
+            await storage.updateProduct(p.id, { price: correctSell });
+            fixed++;
+          }
+        }
+      }
+      res.json({ success: true, fixed, total: allProducts.length });
+    } catch (e: any) {
+      res.json({ error: e.message });
+    }
+  });
+
   let enrichStatus: { running: boolean; result: any } = { running: false, result: null };
 
   app.post("/api/admin/enrich-products", adminAuth, async (req, res) => {
