@@ -191,8 +191,9 @@ export default function ProductFilters({
               />
             )}
             {displayBrands.map(([brand, count]) => (
-              <label
+              <div
                 key={brand}
+                onClick={() => toggleBrand(brand)}
                 className="flex items-center gap-2 py-1 cursor-pointer hover:text-primary transition-colors text-sm group"
                 data-testid={`filter-brand-${brand.replace(/\s+/g, '-').toLowerCase()}`}
               >
@@ -209,7 +210,7 @@ export default function ProductFilters({
                 </div>
                 <span className="flex-1 truncate">{brand}</span>
                 <span className="text-xs text-muted-foreground">({count})</span>
-              </label>
+              </div>
             ))}
             {filteredBrands.length > BRANDS_SHOWN && (
               <button
