@@ -549,6 +549,15 @@ export async function testConnection(): Promise<{ success: boolean; productCount
   }
 }
 
+export async function debugProductPrice(sku: number): Promise<any> {
+  const sessionKey = await login();
+  const priceMap = await getPrices(sessionKey);
+  const priceData = priceMap.get(sku);
+  const bestCost = priceData ? getBestCostPrice(priceData) : null;
+  const minSell = bestCost ? Math.ceil(bestCost * 1.2 * 1.02 * 100) / 100 : null;
+  return { sku, rawPriceData: priceData || null, selectedCost: bestCost, minSellPrice: minSell };
+}
+
 export async function deduplicateProducts(): Promise<number> {
   const allProducts = await storage.getProducts();
   const mpnGroups = new Map<string, typeof allProducts>();

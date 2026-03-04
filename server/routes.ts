@@ -995,6 +995,16 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/admin/vip/debug-price/:sku", adminAuth, async (req, res) => {
+    try {
+      const sku = parseInt(req.params.sku);
+      const result = await vipApi.debugProductPrice(sku);
+      res.json(result);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.post("/api/admin/vip/sync", adminAuth, async (_req, res) => {
     try {
       const result = await vipApi.syncVipProducts();
