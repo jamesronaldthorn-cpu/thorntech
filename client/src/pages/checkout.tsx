@@ -45,7 +45,8 @@ export default function CheckoutPage() {
 
   const subtotal = getTotal();
   const [deliveryOption, setDeliveryOption] = useState<"standard" | "free">("standard");
-  const isFreeDelivery = subtotal >= 200;
+  const isTestOrder = items.some(i => i.product.slug === "test-product-do-not-buy");
+  const isFreeDelivery = subtotal >= 200 || isTestOrder;
   const shipping = isFreeDelivery ? 0 : 7.99;
   const total = subtotal + shipping;
 

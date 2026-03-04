@@ -271,7 +271,7 @@ export default function ProductPage() {
             <div className="space-y-2.5 mb-6 p-4 rounded-lg bg-white/[0.03] border border-white/5">
               <div className="flex items-center gap-3 text-sm">
                 <Truck className="w-4 h-4 text-primary shrink-0" />
-                <span>{product.price >= 200 ? "Free Delivery (1-3 Working Days)" : "£7.99 Delivery (1-3 Working Days) — Free over £200"}</span>
+                <span>{product.price >= 200 || product.slug === "test-product-do-not-buy" ? "Free Delivery (1-3 Working Days)" : "£7.99 Delivery (1-3 Working Days) — Free over £200"}</span>
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <ShieldCheck className="w-4 h-4 text-primary shrink-0" />

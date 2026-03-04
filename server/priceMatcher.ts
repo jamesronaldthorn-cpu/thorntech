@@ -277,12 +277,17 @@ export async function matchInternetPrices(batchSize = 500): Promise<PriceMatchRe
 
       let newPrice: number;
       if (internetPrice >= minSellPrice) {
-        newPrice = internetPrice;
+        if (internetPrice > product.price && internetPrice >= minSellPrice) {
+          newPrice = internetPrice;
+          console.log(`[PriceMatcher]   Raising price to match internet for more profit: £${product.price.toFixed(2)} → £${internetPrice.toFixed(2)}`);
+        } else {
+          newPrice = internetPrice;
+        }
       } else {
         newPrice = minSellPrice;
       }
 
-      if (Math.abs(product.price - newPrice) > 0.50) {
+      if (Math.abs(product.price - newPrice) > 0.01) {
         const updates: Record<string, any> = { price: newPrice };
         if (product.price > newPrice) {
           updates.compareAtPrice = product.price;
