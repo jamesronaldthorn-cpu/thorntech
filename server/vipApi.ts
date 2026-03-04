@@ -181,6 +181,11 @@ async function getPrices(sessionKey: string): Promise<Map<number, VipPrice>> {
     const sample = prices[0];
     console.log(`[VIP] Price fields available: ${Object.keys(sample).join(", ")}`);
     console.log(`[VIP] Sample price record:`, JSON.stringify(sample));
+    const debugSkus = [127414];
+    for (const dsku of debugSkus) {
+      const dp = prices.find(p => p.ProdID === dsku || p.SKU === dsku);
+      if (dp) console.log(`[VIP] DEBUG price for SKU ${dsku}:`, JSON.stringify(dp));
+    }
   }
   const map = new Map<number, VipPrice>();
   for (const p of prices) map.set(p.ProdID, p);
