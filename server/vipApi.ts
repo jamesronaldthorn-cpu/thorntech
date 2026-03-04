@@ -586,8 +586,12 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         }
       }
     } catch (e: any) {
-      const errMsg = e?.message || e?.detail || String(e) || "unknown error";
-      result.errors.push(`ProdID=${vp.ProdID} SKU=${vp.SKU} "${vp.Description || 'no desc'}": ${errMsg}`);
+      const errMsg = e?.message || e?.detail || (typeof e === 'object' ? JSON.stringify(e) : String(e)) || "unknown error";
+      const errLine = `ProdID=${vp.ProdID} SKU=${vp.SKU} "${vp.Description || 'no desc'}": ${errMsg}`;
+      result.errors.push(errLine);
+      if (result.errors.length <= 5) {
+        console.log(`[VIP] ERROR: ${errLine}`);
+      }
     }
   }
 
