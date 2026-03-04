@@ -260,6 +260,23 @@ function cleanProductTitle(raw: string, manufacturer: string, productGroup: stri
     .replace(/\bEX\s*DISPLAY\b/gi, "")
     .replace(/\bREFURB(?:ISHED)?\b/gi, "Refurbished");
 
+  name = name.replace(/\s*\([^)]*(?:S-ATA|PCI Express|Socket\s+\d|LGA\s*\d|DDR[45]\b|\/[A-Z]-?ATX)[^)]*\)/gi, "");
+  name = name.replace(/\s*\((\d+GB\s+GDDR\d\w?)\/(PCI Express[^)]*)\)/gi, " $1");
+  name = name.replace(/\s*\(\d+GB\/s\/\d+MB\/\d+\s*RPM\)/gi, "");
+  name = name.replace(/\s*\(\d+x?\d*\/\d+ms\/[\dxHDMI/DisplayPort/VGA]+\)/gi, "");
+  name = name.replace(/\s*\([^)]*\/\d+\s*RPM\)/gi, "");
+  name = name.replace(/\s*\(\d+MHz\/\d+MHz\)/gi, "");
+  name = name.replace(/\s*\([^)]*\d+Gb\/s[^)]*\)/gi, "");
+
+  if (manufacturer && name.startsWith(manufacturer + " ") && /^\w+\s+\(/.test(name)) {
+    const bracketStart = name.indexOf("(");
+    const beforeBracket = name.substring(0, bracketStart).trim();
+    if (beforeBracket === manufacturer) {
+      const pg = productGroup || "";
+      name = `${manufacturer} ${pg}`.trim();
+    }
+  }
+
   const words = name.split(/\s+/).filter(w => w.length > 0);
   const titleCased = words.map(word => {
     if (/^[A-Z]{2,}$/.test(word)) {
