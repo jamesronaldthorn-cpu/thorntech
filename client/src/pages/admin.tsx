@@ -607,7 +607,7 @@ export default function AdminPage() {
       }).catch(() => {});
     } catch {}
     await new Promise(r => setTimeout(r, 3000));
-    setPriceMatchResult({ message: "Price matching in progress — this may take several minutes..." });
+    setPriceMatchResult({ message: "Price matching in progress...", progress: { current: 0, total: 0, currentProduct: "" } });
     const poll = setInterval(async () => {
       try {
         const sr = await adminFetch("/api/admin/vip/match-prices/status");
@@ -619,9 +619,11 @@ export default function AdminPage() {
           setPriceMatchResult(st.result);
           setPriceMatching(false);
           loadData();
+        } else if (st.running && st.current > 0) {
+          setPriceMatchResult({ message: "Price matching in progress...", progress: { current: st.current, total: st.total, currentProduct: st.currentProduct } });
         }
       } catch {}
-    }, 10000);
+    }, 3000);
   };
 
   const enrichProductsAction = async () => {
@@ -634,7 +636,7 @@ export default function AdminPage() {
       }).catch(() => {});
     } catch {}
     await new Promise(r => setTimeout(r, 3000));
-    setEnrichResult({ message: "Enrichment in progress — pulling specs, features & images from the web..." });
+    setEnrichResult({ message: "Enrichment in progress...", progress: { current: 0, total: 0, currentProduct: "" } });
     const poll = setInterval(async () => {
       try {
         const sr = await adminFetch("/api/admin/enrich-products/status");
@@ -646,9 +648,11 @@ export default function AdminPage() {
           setEnrichResult(st.result);
           setEnriching(false);
           loadData();
+        } else if (st.running && st.current > 0) {
+          setEnrichResult({ message: "Enrichment in progress...", progress: { current: st.current, total: st.total, currentProduct: st.currentProduct } });
         }
       } catch {}
-    }, 10000);
+    }, 3000);
   };
 
   const syncVip = async () => {
@@ -1113,9 +1117,25 @@ export default function AdminPage() {
                         <span className="text-red-400">{priceMatchResult.error}</span>
                       </div>
                     ) : priceMatchResult.message ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
-                        <span className="text-blue-400">{priceMatchResult.message}</span>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                          <span className="text-blue-400">{priceMatchResult.message}</span>
+                        </div>
+                        {priceMatchResult.progress && priceMatchResult.progress.total > 0 && (
+                          <>
+                            <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                              <div className="bg-blue-500 h-3 rounded-full transition-all duration-500" style={{ width: `${Math.round((priceMatchResult.progress.current / priceMatchResult.progress.total) * 100)}%` }} />
+                            </div>
+                            <div className="flex justify-between text-xs text-gray-400">
+                              <span>{priceMatchResult.progress.current} / {priceMatchResult.progress.total} products</span>
+                              <span>{Math.round((priceMatchResult.progress.current / priceMatchResult.progress.total) * 100)}%</span>
+                            </div>
+                            {priceMatchResult.progress.currentProduct && (
+                              <p className="text-xs text-gray-500 truncate">Processing: {priceMatchResult.progress.currentProduct}</p>
+                            )}
+                          </>
+                        )}
                       </div>
                     ) : (
                       <div className="space-y-1">
@@ -1207,9 +1227,25 @@ export default function AdminPage() {
                         <span className="text-red-400">{enrichResult.error}</span>
                       </div>
                     ) : enrichResult.message ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
-                        <span className="text-purple-400">{enrichResult.message}</span>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
+                          <span className="text-purple-400">{enrichResult.message}</span>
+                        </div>
+                        {enrichResult.progress && enrichResult.progress.total > 0 && (
+                          <>
+                            <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                              <div className="bg-purple-500 h-3 rounded-full transition-all duration-500" style={{ width: `${Math.round((enrichResult.progress.current / enrichResult.progress.total) * 100)}%` }} />
+                            </div>
+                            <div className="flex justify-between text-xs text-gray-400">
+                              <span>{enrichResult.progress.current} / {enrichResult.progress.total} products</span>
+                              <span>{Math.round((enrichResult.progress.current / enrichResult.progress.total) * 100)}%</span>
+                            </div>
+                            {enrichResult.progress.currentProduct && (
+                              <p className="text-xs text-gray-500 truncate">Processing: {enrichResult.progress.currentProduct}</p>
+                            )}
+                          </>
+                        )}
                       </div>
                     ) : (
                       <div className="space-y-1">

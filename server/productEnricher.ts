@@ -480,8 +480,10 @@ async function enrichProduct(name: string, vendor?: string, mpn?: string): Promi
 
 const enrichedIds = new Set<number>();
 
+let enrichLiveProgress = { current: 0, total: 0, currentProduct: "" };
+
 export function getEnrichProgress() {
-  return { enriched: enrichedIds.size };
+  return { enriched: enrichedIds.size, ...enrichLiveProgress };
 }
 
 export function resetEnrichProgress() {
@@ -518,10 +520,12 @@ export async function enrichProducts(batchSize = 500): Promise<EnrichResult> {
   }
 
   const batch = unenriched.slice(0, batchSize);
+  enrichLiveProgress = { current: 0, total: batch.length, currentProduct: "" };
 
   for (const product of batch) {
     try {
       result.totalProcessed++;
+      enrichLiveProgress = { current: result.totalProcessed, total: batch.length, currentProduct: product.name };
       console.log(`[Enricher] ${result.totalProcessed}/${batch.length}: ${product.name}`);
 
       const updates: Record<string, any> = { enrichedAt: new Date() };

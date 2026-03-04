@@ -221,8 +221,10 @@ async function searchProductPrice(name: string, vendor?: string, mpn?: string, c
 
 const matchedProductIds = new Set<number>();
 
+let matchLiveProgress = { current: 0, total: 0, currentProduct: "" };
+
 export function getMatchProgress() {
-  return { matched: matchedProductIds.size };
+  return { matched: matchedProductIds.size, ...matchLiveProgress };
 }
 
 export function resetMatchProgress() {
@@ -251,10 +253,12 @@ export async function matchInternetPrices(batchSize = 500): Promise<PriceMatchRe
   }
 
   const batch = unmatched.slice(0, batchSize);
+  matchLiveProgress = { current: 0, total: batch.length, currentProduct: "" };
 
   for (const product of batch) {
     try {
       result.totalProcessed++;
+      matchLiveProgress = { current: result.totalProcessed, total: batch.length, currentProduct: product.name };
       console.log(`[PriceMatcher] ${result.totalProcessed}/${batch.length}: ${product.name}`);
 
       const costPrice = product.costPrice!;

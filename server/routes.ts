@@ -1053,7 +1053,7 @@ export async function registerRoutes(
 
   app.get("/api/admin/vip/match-prices/status", adminAuth, async (_req, res) => {
     const progress = getMatchProgress();
-    res.json({ ...priceMatchStatus, matchedSoFar: progress.matched });
+    res.json({ ...priceMatchStatus, matchedSoFar: progress.matched, current: progress.current, total: progress.total, currentProduct: progress.currentProduct });
   });
 
   app.post("/api/admin/vip/match-prices/reset", adminAuth, async (_req, res) => {
@@ -1082,7 +1082,7 @@ export async function registerRoutes(
 
   app.get("/api/admin/enrich-products/status", adminAuth, async (_req, res) => {
     const progress = getEnrichProgress();
-    res.json({ ...enrichStatus, enrichedSoFar: progress.enriched });
+    res.json({ ...enrichStatus, enrichedSoFar: progress.enriched, current: progress.current, total: progress.total, currentProduct: progress.currentProduct });
   });
 
   app.post("/api/admin/enrich-products/reset", adminAuth, async (_req, res) => {
