@@ -98,10 +98,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async searchProducts(query: string): Promise<Product[]> {
-    const term = `%${query.toLowerCase()}%`;
-    return this.db.select().from(products).where(
-      sql`(LOWER(${products.name}) LIKE ${term} OR LOWER(${products.description}) LIKE ${term} OR LOWER(${products.vendor}) LIKE ${term})`
-    );
+    const words = query.toLowerCase().split(/\s+/).filter(w => w.length > 1);
+    if (words.length === 0) return [];
+    const conditions = words.map(word => {
+      const term = `%${word}%`;
+      return sql`(LOWER(${products.name}) LIKE ${term} OR LOWER(${products.description}) LIKE ${term} OR LOWER(${products.vendor}) LIKE ${term} OR LOWER(${products.mpn}) LIKE ${term})`;
+    });
+    let combined = conditions[0];
+    for (let i = 1; i < conditions.length; i++) {
+      combined = sql`${combined} AND ${conditions[i]}`;
+    }
+    return this.db.select().from(products).where(combined).limit(50);
   }
 
   async getProductsByCategory(categoryId: number): Promise<Product[]> {
