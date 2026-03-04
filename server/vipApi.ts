@@ -150,6 +150,11 @@ async function getPrices(sessionKey: string): Promise<Map<number, VipPrice>> {
   }
 
   prices = findArray(priceData) || [];
+  if (prices.length > 0) {
+    const sample = prices[0];
+    console.log(`[VIP] Price fields available: ${Object.keys(sample).join(", ")}`);
+    console.log(`[VIP] Sample price record:`, JSON.stringify(sample));
+  }
   const map = new Map<number, VipPrice>();
   for (const p of prices) map.set(p.ProdID, p);
   return map;
