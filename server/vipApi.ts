@@ -536,8 +536,8 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
             await storage.updateProduct(existing.id, updates);
             result.updated++;
           } catch (updateErr: any) {
-            const msg = String(updateErr?.message || updateErr?.detail || updateErr || "");
-            if ((msg.includes("duplicate") || msg.includes("unique") || msg.includes("constraint")) && updates.slug) {
+            const msg = String(updateErr?.message || "") + String(updateErr?.detail || "") + String(updateErr?.code || "");
+            if ((msg.includes("duplicate") || msg.includes("unique") || msg.includes("constraint") || updateErr?.code === "23505") && updates.slug) {
               delete updates.slug;
               delete updates.name;
               if (Object.keys(updates).length > 0) {
@@ -585,8 +585,8 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         if (mpnKey) existingByMpn.set(mpnKey, existingBySlug.get(slug)!);
         result.imported++;
       } catch (insertErr: any) {
-        const msg = String(insertErr?.message || insertErr?.detail || insertErr || "");
-        if (msg.includes("duplicate") || msg.includes("unique") || msg.includes("constraint")) {
+        const msg = String(insertErr?.message || "") + String(insertErr?.detail || "") + String(insertErr?.code || "");
+        if (msg.includes("duplicate") || msg.includes("unique") || msg.includes("constraint") || insertErr?.code === "23505") {
           result.skipped++;
         } else {
           throw insertErr;
@@ -594,10 +594,11 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
       }
     } catch (e: any) {
       const errMsg = e?.message || e?.detail || (typeof e === 'object' ? JSON.stringify(e) : String(e)) || "unknown error";
-      const errLine = `ProdID=${vp.ProdID} SKU=${vp.SKU} "${vp.Description || 'no desc'}": ${errMsg}`;
+      const errCode = e?.code || "no-code";
+      const errLine = `ProdID=${vp.ProdID} SKU=${vp.SKU} "${vp.Description || 'no desc'}": [${errCode}] ${errMsg}`;
       result.errors.push(errLine);
-      if (result.errors.length <= 5) {
-        console.log(`[VIP] ERROR: ${errLine}`);
+      if (result.errors.length <= 10) {
+        console.error(`[VIP] ERROR: ${errLine}`);
       }
     }
   }
