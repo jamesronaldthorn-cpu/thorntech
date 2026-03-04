@@ -216,13 +216,120 @@ async function getStock(sessionKey: string): Promise<Map<number, VipStock>> {
   return map;
 }
 
+function cleanProductTitle(raw: string, manufacturer: string, productGroup: string, mpn?: string): string {
+  let name = raw.trim();
+
+  if (mpn && mpn.length > 5 && name.endsWith(mpn)) {
+    name = name.slice(0, -mpn.length).trim();
+  }
+  if (mpn && mpn.length > 5 && name.includes(` ${mpn} `)) {
+    name = name.replace(` ${mpn} `, " ").trim();
+  }
+
+  name = name
+    .replace(/\b(OEM|BULK|TRAY|BOX|RET|RETAIL)\b/gi, "")
+    .replace(/\b"?NEW"?\s*-?\s*/i, "")
+    .replace(/\s*\(?\bMOQ\s*\d+\)?\s*/gi, "")
+    .replace(/\s*\(?\bEOL\)?\s*/gi, "")
+    .replace(/\bN\/A\b/gi, "")
+    .replace(/\bLTD\s*STOCK\b/gi, "")
+    .replace(/\bCLEARANCE\b/gi, "")
+    .replace(/\bEX\s*DISPLAY\b/gi, "")
+    .replace(/\bREFURB(?:ISHED)?\b/gi, "Refurbished");
+
+  const words = name.split(/\s+/).filter(w => w.length > 0);
+  const titleCased = words.map(word => {
+    if (/^[A-Z]{2,}$/.test(word)) {
+      const upper = ["RGB", "LED", "USB", "SSD", "HDD", "DDR4", "DDR5", "HDMI", "DP", "ATX", "ITX",
+        "MATX", "EATX", "NVME", "PCIE", "PCI", "AMD", "AIO", "TDP", "PWM", "LCD", "IPS", "VA",
+        "TN", "OLED", "QHD", "FHD", "UHD", "CPU", "GPU", "PSU", "RAM", "SATA", "LGA", "GDDR6",
+        "GDDR6X", "GDDR7", "LPDDR5", "LPDDR5X", "GEN4", "GEN5", "GEN3", "BT", "AC", "AX", "WI-FI",
+        "TB", "GB", "MB", "GHZ", "MHZ", "RPM", "CFM", "RTX", "GTX", "RX", "XT", "XL", "XTX",
+        "ARGB", "CL", "ECC", "DIMM", "SODIMM", "M.2", "U.2", "AM4", "AM5", "LGA1700", "LGA1851",
+        "TKL", "UK", "PC", "QD", "HDR", "DPI"];
+      if (upper.includes(word)) return word;
+
+      const brandUpper = ["ASUS", "MSI", "EVGA", "NZXT", "EKWB", "AOC", "JBL", "HWL", "OWC", "PNY",
+        "XFX", "XPG", "KFA2", "BFG", "OCZ", "FSP", "HYTE"];
+      if (brandUpper.includes(word)) return word;
+
+      return word.charAt(0) + word.slice(1).toLowerCase();
+    }
+    return word;
+  });
+
+  name = titleCased.join(" ");
+
+  name = name
+    .replace(/\bGeforce\b/gi, "GeForce")
+    .replace(/\bRadeon\b/gi, "Radeon")
+    .replace(/\bRyzen\b/gi, "Ryzen")
+    .replace(/\bThreadripper\b/gi, "Threadripper")
+    .replace(/\bCore\s+I(\d)/gi, "Core i$1")
+    .replace(/\bNvidia\b/gi, "NVIDIA")
+    .replace(/\bIntel\b/gi, "Intel")
+    .replace(/\bSapphire\b/gi, "Sapphire")
+    .replace(/\bGigabyte\b/gi, "Gigabyte")
+    .replace(/\bCorsair\b/gi, "Corsair")
+    .replace(/\bKingston\b/gi, "Kingston")
+    .replace(/\bSamsung\b/gi, "Samsung")
+    .replace(/\bSeagate\b/gi, "Seagate")
+    .replace(/\bCrucial\b/gi, "Crucial")
+    .replace(/\bWestern\s+Digital\b/gi, "Western Digital")
+    .replace(/\bLogitech\b/gi, "Logitech")
+    .replace(/\bRazer\b/gi, "Razer")
+    .replace(/\bSteelseries\b/gi, "SteelSeries")
+    .replace(/\bHyperx\b/gi, "HyperX")
+    .replace(/\bDeepcool\b/gi, "DeepCool")
+    .replace(/\bNoctua\b/gi, "Noctua")
+    .replace(/\bThermaltake\b/gi, "Thermaltake")
+    .replace(/\bCoolermaster\b/gi, "Cooler Master")
+    .replace(/\bCooler\s+Master\b/gi, "Cooler Master")
+    .replace(/\bBe\s+Quiet\b/gi, "be quiet!")
+    .replace(/\bBequiet\b/gi, "be quiet!")
+    .replace(/\bFractal\s+Design\b/gi, "Fractal Design")
+    .replace(/\bAsrock\b/gi, "ASRock")
+    .replace(/\bBenq\b/gi, "BenQ")
+    .replace(/\bTplink\b/gi, "TP-Link")
+    .replace(/\bTp-Link\b/gi, "TP-Link")
+    .replace(/\bNetgear\b/gi, "NETGEAR");
+
+  const groupLabel: Record<string, string> = {
+    "CPUs": "Processor",
+    "Graphics Cards": "Graphics Card",
+    "Hard Drives": "Hard Drive",
+    "Solid State Drives": "SSD",
+    "External Storage": "External Drive",
+    "Power Supply Units": "Power Supply",
+    "Coolers": "CPU Cooler",
+    "Headsets": "Gaming Headset",
+    "Keyboards": "Keyboard",
+    "Mice": "Mouse",
+    "Monitors": "Monitor",
+    "Motherboards": "Motherboard",
+    "Memory": "Memory",
+    "Cases": "PC Case",
+    "Speakers": "Speaker",
+    "Webcams": "Webcam",
+    "Networking - Wired": "Network Switch",
+    "Networking - Wireless": "Wi-Fi Router",
+    "Notebooks": "Laptop",
+  };
+
+  name = name.replace(/\s{2,}/g, " ").trim();
+  name = name.replace(/^[-–—,.\s]+|[-–—,.\s]+$/g, "").trim();
+
+  return name;
+}
+
 function getProductName(product: VipProduct): string {
+  let raw = product.Description;
   if (product.Attributes) {
     const attrs = Array.isArray(product.Attributes) ? product.Attributes : [product.Attributes];
     const nameAttr = attrs.find((a: any) => a.AttributeName === "Product Name");
-    if (nameAttr?.AttributeValue) return String(nameAttr.AttributeValue);
+    if (nameAttr?.AttributeValue) raw = String(nameAttr.AttributeValue);
   }
-  return product.Description;
+  return cleanProductTitle(raw, product.Manufacturer, product.ProductGroup, product.ManufacturersPartNumber);
 }
 
 function getProductDescription(product: VipProduct): string {
@@ -345,6 +452,7 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
       const existing = existingBySlug.get(slug);
       if (existing) {
         const updates: Record<string, any> = {};
+        if (existing.name !== name) updates.name = name;
         if (existing.inStock !== isInStock) updates.inStock = isInStock;
         if (imageUrl && imageUrl !== existing.image) updates.image = imageUrl;
         if (vp.Manufacturer && vp.Manufacturer !== existing.vendor) updates.vendor = vp.Manufacturer;
