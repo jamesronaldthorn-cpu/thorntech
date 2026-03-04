@@ -188,7 +188,12 @@ async function getPrices(sessionKey: string): Promise<Map<number, VipPrice>> {
     }
   }
   const map = new Map<number, VipPrice>();
-  for (const p of prices) map.set(p.ProdID, p);
+  for (const p of prices) {
+    map.set(p.ProdID, p);
+    if (p.SKU && p.SKU !== p.ProdID) {
+      map.set(p.SKU, p);
+    }
+  }
   return map;
 }
 
@@ -218,7 +223,12 @@ async function getStock(sessionKey: string): Promise<Map<number, VipStock>> {
 
   stocks = findArray(stockData) || [];
   const map = new Map<number, VipStock>();
-  for (const s of stocks) map.set(s.ProdID, s);
+  for (const s of stocks) {
+    map.set(s.ProdID, s);
+    if (s.SKU && s.SKU !== s.ProdID) {
+      map.set(s.SKU, s);
+    }
+  }
   return map;
 }
 
@@ -479,7 +489,10 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
           const newMinSell = Math.ceil(costPriceExVat * 1.2 * 1.02 * 100) / 100;
           if (existing.price < newMinSell) {
             updates.price = newMinSell;
-            console.log(`[VIP] Price adjusted: ${existing.name} — cost £${costPriceExVat.toFixed(2)} → sell £${newMinSell.toFixed(2)} (was £${existing.price.toFixed(2)})`);
+            console.log(`[VIP] Price raised: ${existing.name} — cost £${costPriceExVat.toFixed(2)} → sell £${newMinSell.toFixed(2)} (was £${existing.price.toFixed(2)})`);
+          } else if (costPriceExVat < (existing.costPrice || 0) && existing.price > newMinSell) {
+            updates.price = newMinSell;
+            console.log(`[VIP] Price lowered (cost dropped): ${existing.name} — cost £${costPriceExVat.toFixed(2)} → sell £${newMinSell.toFixed(2)} (was £${existing.price.toFixed(2)})`);
           }
         }
 
