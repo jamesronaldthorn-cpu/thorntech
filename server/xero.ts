@@ -246,6 +246,7 @@ export async function createInvoice(order: {
         LineItems: lineItems,
         Date: today,
         DueDate: dueDate,
+        InvoiceNumber: `TTS-${String(order.id).padStart(5, "0")}`,
         Reference: `Order #${order.id}`,
         Status: "AUTHORISED",
         LineAmountTypes: "Inclusive",
