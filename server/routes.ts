@@ -1082,6 +1082,7 @@ Allow: /
 Disallow: /admin
 Disallow: /api/
 Disallow: /checkout
+Allow: /feeds/google-merchant.xml
 
 Sitemap: ${siteUrl}/sitemap.xml
 `);
@@ -1100,6 +1101,96 @@ Sitemap: ${siteUrl}/sitemap.xml
     res.send(sitemap);
   });
 
+  app.get("/feeds/google-merchant.xml", async (req, res) => {
+    const [products, categories] = await Promise.all([storage.getProducts(), storage.getCategories()]);
+    const siteUrl = buildSiteUrl(req);
+    const catMap = new Map(categories.map(c => [c.id, c]));
+
+    const escXml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+
+    const activeProducts = products.filter(p => p.inStock && p.slug !== "test-product-do-not-buy" && p.price > 0);
+
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
+<channel>
+<title>Thorn Tech Solutions Ltd</title>
+<link>${siteUrl}</link>
+<description>PC Components &amp; Hardware - UK Online Store</description>
+`;
+
+    for (const p of activeProducts) {
+      const cat = p.categoryId ? catMap.get(p.categoryId) : null;
+      const productUrl = `${siteUrl}/product/${p.slug}`;
+      const imageUrl = p.image ? (p.image.startsWith("http") ? p.image : `${siteUrl}${p.image}`) : "";
+      const priceGbp = p.price.toFixed(2);
+      const availability = p.inStock ? "in_stock" : "out_of_stock";
+      const condition = "new";
+      const shipping = p.price >= 200 ? "0.00" : "7.99";
+
+      xml += `<item>
+<g:id>${p.id}</g:id>
+<g:title>${escXml(p.name)}</g:title>
+<g:description>${escXml(p.description || p.name)}</g:description>
+<g:link>${escXml(productUrl)}</g:link>
+${imageUrl ? `<g:image_link>${escXml(imageUrl)}</g:image_link>` : ""}
+<g:price>${priceGbp} GBP</g:price>
+${p.compareAtPrice && p.compareAtPrice > p.price ? `<g:sale_price>${priceGbp} GBP</g:sale_price>\n<g:sale_price_effective_date>${new Date().toISOString()}/${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()}</g:sale_price_effective_date>` : ""}
+<g:availability>${availability}</g:availability>
+<g:condition>${condition}</g:condition>
+${p.vendor ? `<g:brand>${escXml(p.vendor)}</g:brand>` : ""}
+${p.mpn ? `<g:mpn>${escXml(p.mpn)}</g:mpn>` : ""}
+${p.ean ? `<g:gtin>${escXml(p.ean)}</g:gtin>` : ""}
+${cat ? `<g:product_type>${escXml(cat.name)}</g:product_type>` : ""}
+<g:shipping>
+<g:country>GB</g:country>
+<g:service>Standard</g:service>
+<g:price>${shipping} GBP</g:price>
+</g:shipping>
+<g:identifier_exists>${p.mpn || p.ean ? "true" : "false"}</g:identifier_exists>
+</item>
+`;
+    }
+
+    xml += `</channel>
+</rss>`;
+
+    res.set("Content-Type", "application/xml; charset=utf-8");
+    res.set("Cache-Control", "public, max-age=3600");
+    res.send(xml);
+  });
+
+  app.get("/feeds/google-merchant.json", async (req, res) => {
+    const [products, categories] = await Promise.all([storage.getProducts(), storage.getCategories()]);
+    const siteUrl = buildSiteUrl(req);
+    const catMap = new Map(categories.map(c => [c.id, c]));
+
+    const activeProducts = products.filter(p => p.inStock && p.slug !== "test-product-do-not-buy" && p.price > 0);
+
+    const items = activeProducts.map(p => {
+      const cat = p.categoryId ? catMap.get(p.categoryId) : null;
+      const imageUrl = p.image ? (p.image.startsWith("http") ? p.image : `${siteUrl}${p.image}`) : undefined;
+      return {
+        id: String(p.id),
+        title: p.name,
+        description: p.description || p.name,
+        link: `${siteUrl}/product/${p.slug}`,
+        image_link: imageUrl,
+        price: `${p.price.toFixed(2)} GBP`,
+        availability: p.inStock ? "in_stock" : "out_of_stock",
+        condition: "new",
+        brand: p.vendor || undefined,
+        mpn: p.mpn || undefined,
+        gtin: p.ean || undefined,
+        product_type: cat?.name || undefined,
+        shipping: { country: "GB", service: "Standard", price: p.price >= 200 ? "0.00 GBP" : "7.99 GBP" },
+        identifier_exists: !!(p.mpn || p.ean),
+      };
+    });
+
+    res.set("Cache-Control", "public, max-age=3600");
+    res.json({ products: items, count: items.length });
+  });
+
   app.get("/feeds/custom/:slug", async (req, res) => {
     const feed = await storage.getCustomFeedBySlug(req.params.slug);
     if (!feed) return res.status(404).send("Feed not found");
@@ -1114,6 +1205,8 @@ Sitemap: ${siteUrl}/sitemap.xml
     res.json({
       feeds: {
         sitemap: "/sitemap.xml",
+        googleMerchantXml: "/feeds/google-merchant.xml",
+        googleMerchantJson: "/feeds/google-merchant.json",
         ...customFeeds,
       },
     });
