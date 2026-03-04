@@ -25,8 +25,34 @@ interface VipPrice {
   ProdID: number;
   SKU: number;
   OnOffer: string;
+  TradePrice?: number;
   Discount1: number;
+  Discount2?: number;
+  Discount3?: number;
   OfferDiscount1: number;
+  OfferDiscount2?: number;
+  OfferDiscount3?: number;
+  RRP?: number;
+  SRP?: number;
+  [key: string]: any;
+}
+
+function getBestCostPrice(price: VipPrice): number {
+  const candidates: number[] = [];
+
+  if (price.OnOffer === "True") {
+    if (price.OfferDiscount1 > 0) candidates.push(price.OfferDiscount1);
+    if (price.OfferDiscount2 && price.OfferDiscount2 > 0) candidates.push(price.OfferDiscount2);
+    if (price.OfferDiscount3 && price.OfferDiscount3 > 0) candidates.push(price.OfferDiscount3);
+  }
+
+  if (price.Discount1 > 0) candidates.push(price.Discount1);
+  if (price.Discount2 && price.Discount2 > 0) candidates.push(price.Discount2);
+  if (price.Discount3 && price.Discount3 > 0) candidates.push(price.Discount3);
+  if (price.TradePrice && price.TradePrice > 0) candidates.push(price.TradePrice);
+
+  if (candidates.length === 0) return 0;
+  return Math.min(...candidates);
 }
 
 interface VipStock {
@@ -297,7 +323,7 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
       const price = priceMap.get(vp.ProdID);
       const stock = stockMap.get(vp.ProdID);
 
-      const buyPrice = price ? (price.OnOffer === "True" ? price.OfferDiscount1 : price.Discount1) : 0;
+      const buyPrice = price ? getBestCostPrice(price) : 0;
       if (buyPrice <= 0) {
         result.skipped++;
         continue;
@@ -322,7 +348,16 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         if (existing.inStock !== isInStock) updates.inStock = isInStock;
         if (imageUrl && imageUrl !== existing.image) updates.image = imageUrl;
         if (vp.Manufacturer && vp.Manufacturer !== existing.vendor) updates.vendor = vp.Manufacturer;
-        if (!existing.costPrice || Math.abs(existing.costPrice - costPriceExVat) > 0.01) updates.costPrice = costPriceExVat;
+
+        const costChanged = !existing.costPrice || Math.abs(existing.costPrice - costPriceExVat) > 0.01;
+        if (costChanged) {
+          updates.costPrice = costPriceExVat;
+          const newMinSell = Math.ceil(costPriceExVat * 1.2 * 1.05 * 100) / 100;
+          if (existing.price < newMinSell) {
+            updates.price = newMinSell;
+            console.log(`[VIP] Price adjusted: ${existing.name} — cost £${costPriceExVat.toFixed(2)} → sell £${newMinSell.toFixed(2)} (was £${existing.price.toFixed(2)})`);
+          }
+        }
 
         if (Object.keys(updates).length > 0) {
           await storage.updateProduct(existing.id, updates);
