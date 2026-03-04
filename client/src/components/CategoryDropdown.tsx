@@ -7,39 +7,39 @@ import type { Category } from "@shared/schema";
 const categoryGroups: { label: string; slugs: string[] }[] = [
   {
     label: "CORE COMPONENTS",
-    slugs: ["processors", "graphics-cards", "graphics-cards-gpu", "motherboards", "memory", "power-supplies", "power-supply-units", "cases"],
+    slugs: ["processors", "graphics-cards", "motherboards", "memory", "power-supplies", "cases"],
   },
   {
     label: "STORAGE",
-    slugs: ["storage", "solid-state-drives", "hard-drives", "external-storage", "optical-drives"],
+    slugs: ["storage", "optical-drives"],
   },
   {
     label: "COOLING",
-    slugs: ["cooling", "coolers"],
+    slugs: ["cooling"],
   },
   {
     label: "DISPLAYS",
-    slugs: ["monitors", "projectors", "display-accessories"],
+    slugs: ["monitors"],
   },
   {
     label: "PERIPHERALS",
-    slugs: ["keyboards", "mice", "headsets-audio", "headsets", "speakers", "webcams", "gaming-surfaces-mats"],
+    slugs: ["keyboards", "mice", "headsets-audio"],
   },
   {
     label: "NETWORKING",
-    slugs: ["networking", "networking-wired", "networking-wireless"],
+    slugs: ["networking"],
   },
   {
     label: "GAMING",
-    slugs: ["controllers-gaming", "gaming-accessories", "gaming-furniture", "streaming", "capture-cards", "dj-equipment"],
+    slugs: ["controllers-gaming"],
   },
   {
     label: "SYSTEMS",
-    slugs: ["pre-built-pcs", "laptops", "notebooks", "systems", "server-boards-systems"],
+    slugs: ["pre-built-pcs", "laptops"],
   },
   {
     label: "OTHER",
-    slugs: ["cables-adapters", "cables", "adapters-docks", "chargers", "io-cards", "software", "accessories", "exclusive-bundles", "toys"],
+    slugs: ["cables-adapters", "software", "accessories"],
   },
 ];
 

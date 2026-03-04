@@ -1240,6 +1240,67 @@ ${cat ? `<g:product_type>${escXml(cat.name)}</g:product_type>` : ""}
     } catch (e: any) {
       console.log("[Seed] Test product check:", e.message);
     }
+
+    try {
+      const duplicateToMain: Record<string, string> = {
+        "adapters-docks": "cables-adapters",
+        "cables": "cables-adapters",
+        "capture-cards": "accessories",
+        "chargers": "accessories",
+        "coolers": "cooling",
+        "dj-equipment": "accessories",
+        "display-accessories": "monitors",
+        "exclusive-bundles": "pre-built-pcs",
+        "external-storage": "storage",
+        "gaming-accessories": "controllers-gaming",
+        "gaming-furniture": "accessories",
+        "gaming-surfaces-mats": "accessories",
+        "graphics-cards-gpu": "graphics-cards",
+        "hard-drives": "storage",
+        "headsets": "headsets-audio",
+        "io-cards": "accessories",
+        "networking-wired": "networking",
+        "networking-wireless": "networking",
+        "notebooks": "laptops",
+        "power-supply-units": "power-supplies",
+        "projectors": "monitors",
+        "server-boards-systems": "pre-built-pcs",
+        "solid-state-drives": "storage",
+        "speakers": "headsets-audio",
+        "streaming": "accessories",
+        "systems": "pre-built-pcs",
+        "toys": "accessories",
+        "webcams": "accessories",
+      };
+
+      const allCats = await storage.getCategories();
+      const catBySlug = new Map(allCats.map(c => [c.slug, c]));
+      const allProds = await storage.getProducts();
+      let reassigned = 0;
+      let deleted = 0;
+
+      for (const [dupSlug, mainSlug] of Object.entries(duplicateToMain)) {
+        const dupCat = catBySlug.get(dupSlug);
+        const mainCat = catBySlug.get(mainSlug);
+        if (!dupCat) continue;
+        if (!mainCat) continue;
+
+        const prodsInDup = allProds.filter(p => p.categoryId === dupCat.id);
+        for (const p of prodsInDup) {
+          await storage.updateProduct(p.id, { categoryId: mainCat.id });
+          reassigned++;
+        }
+
+        await storage.deleteCategory(dupCat.id);
+        deleted++;
+      }
+
+      if (deleted > 0) {
+        console.log(`[Cleanup] Consolidated categories: ${reassigned} products reassigned, ${deleted} duplicate categories removed`);
+      }
+    } catch (e: any) {
+      console.log("[Cleanup] Category consolidation:", e.message);
+    }
   })();
 
   return httpServer;
