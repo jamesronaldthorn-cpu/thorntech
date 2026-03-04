@@ -449,8 +449,12 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
 
   for (const vp of vipProducts) {
     try {
-      const price = priceMap.get(vp.ProdID);
-      const stock = stockMap.get(vp.ProdID);
+      let price = priceMap.get(vp.ProdID) || priceMap.get(vp.SKU);
+      let stock = stockMap.get(vp.ProdID) || stockMap.get(vp.SKU);
+
+      if (vp.ProdID === 183738 || vp.SKU === 127414 || vp.ProdID === 127414 || (vp.Description && vp.Description.includes("9070 XT") && vp.Description.includes("PRIME"))) {
+        console.log(`[VIP] DEBUG product: ProdID=${vp.ProdID}, SKU=${vp.SKU}, desc="${vp.Description}", priceFound=${!!price}, costPrice=${price ? getBestCostPrice(price) : 'N/A'}`);
+      }
 
       const buyPrice = price ? getBestCostPrice(price) : 0;
       if (buyPrice <= 0) {
