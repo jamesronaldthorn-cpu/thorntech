@@ -29,15 +29,14 @@ const categoryIcons: Record<string, React.ReactNode> = {
 
 function PlaceholderImage({ product, category }: { product: Product; category?: Category }) {
   const icon = category?.slug ? categoryIcons[category.slug] : null;
-  const brandInitial = product.vendor ? product.vendor.charAt(0).toUpperCase() : "";
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-4">
-      <div className="text-primary/40 mb-3">
-        {icon || <Box className="w-12 h-12" />}
+    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-900/80 via-gray-850 to-gray-900 p-6">
+      <div className="text-primary/20 mb-2">
+        {icon || <Box className="w-8 h-8" />}
       </div>
       {product.vendor && (
-        <span className="text-[10px] uppercase tracking-[0.2em] text-white/30 font-display">{product.vendor}</span>
+        <span className="text-[9px] uppercase tracking-[0.15em] text-white/20 font-display">{product.vendor}</span>
       )}
     </div>
   );

@@ -1061,6 +1061,58 @@ export async function registerRoutes(
     res.json({ success: true, message: "Price match progress reset. Next batch will start from the beginning." });
   });
 
+  app.post("/api/admin/fix-images", adminAuth, async (_req, res) => {
+    res.json({ status: "started", message: "Checking and fixing broken images in background..." });
+
+    try {
+      const allProducts = await storage.getProducts();
+      let fixed = 0;
+      let cleared = 0;
+
+      for (const p of allProducts) {
+        if (!p.image) continue;
+
+        try {
+          const check = await fetch(p.image, {
+            method: "HEAD",
+            signal: AbortSignal.timeout(5000),
+            headers: { "User-Agent": "Mozilla/5.0" },
+          });
+          if (check.ok) continue;
+        } catch {}
+
+        let replacementImage: string | null = null;
+        if (p.images) {
+          try {
+            const extras = JSON.parse(p.images as string);
+            if (Array.isArray(extras)) {
+              for (const img of extras) {
+                try {
+                  const c = await fetch(img, { method: "HEAD", signal: AbortSignal.timeout(5000), headers: { "User-Agent": "Mozilla/5.0" } });
+                  if (c.ok) { replacementImage = img; break; }
+                } catch {}
+              }
+            }
+          } catch {}
+        }
+
+        if (replacementImage) {
+          await storage.updateProduct(p.id, { image: replacementImage });
+          fixed++;
+          console.log(`[FixImages] Replaced: "${p.name}" → ${replacementImage}`);
+        } else {
+          await storage.updateProduct(p.id, { image: null } as any);
+          cleared++;
+          console.log(`[FixImages] Cleared broken image: "${p.name}"`);
+        }
+      }
+
+      console.log(`[FixImages] Done: ${fixed} replaced, ${cleared} cleared, ${allProducts.length} total checked`);
+    } catch (e: any) {
+      console.error("[FixImages] Error:", e.message);
+    }
+  });
+
   app.post("/api/admin/fix-prices", adminAuth, async (_req, res) => {
     try {
       const allProducts = await storage.getProducts();

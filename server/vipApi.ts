@@ -66,9 +66,14 @@ interface VipStock {
 
 function buildImageUrl(product: VipProduct): string | null {
   if (product.ProductImage) {
-    const match = product.ProductImage.match(/\/(\d+)\.jpg$/i);
+    let imgPath = product.ProductImage;
+    if (imgPath.startsWith("http")) return imgPath;
+    if (imgPath.startsWith("/")) {
+      return `https://www.vip-computers.com${imgPath}`;
+    }
+    const match = imgPath.match(/(\d+)\.(jpg|jpeg|png|webp)$/i);
     if (match) {
-      return `https://www.vip-computers.com/uk/images/products/${match[1]}.jpg`;
+      return `https://www.vip-computers.com/uk/images/products/${match[1]}.${match[2]}`;
     }
   }
   return null;
