@@ -106,23 +106,54 @@ function buildSearchTerms(name: string, vendor?: string, mpn?: string): string[]
     terms.push(mpn);
   }
 
-  const shortName = name
+  let cleaned = name
     .replace(/\([^)]*\)/g, "")
     .replace(/\s+/g, " ")
-    .trim()
-    .substring(0, 60);
+    .trim();
 
+  cleaned = cleaned
+    .replace(/\b(OEM|BULK|TRAY|RET|RETAIL|BOX|LTD STOCK|CLEARANCE|EX DISPLAY)\b/gi, "")
+    .replace(/\bRefurbished\b/gi, "")
+    .replace(/\s*-\s*(?:Black|White|Grey|Silver|Red|Blue|Green)\s*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const modelPatterns = [
+    /\b(GeForce\s+(?:RTX|GTX)\s+\d{4}\s*(?:Ti|SUPER)?(?:\s+\d+GB)?)/i,
+    /\b(Radeon\s+RX\s+\d{4}\s*(?:XT|XTX)?(?:\s+\d+GB)?)/i,
+    /\b(Ryzen\s+\d\s+\d{4}\w*)/i,
+    /\b(Core\s+i\d[-\s]\d{4,5}\w*)/i,
+    /\b(Arc\s+[AB]\d{3}\w*)/i,
+  ];
+
+  let coreModel = "";
+  for (const pattern of modelPatterns) {
+    const match = cleaned.match(pattern);
+    if (match) {
+      coreModel = match[1].trim();
+      break;
+    }
+  }
+
+  if (coreModel && vendor) {
+    const vendorModel = `${vendor} ${coreModel}`;
+    if (!terms.includes(vendorModel)) terms.push(vendorModel);
+  } else if (coreModel) {
+    if (!terms.includes(coreModel)) terms.push(coreModel);
+  }
+
+  const shortName = cleaned.substring(0, 60);
   if (vendor && !shortName.toLowerCase().startsWith(vendor.toLowerCase())) {
     terms.push(`${vendor} ${shortName}`);
   }
   terms.push(shortName);
 
   const words = shortName.split(/\s+/).slice(0, 5).join(" ");
-  if (words !== shortName && words.length > 10) {
+  if (words !== shortName && words.length > 10 && !terms.includes(words)) {
     terms.push(words);
   }
 
-  return terms;
+  return [...new Set(terms)];
 }
 
 async function searchScanPrices(searchTerm: string): Promise<number[]> {

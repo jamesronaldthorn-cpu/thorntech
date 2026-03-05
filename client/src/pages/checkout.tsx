@@ -29,6 +29,9 @@ export default function CheckoutPage() {
     city: "",
     postcode: "",
   });
+  const [createAccount, setCreateAccount] = useState(false);
+  const [password, setPassword] = useState("");
+  const [accountCreated, setAccountCreated] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -63,6 +66,10 @@ export default function CheckoutPage() {
       setError("Please enter a valid email address");
       return false;
     }
+    if (createAccount && !user && password.length < 6) {
+      setError("Password must be at least 6 characters to create an account");
+      return false;
+    }
     setError("");
     return true;
   };
@@ -78,9 +85,12 @@ export default function CheckoutPage() {
           items: items.map(i => ({ productId: i.product.id, quantity: i.quantity })),
           ...form,
           userId: user?.id || null,
+          createAccount: createAccount && !user ? true : false,
+          password: createAccount && !user ? password : undefined,
         }),
       });
       const data = await res.json();
+      if (data.accountCreated) setAccountCreated(true);
       if (data.url) {
         window.location.href = data.url;
       } else {
@@ -104,6 +114,8 @@ export default function CheckoutPage() {
           items: items.map(i => ({ productId: i.product.id, quantity: i.quantity })),
           ...form,
           userId: user?.id || null,
+          createAccount: createAccount && !user ? true : false,
+          password: createAccount && !user ? password : undefined,
         }),
       });
       const orderData = await createRes.json();
@@ -186,6 +198,35 @@ export default function CheckoutPage() {
                   <Input value={form.postcode} onChange={e => updateField("postcode", e.target.value)} placeholder="SW1A 1AA" className="bg-black/50 border-white/20" data-testid="input-postcode" />
                 </div>
               </div>
+              {!user && (
+                <div className="mt-4 pt-4 border-t border-white/10">
+                  <label className="flex items-center gap-3 cursor-pointer" data-testid="checkbox-create-account">
+                    <input
+                      type="checkbox"
+                      checked={createAccount}
+                      onChange={e => setCreateAccount(e.target.checked)}
+                      className="w-4 h-4 rounded border-white/20 bg-black/50 text-primary accent-purple-600"
+                    />
+                    <div>
+                      <p className="text-sm font-medium text-white">Create an account</p>
+                      <p className="text-xs text-muted-foreground">Track your orders and save your details for next time</p>
+                    </div>
+                  </label>
+                  {createAccount && (
+                    <div className="mt-3">
+                      <label className="block text-sm text-muted-foreground mb-1">Choose a Password *</label>
+                      <Input
+                        type="password"
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        placeholder="Minimum 6 characters"
+                        className="bg-black/50 border-white/20"
+                        data-testid="input-checkout-password"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="bg-card border border-white/10 rounded-xl p-6">

@@ -604,6 +604,8 @@ export async function enrichProducts(batchSize = 500): Promise<EnrichResult> {
           updates.image = webData.images[0];
           console.log(`[Enricher]   Set image: ${webData.images[0]}`);
         }
+      } else if (product.image) {
+        console.log(`[Enricher]   Keeping existing image: ${product.image}`);
       }
       if (webData?.description && (!product.description || product.description.length < 50)) {
         updates.description = webData.description;
@@ -639,8 +641,12 @@ export async function enrichProducts(batchSize = 500): Promise<EnrichResult> {
 
 export async function pullMissingImages(): Promise<{ updated: number; skipped: number; errors: number }> {
   const allProducts = await storage.getProducts();
-  const needImages = allProducts.filter(p => !p.image || p.image.includes("vip-computers.com"));
-  console.log(`[PullImages] ${needImages.length} products need images out of ${allProducts.length} total`);
+  const needImages = allProducts.filter(p => {
+    if (enrichedIds.has(p.id)) return false;
+    if (!p.image || p.image.includes("vip-computers.com")) return true;
+    return false;
+  });
+  console.log(`[PullImages] ${needImages.length} products need images out of ${allProducts.length} total (${enrichedIds.size} already handled by enricher)`);
 
   let updated = 0;
   let skipped = 0;
@@ -673,6 +679,7 @@ export async function pullMissingImages(): Promise<{ updated: number; skipped: n
 
       if (!foundImage) {
         skipped++;
+        console.log(`[PullImages] No image found for: ${product.name} (keeping existing)`);
       }
 
       await delay(1000);

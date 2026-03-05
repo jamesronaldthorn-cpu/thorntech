@@ -522,7 +522,7 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         if (existing.name !== name) updates.name = name;
         if (existing.slug !== slug) updates.slug = slug;
         if (existing.inStock !== isInStock) updates.inStock = isInStock;
-        if (imageUrl && imageUrl !== existing.image) updates.image = imageUrl;
+        if (imageUrl && imageUrl !== existing.image && !existing.image?.includes("media-amazon.com")) updates.image = imageUrl;
         if (vp.Manufacturer && vp.Manufacturer !== existing.vendor) updates.vendor = vp.Manufacturer;
         if (mpn && existing.mpn !== mpn) updates.mpn = mpn;
 

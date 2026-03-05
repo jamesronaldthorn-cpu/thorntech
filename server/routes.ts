@@ -235,11 +235,41 @@ export async function registerRoutes(
     }
   });
 
+  async function tryCreateAccountOnCheckout(email: string, password: string, name: string, phone: string | null, address: string, city: string, postcode: string): Promise<{ userId: number | null; accountCreated: boolean }> {
+    try {
+      const existing = await storage.getUserByEmail(email.toLowerCase());
+      if (existing) return { userId: existing.id, accountCreated: false };
+      const passwordHash = await bcrypt.hash(password, 12);
+      const user = await storage.createUser({
+        email: email.toLowerCase(),
+        passwordHash,
+        name,
+        phone: phone || null,
+        address,
+        city,
+        postcode,
+      });
+      console.log(`[Checkout] Account created for ${email} (user ${user.id})`);
+      return { userId: user.id, accountCreated: true };
+    } catch (e: any) {
+      console.error(`[Checkout] Account creation failed for ${email}:`, e.message);
+      return { userId: null, accountCreated: false };
+    }
+  }
+
   app.post("/api/checkout/stripe", async (req, res) => {
     try {
-      const { items, email, name, address, city, postcode, phone, userId } = req.body;
+      const { items, email, name, address, city, postcode, phone, userId, createAccount, password } = req.body;
       if (!items || !items.length || !email || !name || !address || !city || !postcode) {
         return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      let finalUserId = userId || null;
+      let accountCreated = false;
+      if (createAccount && password && !userId) {
+        const result = await tryCreateAccountOnCheckout(email, password, name, phone, address, city, postcode);
+        finalUserId = result.userId;
+        accountCreated = result.accountCreated;
       }
 
       const allProducts = await storage.getProducts();
@@ -272,7 +302,7 @@ export async function registerRoutes(
       });
 
       const order = await storage.createOrder({
-        userId: userId || null,
+        userId: finalUserId,
         email,
         name,
         address,
@@ -320,7 +350,7 @@ export async function registerRoutes(
 
       await storage.updateOrderStatus(order.id, "awaiting_payment", session.id);
 
-      res.json({ url: session.url, sessionId: session.id });
+      res.json({ url: session.url, sessionId: session.id, accountCreated });
     } catch (e: any) {
       console.error("Stripe checkout error:", e);
       res.status(500).json({ error: e.message });
@@ -352,9 +382,17 @@ export async function registerRoutes(
 
   app.post("/api/checkout/paypal/create", async (req, res) => {
     try {
-      const { items, email, name, address, city, postcode, phone, userId } = req.body;
+      const { items, email, name, address, city, postcode, phone, userId, createAccount, password } = req.body;
       if (!items || !items.length || !email || !name || !address || !city || !postcode) {
         return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      let finalUserId = userId || null;
+      let accountCreated = false;
+      if (createAccount && password && !userId) {
+        const result = await tryCreateAccountOnCheckout(email, password, name, phone, address, city, postcode);
+        finalUserId = result.userId;
+        accountCreated = result.accountCreated;
       }
 
       const allProducts = await storage.getProducts();
@@ -374,7 +412,7 @@ export async function registerRoutes(
       const grandTotal = total + shipping;
 
       const order = await storage.createOrder({
-        userId: userId || null,
+        userId: finalUserId,
         email,
         name,
         address,
@@ -428,7 +466,7 @@ export async function registerRoutes(
 
       if (approvalLink?.href) {
         await storage.updateOrderStatus(order.id, "awaiting_payment", paypalBody.id);
-        res.json({ approvalUrl: approvalLink.href, orderId: order.id });
+        res.json({ approvalUrl: approvalLink.href, orderId: order.id, accountCreated });
       } else {
         res.status(500).json({ error: "Could not get PayPal approval URL" });
       }
