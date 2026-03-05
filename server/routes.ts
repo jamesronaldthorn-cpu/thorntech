@@ -1169,6 +1169,22 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/admin/clear-bad-images", adminAuth, async (_req, res) => {
+    try {
+      const allProducts = await storage.getProducts();
+      let cleared = 0;
+      for (const p of allProducts) {
+        if (p.image && p.image.includes("media-amazon.com")) {
+          await storage.updateProduct(p.id, { image: null, images: null, enrichedAt: null });
+          cleared++;
+        }
+      }
+      res.json({ cleared, message: `Cleared ${cleared} Amazon images. Run "Pull Missing Images" to re-fetch them.` });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.get("/api/admin/pull-images/status", adminAuth, async (_req, res) => {
     const { getPullImageProgress } = await import("./productEnricher");
     res.json(getPullImageProgress());

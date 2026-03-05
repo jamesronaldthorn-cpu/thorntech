@@ -1251,6 +1251,19 @@ export default function AdminPage() {
                   >
                     {pullingImages ? <><Loader2 className="w-4 h-4 animate-spin mr-1" /> Pulling Images...</> : <><Download className="w-4 h-4 mr-1" /> Pull Missing Images (Amazon)</>}
                   </Button>
+                  <Button
+                    onClick={async () => {
+                      if (!confirm("This will clear ALL Amazon images so they can be re-pulled. Continue?")) return;
+                      const r = await adminFetch("/api/admin/clear-bad-images", { method: "POST" });
+                      const d = await r.json();
+                      setPullImageResult({ done: true, updated: 0, skipped: 0, errors: 0, total: d.cleared, message: d.message });
+                    }}
+                    variant="outline"
+                    className="ml-2 border-red-500/30 text-red-400 hover:bg-red-500/10"
+                    data-testid="button-clear-bad-images"
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" /> Clear Bad Images
+                  </Button>
                   <p className="text-xs text-gray-500 mt-1">Fetches product images from Amazon UK for products without images. Runs in background.</p>
                   {pullImageResult && (
                     <div className={`mt-3 p-3 rounded-lg text-sm ${pullImageResult.done ? "bg-green-500/10 border border-green-500/20" : "bg-blue-500/10 border border-blue-500/20"}`}>
