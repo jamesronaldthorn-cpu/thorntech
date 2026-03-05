@@ -447,6 +447,24 @@ async function enrichFromCCL(searchTerm: string): Promise<EnrichmentData | null>
   return hasData ? data : null;
 }
 
+async function fetchAmazonImages(searchTerm: string): Promise<string[]> {
+  const url = `https://www.amazon.co.uk/s?k=${encodeURIComponent(searchTerm)}`;
+  const html = await fetchPage(url);
+  if (!html) return [];
+
+  const imgs: string[] = [];
+  const imgRegex = /src="(https:\/\/m\.media-amazon\.com\/images\/I\/[^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/gi;
+  let match;
+  while ((match = imgRegex.exec(html)) !== null && imgs.length < 6) {
+    let src = match[1];
+    if (src.includes(".js")) continue;
+    if (src.includes("._AC_US40") || src.includes("._AC_US20") || src.includes("pixel") || src.includes("sprite")) continue;
+    src = src.replace(/\._[A-Z0-9_,]+_\./, "._AC_SL500_.");
+    if (!imgs.includes(src)) imgs.push(src);
+  }
+  return imgs;
+}
+
 async function enrichProduct(name: string, vendor?: string, mpn?: string): Promise<EnrichmentData | null> {
   const searchTerms: string[] = [];
 
@@ -459,23 +477,55 @@ async function enrichProduct(name: string, vendor?: string, mpn?: string): Promi
     searchTerms.push(shortName.substring(0, 80));
   }
 
-  for (const term of searchTerms) {
-    console.log(`[Enricher]   Trying Scan.co.uk: "${term}"`);
-    const scanData = await enrichFromScan(term);
-    if (scanData && ((scanData.specs && Object.keys(scanData.specs).length > 0) || (scanData.features && scanData.features.length > 0))) {
-      return scanData;
-    }
-    await delay(1500);
+  const data: EnrichmentData = {};
 
-    console.log(`[Enricher]   Trying CCL: "${term}"`);
-    const cclData = await enrichFromCCL(term);
-    if (cclData && ((cclData.specs && Object.keys(cclData.specs).length > 0) || (cclData.features && cclData.features.length > 0))) {
-      return cclData;
+  for (const term of searchTerms) {
+    console.log(`[Enricher]   Trying Amazon images: "${term}"`);
+    const amazonImages = await fetchAmazonImages(term);
+    if (amazonImages.length > 0) {
+      data.images = amazonImages;
+      data.image = amazonImages[0];
+      console.log(`[Enricher]   Found ${amazonImages.length} Amazon images`);
+      break;
     }
     await delay(1500);
   }
 
-  return null;
+  for (const term of searchTerms) {
+    console.log(`[Enricher]   Trying Scan.co.uk specs: "${term}"`);
+    const scanData = await enrichFromScan(term);
+    if (scanData) {
+      if (scanData.specs && Object.keys(scanData.specs).length > 0) data.specs = scanData.specs;
+      if (scanData.features && scanData.features.length > 0) data.features = scanData.features;
+      if (scanData.description) data.description = scanData.description;
+      if (!data.images && scanData.images && scanData.images.length > 0) {
+        data.images = scanData.images;
+        data.image = scanData.images[0];
+      }
+      if (data.specs && Object.keys(data.specs).length > 0) break;
+    }
+    await delay(1500);
+
+    console.log(`[Enricher]   Trying CCL specs: "${term}"`);
+    const cclData = await enrichFromCCL(term);
+    if (cclData) {
+      if (cclData.specs && Object.keys(cclData.specs).length > 0) data.specs = { ...data.specs, ...cclData.specs };
+      if (cclData.features && cclData.features.length > 0) data.features = [...(data.features || []), ...cclData.features];
+      if (!data.images && cclData.images && cclData.images.length > 0) {
+        data.images = cclData.images;
+        data.image = cclData.images[0];
+      }
+      if (data.specs && Object.keys(data.specs).length > 0) break;
+    }
+    await delay(1500);
+  }
+
+  const hasData = (data.specs && Object.keys(data.specs).length > 0) ||
+    (data.features && data.features.length > 0) ||
+    (data.images && data.images.length > 0) ||
+    data.image;
+
+  return hasData ? data : null;
 }
 
 const enrichedIds = new Set<number>();
@@ -550,8 +600,9 @@ export async function enrichProducts(batchSize = 500): Promise<EnrichResult> {
       }
       if (webData?.images && webData.images.length > 0) {
         updates.images = JSON.stringify(webData.images);
-        if (!product.image) {
+        if (!product.image || product.image.includes("vip-computers.com")) {
           updates.image = webData.images[0];
+          console.log(`[Enricher]   Set image: ${webData.images[0]}`);
         }
       }
       if (webData?.description && (!product.description || product.description.length < 50)) {
@@ -584,4 +635,52 @@ export async function enrichProducts(batchSize = 500): Promise<EnrichResult> {
 
   console.log(`[Enricher] Done: ${result.enriched} web enriched, ${result.parsedFromName} parsed from name, ${result.noDataFound} no data, ${result.errors} errors`);
   return result;
+}
+
+export async function pullMissingImages(): Promise<{ updated: number; skipped: number; errors: number }> {
+  const allProducts = await storage.getProducts();
+  const needImages = allProducts.filter(p => !p.image || p.image.includes("vip-computers.com"));
+  console.log(`[PullImages] ${needImages.length} products need images out of ${allProducts.length} total`);
+
+  let updated = 0;
+  let skipped = 0;
+  let errors = 0;
+
+  for (const product of needImages) {
+    try {
+      const searchTerms: string[] = [];
+      if (product.mpn && product.mpn.length > 3) searchTerms.push(product.mpn);
+      const shortName = product.name.replace(/\([^)]*\)/g, "").trim();
+      if (product.vendor && !shortName.toLowerCase().startsWith(product.vendor.toLowerCase())) {
+        searchTerms.push(`${product.vendor} ${shortName}`.substring(0, 80));
+      } else {
+        searchTerms.push(shortName.substring(0, 80));
+      }
+
+      let foundImage: string | null = null;
+      for (const term of searchTerms) {
+        const imgs = await fetchAmazonImages(term);
+        if (imgs.length > 0) {
+          foundImage = imgs[0];
+          const updates: Record<string, any> = { image: imgs[0], images: JSON.stringify(imgs) };
+          await storage.updateProduct(product.id, updates);
+          updated++;
+          console.log(`[PullImages] ${updated}/${needImages.length}: ${product.name} → ${imgs[0]}`);
+          break;
+        }
+        await delay(2000);
+      }
+
+      if (!foundImage) {
+        skipped++;
+      }
+
+      await delay(1000);
+    } catch (e: any) {
+      errors++;
+      console.error(`[PullImages] Error: ${product.name}: ${e.message}`);
+    }
+  }
+
+  return { updated, skipped, errors };
 }

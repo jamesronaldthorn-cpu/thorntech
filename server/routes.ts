@@ -1113,6 +1113,18 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/admin/pull-images", adminAuth, async (_req, res) => {
+    res.json({ status: "started", message: "Pulling images from Amazon for products missing images..." });
+
+    try {
+      const { pullMissingImages } = await import("./productEnricher");
+      const result = await pullMissingImages();
+      console.log(`[PullImages] Done: ${result.updated} images pulled, ${result.skipped} skipped, ${result.errors} errors`);
+    } catch (e: any) {
+      console.error("[PullImages] Error:", e.message);
+    }
+  });
+
   app.post("/api/admin/fix-prices", adminAuth, async (_req, res) => {
     try {
       const allProducts = await storage.getProducts();

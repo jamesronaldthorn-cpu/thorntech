@@ -452,6 +452,7 @@ export default function AdminPage() {
   const [enriching, setEnriching] = useState(false);
   const [enrichResult, setEnrichResult] = useState<any>(null);
   const [enrichBatch, setEnrichBatch] = useState("500");
+  const [pullingImages, setPullingImages] = useState(false);
 
   const loadData = async () => {
     try {
@@ -1218,6 +1219,21 @@ export default function AdminPage() {
                   >
                     Reset Progress
                   </Button>
+                </div>
+                <div className="mt-3 pt-3 border-t border-gray-700">
+                  <Button
+                    onClick={async () => {
+                      setPullingImages(true);
+                      await adminFetch("/api/admin/pull-images", { method: "POST" });
+                      setPullingImages(false);
+                    }}
+                    disabled={pullingImages}
+                    className="bg-blue-600 hover:bg-blue-700"
+                    data-testid="button-pull-images"
+                  >
+                    {pullingImages ? <><Loader2 className="w-4 h-4 animate-spin mr-1" /> Pulling Images...</> : <><Download className="w-4 h-4 mr-1" /> Pull Missing Images (Amazon)</>}
+                  </Button>
+                  <p className="text-xs text-gray-500 mt-1">Fetches product images from Amazon UK for products without images. Runs in background.</p>
                 </div>
                 {enrichResult && (
                   <div className={`mt-3 p-3 rounded-lg text-sm ${enrichResult.error ? "bg-red-500/10 border border-red-500/20" : enrichResult.message ? "bg-purple-500/10 border border-purple-500/20" : "bg-green-500/10 border border-green-500/20"}`}>
