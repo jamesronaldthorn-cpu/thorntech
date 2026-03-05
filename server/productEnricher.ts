@@ -447,28 +447,55 @@ async function enrichFromCCL(searchTerm: string): Promise<EnrichmentData | null>
   return hasData ? data : null;
 }
 
-async function fetchAmazonImages(searchTerm: string): Promise<string[]> {
+async function fetchAmazonImages(searchTerm: string, _category?: string): Promise<string[]> {
   const url = `https://www.amazon.co.uk/s?k=${encodeURIComponent(searchTerm)}`;
   const html = await fetchPage(url);
-  if (!html) return [];
+  if (!html || html.length < 10000) return [];
 
   const imgs: string[] = [];
   const imgRegex = /src="(https:\/\/m\.media-amazon\.com\/images\/I\/[^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/gi;
   let match;
-  while ((match = imgRegex.exec(html)) !== null && imgs.length < 6) {
+  while ((match = imgRegex.exec(html)) !== null && imgs.length < 4) {
     let src = match[1];
     if (src.includes(".js")) continue;
-    if (src.includes("._AC_US40") || src.includes("._AC_US20") || src.includes("pixel") || src.includes("sprite")) continue;
+    if (src.includes("._AC_US40") || src.includes("._AC_US20") || src.includes("pixel") || src.includes("sprite") || src.includes("icon") || src.includes("badge")) continue;
+    if (src.includes("._SS40") || src.includes("._SS20")) continue;
     src = src.replace(/\._[A-Z0-9_,]+_\./, "._AC_SL500_.");
     if (!imgs.includes(src)) imgs.push(src);
   }
   return imgs;
 }
 
-async function enrichProduct(name: string, vendor?: string, mpn?: string): Promise<EnrichmentData | null> {
-  const searchTerms: string[] = [];
+async function fetchEANImage(ean: string): Promise<string | null> {
+  if (!ean || ean.length < 8) return null;
+  try {
+    const url = `https://ean-online.org/img/${ean}.jpg`;
+    const res = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(5000) });
+    if (res.ok && res.headers.get("content-type")?.includes("image")) return url;
+  } catch {}
+  return null;
+}
 
-  if (mpn && mpn.length > 3) searchTerms.push(mpn);
+async function fetchProductImageByName(name: string, vendor?: string): Promise<string[]> {
+  const cleaned = name
+    .replace(/\([^)]*\)/g, "")
+    .replace(/\b(OEM|BULK|TRAY|RET|RETAIL|BOX|LTD STOCK|CLEARANCE|EX DISPLAY)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .substring(0, 60);
+
+  const searchQuery = vendor && !cleaned.toLowerCase().startsWith(vendor.toLowerCase())
+    ? `${vendor} ${cleaned} PC component`
+    : `${cleaned} PC component`;
+
+  const amazonImgs = await fetchAmazonImages(searchQuery);
+  if (amazonImgs.length > 0) return amazonImgs;
+
+  return [];
+}
+
+async function enrichProduct(name: string, vendor?: string, mpn?: string, categoryName?: string): Promise<EnrichmentData | null> {
+  const searchTerms: string[] = [];
 
   const shortName = name.replace(/\([^)]*\)/g, "").trim();
   if (vendor && !shortName.toLowerCase().startsWith(vendor.toLowerCase())) {
@@ -476,6 +503,8 @@ async function enrichProduct(name: string, vendor?: string, mpn?: string): Promi
   } else {
     searchTerms.push(shortName.substring(0, 80));
   }
+
+  if (mpn && mpn.length > 3) searchTerms.push(mpn);
 
   const data: EnrichmentData = {};
 
@@ -488,7 +517,7 @@ async function enrichProduct(name: string, vendor?: string, mpn?: string): Promi
       console.log(`[Enricher]   Found ${amazonImages.length} Amazon images`);
       break;
     }
-    await delay(1500);
+    await delay(3000);
   }
 
   for (const term of searchTerms) {
@@ -551,6 +580,7 @@ export interface EnrichResult {
 
 export async function enrichProducts(batchSize = 500): Promise<EnrichResult> {
   const allProducts = await storage.getProducts();
+  const categories = await storage.getCategories();
   const unenriched = allProducts.filter(p => !p.enrichedAt && !enrichedIds.has(p.id));
 
   console.log(`[Enricher] ${allProducts.length} total, ${unenriched.length} unenriched, ${enrichedIds.size} done this session`);
@@ -584,7 +614,8 @@ export async function enrichProducts(batchSize = 500): Promise<EnrichResult> {
 
       let webData: EnrichmentData | null = null;
       try {
-        webData = await enrichProduct(product.name, product.vendor || undefined, product.mpn || undefined);
+        const category = product.categoryId ? categories.find(c => c.id === product.categoryId) : null;
+        webData = await enrichProduct(product.name, product.vendor || undefined, product.mpn || undefined, category?.name || undefined);
       } catch (e: any) {
         console.log(`[Enricher]   Web fetch failed: ${e.message}`);
       }
@@ -651,6 +682,7 @@ export function resetPullImageProgress() {
 
 export async function pullMissingImages(): Promise<{ updated: number; skipped: number; errors: number }> {
   const allProducts = await storage.getProducts();
+  const categories = await storage.getCategories();
   const needImages = allProducts.filter(p => {
     if (enrichedIds.has(p.id)) return false;
     if (!p.image || p.image.includes("vip-computers.com")) return true;
@@ -669,14 +701,15 @@ export async function pullMissingImages(): Promise<{ updated: number; skipped: n
     pullImageProgress.currentProduct = product.name;
 
     try {
+      const category = product.categoryId ? categories.find(c => c.id === product.categoryId) : null;
       const searchTerms: string[] = [];
-      if (product.mpn && product.mpn.length > 3) searchTerms.push(product.mpn);
       const shortName = product.name.replace(/\([^)]*\)/g, "").trim();
       if (product.vendor && !shortName.toLowerCase().startsWith(product.vendor.toLowerCase())) {
         searchTerms.push(`${product.vendor} ${shortName}`.substring(0, 80));
       } else {
         searchTerms.push(shortName.substring(0, 80));
       }
+      if (product.mpn && product.mpn.length > 3) searchTerms.push(product.mpn);
 
       let foundImage: string | null = null;
       for (const term of searchTerms) {
@@ -690,7 +723,7 @@ export async function pullMissingImages(): Promise<{ updated: number; skipped: n
           console.log(`[PullImages] ${pullImageProgress.current}/${needImages.length}: ${product.name} → ${imgs[0]}`);
           break;
         }
-        await delay(2000);
+        await delay(3000);
       }
 
       if (!foundImage) {
@@ -699,7 +732,7 @@ export async function pullMissingImages(): Promise<{ updated: number; skipped: n
         console.log(`[PullImages] No image found for: ${product.name} (keeping existing)`);
       }
 
-      await delay(1000);
+      await delay(2000);
     } catch (e: any) {
       errors++;
       pullImageProgress.errors = errors;
