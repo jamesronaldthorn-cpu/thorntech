@@ -101,10 +101,16 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.product-image {
+img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+img[src*="scan.co.uk"],
+img[src*="vip-computers"],
+img[src*=".jpg"],
+img[src*=".png"],
+img[src*=".webp"] {
   image-rendering: auto;
-  -ms-interpolation-mode: bicubic;
-  backface-visibility: hidden;
-  transform: translateZ(0);
-  will-change: transform;
+  -webkit-font-smoothing: antialiased;
 }
