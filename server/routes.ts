@@ -1152,6 +1152,12 @@ export async function registerRoutes(
   });
 
   app.post("/api/admin/pull-images", adminAuth, async (_req, res) => {
+    const { getPullImageProgress } = await import("./productEnricher");
+    const progress = getPullImageProgress();
+    if (progress.running) {
+      return res.json({ status: "already_running", message: "Image pulling is already in progress" });
+    }
+
     res.json({ status: "started", message: "Pulling images from Amazon for products missing images..." });
 
     try {
@@ -1161,6 +1167,11 @@ export async function registerRoutes(
     } catch (e: any) {
       console.error("[PullImages] Error:", e.message);
     }
+  });
+
+  app.get("/api/admin/pull-images/status", adminAuth, async (_req, res) => {
+    const { getPullImageProgress } = await import("./productEnricher");
+    res.json(getPullImageProgress());
   });
 
   app.post("/api/admin/fix-prices", adminAuth, async (_req, res) => {

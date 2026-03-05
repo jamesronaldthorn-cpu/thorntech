@@ -453,6 +453,7 @@ export default function AdminPage() {
   const [enrichResult, setEnrichResult] = useState<any>(null);
   const [enrichBatch, setEnrichBatch] = useState("500");
   const [pullingImages, setPullingImages] = useState(false);
+  const [pullImageResult, setPullImageResult] = useState<any>(null);
 
   const loadData = async () => {
     try {
@@ -1224,8 +1225,25 @@ export default function AdminPage() {
                   <Button
                     onClick={async () => {
                       setPullingImages(true);
+                      setPullImageResult({ message: "Starting image pull..." });
                       await adminFetch("/api/admin/pull-images", { method: "POST" });
-                      setPullingImages(false);
+                      const poll = setInterval(async () => {
+                        try {
+                          const sr = await adminFetch("/api/admin/pull-images/status");
+                          const st = await sr.json();
+                          if (st.done) {
+                            clearInterval(poll);
+                            setPullImageResult({ done: true, updated: st.updated, skipped: st.skipped, errors: st.errors, total: st.total });
+                            setPullingImages(false);
+                          } else if (st.running) {
+                            setPullImageResult({ message: "Pulling images...", progress: st });
+                          } else if (!st.running && st.total === 0) {
+                            clearInterval(poll);
+                            setPullImageResult({ done: true, updated: st.updated, skipped: st.skipped, errors: st.errors, total: st.total });
+                            setPullingImages(false);
+                          }
+                        } catch { }
+                      }, 2000);
                     }}
                     disabled={pullingImages}
                     className="bg-blue-600 hover:bg-blue-700"
@@ -1234,6 +1252,42 @@ export default function AdminPage() {
                     {pullingImages ? <><Loader2 className="w-4 h-4 animate-spin mr-1" /> Pulling Images...</> : <><Download className="w-4 h-4 mr-1" /> Pull Missing Images (Amazon)</>}
                   </Button>
                   <p className="text-xs text-gray-500 mt-1">Fetches product images from Amazon UK for products without images. Runs in background.</p>
+                  {pullImageResult && (
+                    <div className={`mt-3 p-3 rounded-lg text-sm ${pullImageResult.done ? "bg-green-500/10 border border-green-500/20" : "bg-blue-500/10 border border-blue-500/20"}`}>
+                      {pullImageResult.done ? (
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4 text-green-400" />
+                            <span className="text-green-400 font-medium">Image pull complete — {pullImageResult.total} products processed</span>
+                          </div>
+                          <p className="text-gray-400 text-xs ml-6">{pullImageResult.updated} images found and saved</p>
+                          <p className="text-gray-400 text-xs ml-6">{pullImageResult.skipped} no image found (kept existing)</p>
+                          {pullImageResult.errors > 0 && <p className="text-red-400 text-xs ml-6">{pullImageResult.errors} errors</p>}
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                            <span className="text-blue-400">{pullImageResult.message}</span>
+                          </div>
+                          {pullImageResult.progress && pullImageResult.progress.total > 0 && (
+                            <div className="mt-2 space-y-1">
+                              <div className="w-full bg-gray-700 rounded-full h-3">
+                                <div className="bg-blue-500 h-3 rounded-full transition-all duration-500" style={{ width: `${Math.round((pullImageResult.progress.current / pullImageResult.progress.total) * 100)}%` }} />
+                              </div>
+                              <div className="flex justify-between text-xs text-gray-400">
+                                <span>{pullImageResult.progress.current} / {pullImageResult.progress.total} products</span>
+                                <span>{pullImageResult.progress.updated} images found</span>
+                              </div>
+                              {pullImageResult.progress.currentProduct && (
+                                <p className="text-xs text-gray-500 truncate">Processing: {pullImageResult.progress.currentProduct}</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 {enrichResult && (
                   <div className={`mt-3 p-3 rounded-lg text-sm ${enrichResult.error ? "bg-red-500/10 border border-red-500/20" : enrichResult.message ? "bg-purple-500/10 border border-purple-500/20" : "bg-green-500/10 border border-green-500/20"}`}>

@@ -639,6 +639,16 @@ export async function enrichProducts(batchSize = 500): Promise<EnrichResult> {
   return result;
 }
 
+let pullImageProgress = { running: false, current: 0, total: 0, updated: 0, skipped: 0, errors: 0, currentProduct: "", done: false };
+
+export function getPullImageProgress() {
+  return { ...pullImageProgress };
+}
+
+export function resetPullImageProgress() {
+  pullImageProgress = { running: false, current: 0, total: 0, updated: 0, skipped: 0, errors: 0, currentProduct: "", done: false };
+}
+
 export async function pullMissingImages(): Promise<{ updated: number; skipped: number; errors: number }> {
   const allProducts = await storage.getProducts();
   const needImages = allProducts.filter(p => {
@@ -648,11 +658,16 @@ export async function pullMissingImages(): Promise<{ updated: number; skipped: n
   });
   console.log(`[PullImages] ${needImages.length} products need images out of ${allProducts.length} total (${enrichedIds.size} already handled by enricher)`);
 
+  pullImageProgress = { running: true, current: 0, total: needImages.length, updated: 0, skipped: 0, errors: 0, currentProduct: "", done: false };
+
   let updated = 0;
   let skipped = 0;
   let errors = 0;
 
   for (const product of needImages) {
+    pullImageProgress.current++;
+    pullImageProgress.currentProduct = product.name;
+
     try {
       const searchTerms: string[] = [];
       if (product.mpn && product.mpn.length > 3) searchTerms.push(product.mpn);
@@ -671,7 +686,8 @@ export async function pullMissingImages(): Promise<{ updated: number; skipped: n
           const updates: Record<string, any> = { image: imgs[0], images: JSON.stringify(imgs) };
           await storage.updateProduct(product.id, updates);
           updated++;
-          console.log(`[PullImages] ${updated}/${needImages.length}: ${product.name} → ${imgs[0]}`);
+          pullImageProgress.updated = updated;
+          console.log(`[PullImages] ${pullImageProgress.current}/${needImages.length}: ${product.name} → ${imgs[0]}`);
           break;
         }
         await delay(2000);
@@ -679,15 +695,18 @@ export async function pullMissingImages(): Promise<{ updated: number; skipped: n
 
       if (!foundImage) {
         skipped++;
+        pullImageProgress.skipped = skipped;
         console.log(`[PullImages] No image found for: ${product.name} (keeping existing)`);
       }
 
       await delay(1000);
     } catch (e: any) {
       errors++;
+      pullImageProgress.errors = errors;
       console.error(`[PullImages] Error: ${product.name}: ${e.message}`);
     }
   }
 
+  pullImageProgress = { running: false, current: needImages.length, total: needImages.length, updated, skipped, errors, currentProduct: "", done: true };
   return { updated, skipped, errors };
 }
