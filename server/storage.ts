@@ -1,6 +1,6 @@
 import { eq, sql, gte, desc, count } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { users, categories, products, orders, customFeeds, feedSources, pageViews, blogPosts, type User, type InsertUser, type Category, type InsertCategory, type Product, type InsertProduct, type Order, type InsertOrder, type CustomFeed, type InsertCustomFeed, type FeedSource, type InsertFeedSource, type BlogPost, type InsertBlogPost } from "@shared/schema";
+import { users, categories, products, orders, customFeeds, feedSources, pageViews, basketEvents, blogPosts, type User, type InsertUser, type Category, type InsertCategory, type Product, type InsertProduct, type Order, type InsertOrder, type CustomFeed, type InsertCustomFeed, type FeedSource, type InsertFeedSource, type BlogPost, type InsertBlogPost } from "@shared/schema";
 
 export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
@@ -45,6 +45,9 @@ export interface IStorage {
   deleteBlogPost(id: number): Promise<boolean>;
   recordPageView(path: string, ip?: string, userAgent?: string, referrer?: string): Promise<void>;
   getPageViewStats(): Promise<{ today: number; week: number; month: number; total: number; topPages: { path: string; views: number }[]; recentDays: { date: string; views: number }[] }>;
+  recordBasketEvent(productId: number, productName: string, productPrice: number, quantity: number, ip?: string, userAgent?: string): Promise<void>;
+  getBasketEvents(limit?: number): Promise<{ id: number; productId: number; productName: string; productPrice: number; quantity: number; ip: string | null; createdAt: Date | null }[]>;
+  getBasketStats(): Promise<{ today: number; week: number; total: number; topProducts: { productName: string; count: number }[]; recentEvents: { id: number; productName: string; productPrice: number; quantity: number; createdAt: Date | null; ip: string | null }[] }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -295,6 +298,42 @@ export class DatabaseStorage implements IStorage {
       total: totalResult.count,
       topPages: topPages.map(p => ({ path: p.path, views: Number(p.views) })),
       recentDays: recentDaysRaw.map(d => ({ date: d.date, views: Number(d.views) })),
+    };
+  }
+
+  async recordBasketEvent(productId: number, productName: string, productPrice: number, quantity: number, ip?: string, userAgent?: string): Promise<void> {
+    await this.db.insert(basketEvents).values({ productId, productName, productPrice, quantity, ip: ip || null, userAgent: userAgent || null });
+  }
+
+  async getBasketEvents(limit = 50): Promise<{ id: number; productId: number; productName: string; productPrice: number; quantity: number; ip: string | null; createdAt: Date | null }[]> {
+    return await this.db.select().from(basketEvents).orderBy(desc(basketEvents.createdAt)).limit(limit);
+  }
+
+  async getBasketStats(): Promise<{ today: number; week: number; total: number; topProducts: { productName: string; count: number }[]; recentEvents: { id: number; productName: string; productPrice: number; quantity: number; createdAt: Date | null; ip: string | null }[] }> {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekStart = new Date(todayStart.getTime() - 7 * 86400000);
+
+    const [todayResult] = await this.db.select({ count: count() }).from(basketEvents).where(gte(basketEvents.createdAt, todayStart));
+    const [weekResult] = await this.db.select({ count: count() }).from(basketEvents).where(gte(basketEvents.createdAt, weekStart));
+    const [totalResult] = await this.db.select({ count: count() }).from(basketEvents);
+
+    const topProducts = await this.db
+      .select({ productName: basketEvents.productName, count: count() })
+      .from(basketEvents)
+      .where(gte(basketEvents.createdAt, weekStart))
+      .groupBy(basketEvents.productName)
+      .orderBy(desc(count()))
+      .limit(10);
+
+    const recentEvents = await this.db.select().from(basketEvents).orderBy(desc(basketEvents.createdAt)).limit(20);
+
+    return {
+      today: todayResult.count,
+      week: weekResult.count,
+      total: totalResult.count,
+      topProducts: topProducts.map(p => ({ productName: p.productName, count: Number(p.count) })),
+      recentEvents: recentEvents.map(e => ({ id: e.id, productName: e.productName, productPrice: e.productPrice, quantity: e.quantity, createdAt: e.createdAt, ip: e.ip })),
     };
   }
 }

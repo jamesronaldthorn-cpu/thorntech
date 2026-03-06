@@ -993,6 +993,61 @@ export default function AdminPage() {
               </div>
             )}
 
+            {stats?.basket && (
+              <div className="bg-white/5 border border-white/10 rounded-lg p-5">
+                <h3 className="text-sm font-display text-gray-400 mb-4">BASKET ACTIVITY</h3>
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="text-center">
+                    <p className="text-2xl font-display font-bold text-primary" data-testid="text-basket-today">{stats.basket.today}</p>
+                    <p className="text-xs text-gray-500">Today</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-display font-bold text-white" data-testid="text-basket-week">{stats.basket.week}</p>
+                    <p className="text-xs text-gray-500">This Week</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-display font-bold text-white" data-testid="text-basket-total">{stats.basket.total}</p>
+                    <p className="text-xs text-gray-500">All Time</p>
+                  </div>
+                </div>
+                {stats.basket.topProducts.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-xs text-gray-500 mb-3 uppercase tracking-wider">Most Added Products (7 days)</h4>
+                    <div className="space-y-2">
+                      {stats.basket.topProducts.map((p: any, i: number) => (
+                        <div key={i} className="flex items-center justify-between text-sm">
+                          <span className="text-white truncate max-w-[300px]">{p.productName}</span>
+                          <span className="text-primary font-display font-bold ml-2">{p.count}x</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {stats.basket.recentEvents.length > 0 && (
+                  <div>
+                    <h4 className="text-xs text-gray-500 mb-3 uppercase tracking-wider">Recent Basket Adds</h4>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {stats.basket.recentEvents.map((e: any) => (
+                        <div key={e.id} className="flex items-center justify-between text-sm bg-white/5 rounded px-3 py-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white truncate">{e.productName}</p>
+                            <p className="text-xs text-gray-500">
+                              {e.createdAt ? new Date(e.createdAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}
+                              {e.ip ? ` · ${e.ip}` : ""}
+                            </p>
+                          </div>
+                          <div className="text-right ml-3">
+                            <p className="text-primary font-display font-bold">£{e.productPrice?.toFixed(2)}</p>
+                            <p className="text-xs text-gray-500">qty: {e.quantity}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="bg-white/5 border border-white/10 rounded-lg p-5">
               <h3 className="text-sm font-display text-gray-400 mb-4">XERO ACCOUNTING</h3>
               {xeroStatus.connected ? (

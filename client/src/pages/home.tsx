@@ -236,9 +236,9 @@ export default function Home() {
             Browse our extensive catalog of high-quality PC hardware and experience the difference of shopping with UK's dedicated PC component specialists.
           </p>
           <div className="flex flex-wrap justify-center gap-6">
-            <Link href="/category/all">
+            <a href="#products">
               <Button size="lg" variant="secondary" className="font-display tracking-widest px-10 h-14 rounded-none">SHOP ALL HARDWARE</Button>
-            </Link>
+            </a>
             <Link href="/contact">
               <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 font-display tracking-widest px-10 h-14 rounded-none">TALK TO AN EXPERT</Button>
             </Link>

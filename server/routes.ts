@@ -634,10 +634,26 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/basket-event", async (req, res) => {
+    try {
+      const { productId, productName, productPrice, quantity } = req.body;
+      if (!productId || !productName) return res.status(400).json({ error: "Missing fields" });
+      const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.socket.remoteAddress || "";
+      const userAgent = req.headers["user-agent"] || "";
+      await storage.recordBasketEvent(productId, productName, productPrice || 0, quantity || 1, ip, userAgent);
+      res.json({ ok: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.get("/api/admin/stats", adminAuth, async (_req, res) => {
     try {
-      const stats = await storage.getPageViewStats();
-      res.json(stats);
+      const [pageStats, basketStats] = await Promise.all([
+        storage.getPageViewStats(),
+        storage.getBasketStats(),
+      ]);
+      res.json({ ...pageStats, basket: basketStats });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }

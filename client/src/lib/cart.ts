@@ -22,6 +22,11 @@ export const useCart = create<CartStore>((set, get) => ({
   items: [],
   isOpen: false,
   addItem: (product) => {
+    fetch("/api/basket-event", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productId: product.id, productName: product.name, productPrice: product.price, quantity: 1 }),
+    }).catch(() => {});
     set((state) => {
       const existing = state.items.find((i) => i.product.id === product.id);
       if (existing) {

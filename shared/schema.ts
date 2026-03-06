@@ -115,6 +115,17 @@ export const pageViews = pgTable("page_views", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const basketEvents = pgTable("basket_events", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  productId: integer("product_id").notNull(),
+  productName: text("product_name").notNull(),
+  productPrice: doublePrecision("product_price").notNull(),
+  quantity: integer("quantity").notNull().default(1),
+  ip: text("ip"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertCategorySchema = createInsertSchema(categories).omit({ id: true });
 export const insertProductSchema = createInsertSchema(products).omit({ id: true });
