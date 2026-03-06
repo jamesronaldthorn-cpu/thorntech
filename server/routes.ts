@@ -32,6 +32,8 @@ function generateSitemapXml(products: Product[], categories: Category[], siteUrl
   const now = new Date().toISOString().split("T")[0];
   const urls = [
     `  <url><loc>${siteUrl}/</loc><changefreq>daily</changefreq><priority>1.0</priority><lastmod>${now}</lastmod></url>`,
+    `  <url><loc>${siteUrl}/returns</loc><changefreq>monthly</changefreq><priority>0.5</priority><lastmod>${now}</lastmod></url>`,
+    `  <url><loc>${siteUrl}/privacy</loc><changefreq>monthly</changefreq><priority>0.5</priority><lastmod>${now}</lastmod></url>`,
     ...categories.map(c => `  <url><loc>${siteUrl}/category/${c.slug}</loc><changefreq>daily</changefreq><priority>0.8</priority><lastmod>${now}</lastmod></url>`),
     ...products.map(p => `  <url><loc>${siteUrl}/product/${p.slug}</loc><changefreq>weekly</changefreq><priority>0.6</priority><lastmod>${now}</lastmod></url>`),
   ];
@@ -63,7 +65,14 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
-  app.use((req, _res, next) => {
+  app.use((req, res, next) => {
+    // Security headers
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.paypal.com https://www.google-analytics.com https://ssl.google-analytics.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https: http:; connect-src 'self' https://www.paypal.com https://api.stripe.com https://www.google-analytics.com; frame-src 'self' https://www.paypal.com https://js.stripe.com;");
+
     if (req.method === "GET" && !req.path.startsWith("/api/") && !req.path.startsWith("/assets/") && !req.path.includes(".")) {
       const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.socket.remoteAddress || "";
       const userAgent = req.headers["user-agent"] || "";

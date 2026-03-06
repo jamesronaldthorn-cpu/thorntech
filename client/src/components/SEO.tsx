@@ -93,3 +93,26 @@ export function BreadcrumbJsonLd({ items }: { items: { name: string; url: string
 
   return null;
 }
+
+export function ItemListJsonLd({ products }: { products: any[] }) {
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.id = "itemlist-jsonld";
+    script.textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "itemListElement": products.map((product, i) => ({
+        "@type": "ListItem",
+        "position": i + 1,
+        "url": `https://thorntechsolutionsltd.com/product/${product.slug}`
+      }))
+    });
+    const existing = document.getElementById("itemlist-jsonld");
+    if (existing) existing.remove();
+    document.head.appendChild(script);
+    return () => { script.remove(); };
+  }, [products]);
+
+  return null;
+}

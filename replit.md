@@ -34,6 +34,7 @@ A fully functional e-commerce store for Thorn Tech Solutions Ltd (Company Reg: 1
 - `/account` — User account dashboard (orders, details, password)
 - `/returns` — Returns & Warranty policy (UK Consumer Rights Act 2015 compliant)
 - `/contact` — Contact page with form (mailto:thorntech@hotmail.com) and phone (07868 552028)
+- `/privacy` — GDPR-compliant privacy policy
 - `/order-status` — Public order lookup by order number + email, with visual status tracker
 - `/blog` — Blog listing (published posts)
 - `/blog/:slug` — Individual blog post
@@ -65,12 +66,16 @@ A fully functional e-commerce store for Thorn Tech Solutions Ltd (Company Reg: 1
 - Sort by: price, name
 - Used on category and search pages
 
-## SEO
+## SEO & Compliance
 - Dynamic page titles, Open Graph + Twitter Card meta tags
-- JSON-LD structured data (Store, Product, Breadcrumb)
-- Dynamic sitemap.xml with all products, categories, blog posts
+- JSON-LD structured data (Store, Organization, WebSite with SearchAction, Product, Breadcrumb, ItemList)
+- Dynamic sitemap.xml with all products, categories, blog posts, privacy page, returns page
 - robots.txt blocking /admin and /api/
 - Google site verification tag
+- Google Analytics gtag.js placeholder (needs real GA4 measurement ID)
+- Security headers: X-Content-Type-Options, X-Frame-Options, Referrer-Policy, HSTS, CSP
+- GDPR cookie consent banner (CookieConsent.tsx)
+- Privacy Policy page (/privacy)
 
 ## Key Files
 - `shared/schema.ts` — Drizzle schema

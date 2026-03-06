@@ -17,6 +17,7 @@ import ContactPage from "@/pages/contact";
 import OrderStatusPage from "@/pages/order-status";
 import BlogPostPage, { BlogListPage } from "@/pages/blog";
 import SearchPage from "@/pages/search";
+import PrivacyPage from "@/pages/privacy";
 
 function Router() {
   return (
@@ -31,6 +32,7 @@ function Router() {
       <Route path="/login" component={LoginPage} />
       <Route path="/register" component={RegisterPage} />
       <Route path="/returns" component={ReturnsPage} />
+      <Route path="/privacy" component={PrivacyPage} />
       <Route path="/contact" component={ContactPage} />
       <Route path="/order-status" component={OrderStatusPage} />
       <Route path="/blog" component={BlogListPage} />
@@ -41,6 +43,8 @@ function Router() {
   );
 }
 
+import CookieConsent from "@/components/CookieConsent";
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -48,6 +52,7 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Router />
+          <CookieConsent />
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>
