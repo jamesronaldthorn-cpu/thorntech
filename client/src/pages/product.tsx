@@ -48,7 +48,7 @@ function ImageGallery({ product, imgError, setImgError }: { product: Product; im
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="aspect-square bg-white rounded-2xl border border-white/10 flex items-center justify-center relative overflow-hidden max-w-[550px] mx-auto">
+      <div className="aspect-square bg-white rounded-2xl border border-white/10 flex items-center justify-center relative overflow-hidden max-w-[420px] mx-auto">
         {product.badge && (
           <div className={`absolute top-4 left-4 z-10 text-sm font-bold px-3 py-1 rounded ${product.badge === "Sale" ? "bg-red-600" : "bg-primary"} text-white`}>{product.badge}</div>
         )}

@@ -50,7 +50,7 @@ export default function ProductCard({ product, category }: { product: Product; c
   return (
     <div className="group flex flex-col bg-card border border-white/5 rounded-lg overflow-hidden hover:border-primary/40 transition-colors" data-testid={`card-product-${product.id}`}>
       <Link href={`/product/${product.slug}`}>
-        <div className={`relative aspect-[4/3] flex items-center justify-center overflow-hidden cursor-pointer ${hasImage ? "bg-white" : ""}`}>
+        <div className={`relative aspect-square flex items-center justify-center overflow-hidden cursor-pointer ${hasImage ? "bg-white" : ""}`}>
           {product.badge && (
             <div className={`absolute top-2 left-2 z-10 text-[10px] font-bold px-1.5 py-0.5 rounded ${product.badge === "Sale" ? "bg-red-600" : "bg-primary"} text-white`}>{product.badge}</div>
           )}
@@ -61,7 +61,7 @@ export default function ProductCard({ product, category }: { product: Product; c
             <img
               src={product.image!}
               alt={product.name}
-              className="w-full h-full object-contain p-2"
+              className="w-full h-full object-contain p-3"
               style={{ imageRendering: "auto" }}
               onError={() => setImgError(true)}
               loading="lazy"
