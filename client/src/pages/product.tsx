@@ -48,14 +48,14 @@ function ImageGallery({ product, imgError, setImgError }: { product: Product; im
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="aspect-square bg-white rounded-2xl border border-white/10 flex items-center justify-center relative overflow-hidden w-full max-w-[350px] mx-auto">
+      <div className="w-[280px] h-[280px] bg-white rounded-2xl border border-white/10 flex items-center justify-center relative overflow-hidden mx-auto">
         {product.badge && (
           <div className={`absolute top-4 left-4 z-10 text-sm font-bold px-3 py-1 rounded ${product.badge === "Sale" ? "bg-red-600" : "bg-primary"} text-white`}>{product.badge}</div>
         )}
         <img
           src={validImages[activeIdx]}
           alt={product.name}
-          className="max-w-full max-h-full object-contain p-6 product-image"
+          className="max-w-[240px] max-h-[240px] object-contain product-image"
           onError={() => {
             if (activeIdx === 0 && allImages[0] === product.image) setImgError(true);
             setThumbErrors(prev => new Set(prev).add(allImages.indexOf(validImages[activeIdx])));
@@ -210,7 +210,7 @@ export default function ProductPage() {
       </div>
 
       <section className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-10">
           <ImageGallery product={product} imgError={imgError} setImgError={setImgError} />
 
           <div className="flex flex-col">
