@@ -48,11 +48,12 @@ A fully functional e-commerce store for Thorn Tech Solutions Ltd (Company Reg: 1
 - Pricing: internet-matched price if above cost+VAT+5%; otherwise cost×1.2×1.05 minimum
 
 ## Product Enrichment
-- `server/productEnricher.ts` — Scrapes UK retailer sites (Scan, Overclockers, eBuyer, etc.) for specs, features, images
+- `server/productEnricher.ts` — Scrapes UK retailer sites (Scan, CCL) for specs, features, images; also parses specs from VIP description text
+- Amazon image search with `_AC_SL1500_` suffix for high-res images, CAPTCHA detection, 3s delays
 - Stores enriched data in: specs (JSON), features (JSON array), images (JSON array of URLs)
-- Admin panel has "Enrich Products" button with batch size control
+- Admin panel has: "Enrich Products" (batch), "Re-enrich Low Specs" (resets products with <3 specs), "Upgrade Image Quality" (SL500→SL1500), "Reset All", "Clear Bad Images", "Pull Missing Images"
 - Tracks progress across batches (continues from where it left off)
-- Product page displays: image gallery, key features, full specs table
+- Product page displays: image gallery (max 550px), key features, full specs table, description fallback
 
 ## Price Matching
 - `server/priceMatcher.ts` — Searches DuckDuckGo, Bing, PriceSpy for internet prices
@@ -72,7 +73,7 @@ A fully functional e-commerce store for Thorn Tech Solutions Ltd (Company Reg: 1
 - Dynamic sitemap.xml with all products, categories, blog posts, privacy page, returns page
 - robots.txt blocking /admin and /api/
 - Google site verification tag
-- Google Analytics gtag.js placeholder (needs real GA4 measurement ID)
+- Google Analytics GA4 (G-ZW8Y8J8697)
 - Security headers: X-Content-Type-Options, X-Frame-Options, Referrer-Policy, HSTS, CSP
 - GDPR cookie consent banner (CookieConsent.tsx)
 - Privacy Policy page (/privacy)

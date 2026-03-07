@@ -349,6 +349,55 @@ function parseSpecsFromName(name: string, vendor?: string, description?: string)
   return { specs, features };
 }
 
+function parseSpecsFromDescription(description: string): Record<string, string> {
+  const specs: Record<string, string> = {};
+  if (!description) return specs;
+
+  const lines = description.split(/[\n\r]+/).map(l => l.trim()).filter(l => l.length > 0);
+
+  for (const line of lines) {
+    const colonMatch = line.match(/^([A-Za-z][^:]{1,50}):\s*(.{2,150})$/);
+    if (colonMatch) {
+      const key = colonMatch[1].trim();
+      const val = colonMatch[2].trim();
+      if (key.length >= 2 && key.length <= 50 && val.length >= 1 && val.length <= 150) {
+        if (!key.toLowerCase().includes("http") && !key.toLowerCase().includes("www") && !key.toLowerCase().includes("email")) {
+          specs[key] = val;
+        }
+      }
+    }
+
+    const dashMatch = line.match(/^[-•·]\s*([A-Za-z][^:–-]{1,50})\s*[-–:]\s*(.{2,150})$/);
+    if (dashMatch) {
+      const key = dashMatch[1].trim();
+      const val = dashMatch[2].trim();
+      if (key.length >= 2 && key.length <= 50 && val.length >= 1) {
+        specs[key] = val;
+      }
+    }
+  }
+
+  return specs;
+}
+
+function parseFeaturesFromDescription(description: string): string[] {
+  const features: string[] = [];
+  if (!description) return features;
+
+  const lines = description.split(/[\n\r]+/).map(l => l.trim()).filter(l => l.length > 0);
+
+  for (const line of lines) {
+    if ((line.startsWith("-") || line.startsWith("•") || line.startsWith("·") || line.startsWith("*")) && line.length > 10 && line.length < 200) {
+      const cleaned = line.replace(/^[-•·*]\s*/, "").trim();
+      if (cleaned.length > 8 && !cleaned.includes(":") && !cleaned.toLowerCase().includes("http")) {
+        features.push(cleaned);
+      }
+    }
+  }
+
+  return features.slice(0, 12);
+}
+
 async function enrichFromScan(searchTerm: string): Promise<EnrichmentData | null> {
   const query = encodeURIComponent(searchTerm.substring(0, 80));
   const searchHtml = await fetchPage(`https://www.scan.co.uk/search?q=${query}`);
@@ -460,7 +509,7 @@ async function fetchAmazonImages(searchTerm: string, _category?: string): Promis
     if (src.includes(".js")) continue;
     if (src.includes("._AC_US40") || src.includes("._AC_US20") || src.includes("pixel") || src.includes("sprite") || src.includes("icon") || src.includes("badge")) continue;
     if (src.includes("._SS40") || src.includes("._SS20")) continue;
-    src = src.replace(/\._[A-Z0-9_,]+_\./, "._AC_SL500_.");
+    src = src.replace(/\._[A-Z0-9_,]+_\./, "._AC_SL1500_.");
     if (!imgs.includes(src)) imgs.push(src);
   }
   return imgs;
@@ -611,6 +660,8 @@ export async function enrichProducts(batchSize = 500): Promise<EnrichResult> {
       const updates: Record<string, any> = { enrichedAt: new Date() };
 
       const { specs: nameSpecs, features: nameFeatures } = parseSpecsFromName(product.name, product.vendor || undefined, product.description || undefined);
+      const descSpecs = parseSpecsFromDescription(product.description || "");
+      const descFeatures = parseFeaturesFromDescription(product.description || "");
 
       let webData: EnrichmentData | null = null;
       try {
@@ -620,8 +671,8 @@ export async function enrichProducts(batchSize = 500): Promise<EnrichResult> {
         console.log(`[Enricher]   Web fetch failed: ${e.message}`);
       }
 
-      const finalSpecs = { ...nameSpecs, ...(webData?.specs || {}) };
-      const finalFeatures = [...new Set([...(webData?.features || []), ...nameFeatures])].slice(0, 12);
+      const finalSpecs = { ...nameSpecs, ...descSpecs, ...(webData?.specs || {}) };
+      const finalFeatures = [...new Set([...(webData?.features || []), ...descFeatures, ...nameFeatures])].slice(0, 15);
 
       if (Object.keys(finalSpecs).length > 0) {
         updates.specs = JSON.stringify(finalSpecs);

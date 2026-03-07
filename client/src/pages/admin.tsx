@@ -1273,7 +1273,30 @@ export default function AdminPage() {
                     className="border-white/20 text-white hover:bg-white/10"
                     data-testid="button-reset-enrich"
                   >
-                    Reset Progress
+                    Reset All
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      const result = await adminFetch("/api/admin/enrich-products/reset-empty", { method: "POST" });
+                      if (result) setEnrichResult(result);
+                    }}
+                    disabled={enriching}
+                    variant="outline"
+                    className="border-white/20 text-white hover:bg-white/10"
+                    data-testid="button-reset-empty-enrich"
+                  >
+                    Re-enrich Low Specs
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      const result = await adminFetch("/api/admin/upgrade-images", { method: "POST" });
+                      if (result) setEnrichResult(result);
+                    }}
+                    variant="outline"
+                    className="border-white/20 text-white hover:bg-white/10"
+                    data-testid="button-upgrade-images"
+                  >
+                    Upgrade Image Quality
                   </Button>
                 </div>
                 <div className="mt-3 pt-3 border-t border-gray-700">

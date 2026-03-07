@@ -1194,6 +1194,35 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/admin/upgrade-images", adminAuth, async (_req, res) => {
+    try {
+      const allProducts = await storage.getProducts();
+      let upgraded = 0;
+      for (const p of allProducts) {
+        const updates: Record<string, any> = {};
+        if (p.image && p.image.includes("_AC_SL500_")) {
+          updates.image = p.image.replace(/_AC_SL500_/g, "_AC_SL1500_");
+        }
+        if (p.images) {
+          const parsed = JSON.parse(p.images as string);
+          if (Array.isArray(parsed)) {
+            const upgraded_imgs = parsed.map((img: string) => img.replace(/_AC_SL500_/g, "_AC_SL1500_"));
+            if (JSON.stringify(upgraded_imgs) !== JSON.stringify(parsed)) {
+              updates.images = JSON.stringify(upgraded_imgs);
+            }
+          }
+        }
+        if (Object.keys(updates).length > 0) {
+          await storage.updateProduct(p.id, updates);
+          upgraded++;
+        }
+      }
+      res.json({ upgraded, message: `Upgraded ${upgraded} product images to high resolution.` });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.post("/api/admin/clear-bad-images", adminAuth, async (_req, res) => {
     try {
       const allProducts = await storage.getProducts();
@@ -1257,6 +1286,25 @@ export async function registerRoutes(
   app.get("/api/admin/enrich-products/status", adminAuth, async (_req, res) => {
     const progress = getEnrichProgress();
     res.json({ ...enrichStatus, enrichedSoFar: progress.enriched, current: progress.current, total: progress.total, currentProduct: progress.currentProduct });
+  });
+
+  app.post("/api/admin/enrich-products/reset-empty", adminAuth, async (_req, res) => {
+    try {
+      const allProducts = await storage.getProducts();
+      let cleared = 0;
+      for (const p of allProducts) {
+        if (!p.enrichedAt) continue;
+        const specs = p.specs ? (typeof p.specs === "string" ? JSON.parse(p.specs) : p.specs) : {};
+        const specCount = Object.keys(specs).length;
+        if (specCount < 3) {
+          await storage.updateProduct(p.id, { enrichedAt: null } as any);
+          cleared++;
+        }
+      }
+      res.json({ success: true, message: `Reset ${cleared} products with fewer than 3 specs for re-enrichment.` });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
   });
 
   app.post("/api/admin/enrich-products/reset", adminAuth, async (_req, res) => {

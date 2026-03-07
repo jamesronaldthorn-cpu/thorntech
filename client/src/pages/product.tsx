@@ -48,14 +48,14 @@ function ImageGallery({ product, imgError, setImgError }: { product: Product; im
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="aspect-square bg-white rounded-2xl border border-white/10 flex items-center justify-center relative overflow-hidden">
+      <div className="aspect-square bg-white rounded-2xl border border-white/10 flex items-center justify-center relative overflow-hidden max-w-[550px] mx-auto">
         {product.badge && (
           <div className={`absolute top-4 left-4 z-10 text-sm font-bold px-3 py-1 rounded ${product.badge === "Sale" ? "bg-red-600" : "bg-primary"} text-white`}>{product.badge}</div>
         )}
         <img
           src={validImages[activeIdx]}
           alt={product.name}
-          className="w-full h-full object-contain p-6 product-image"
+          className="max-w-full max-h-full object-contain p-6 product-image"
           onError={() => {
             if (activeIdx === 0 && allImages[0] === product.image) setImgError(true);
             setThumbErrors(prev => new Set(prev).add(allImages.indexOf(validImages[activeIdx])));
@@ -181,7 +181,7 @@ export default function ProductPage() {
     return true;
   });
 
-  const hasRichContent = features.length > 0 || uniqueSpecs.length > 0 || descParagraphs.length > 0;
+  const hasRichContent = features.length > 0 || uniqueSpecs.length > 0 || descParagraphs.length > 0 || product.description;
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
@@ -305,13 +305,15 @@ export default function ProductPage() {
         <section className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div>
-              {descParagraphs.length > 0 && (
+              {(descParagraphs.length > 0 || (product.description && descSpecs.length === 0 && descParagraphs.length === 0)) && (
                 <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6 mb-6">
                   <h2 className="text-xl font-display font-bold mb-4">DESCRIPTION</h2>
                   <div className="space-y-3 text-muted-foreground leading-relaxed text-sm">
-                    {descParagraphs.map((p, i) => (
+                    {descParagraphs.length > 0 ? descParagraphs.map((p, i) => (
                       <p key={i}>{p}</p>
-                    ))}
+                    )) : (
+                      <p>{product.description}</p>
+                    )}
                   </div>
                 </div>
               )}
