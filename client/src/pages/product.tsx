@@ -48,7 +48,7 @@ function ImageGallery({ product, imgError, setImgError }: { product: Product; im
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="aspect-square bg-white rounded-2xl border border-white/10 flex items-center justify-center relative overflow-hidden max-w-[420px] mx-auto">
+      <div className="aspect-square bg-white rounded-2xl border border-white/10 flex items-center justify-center relative overflow-hidden w-full max-w-[350px] mx-auto">
         {product.badge && (
           <div className={`absolute top-4 left-4 z-10 text-sm font-bold px-3 py-1 rounded ${product.badge === "Sale" ? "bg-red-600" : "bg-primary"} text-white`}>{product.badge}</div>
         )}
@@ -210,7 +210,7 @@ export default function ProductPage() {
       </div>
 
       <section className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-10">
           <ImageGallery product={product} imgError={imgError} setImgError={setImgError} />
 
           <div className="flex flex-col">
