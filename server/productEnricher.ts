@@ -132,7 +132,58 @@ function extractImages(html: string, baseUrl: string): string[] {
     }
   }
 
-  return [...new Set(imgs)].slice(0, 8);
+  const zoomRegex = /data-(?:zoom-image|large|full|original|hi-res)=["']([^"']+)["']/gi;
+  while ((match = zoomRegex.exec(html)) !== null) {
+    let src = match[1];
+    if (src.startsWith("//")) src = "https:" + src;
+    else if (src.startsWith("/")) {
+      try { src = new URL(src, baseUrl).href; } catch { continue; }
+    }
+    if (src.startsWith("http") && src.match(/\.(jpg|jpeg|png|webp)/i) && !src.includes("logo")) {
+      imgs.unshift(src);
+    }
+  }
+
+  const srcsetRegex = /srcset=["']([^"']+)["']/gi;
+  while ((match = srcsetRegex.exec(html)) !== null) {
+    const parts = match[1].split(",");
+    for (const part of parts) {
+      const [url] = part.trim().split(/\s+/);
+      if (!url) continue;
+      let src = url;
+      if (src.startsWith("//")) src = "https:" + src;
+      else if (src.startsWith("/")) {
+        try { src = new URL(src, baseUrl).href; } catch { continue; }
+      }
+      if (src.startsWith("http") && src.match(/\.(jpg|jpeg|png|webp)/i) && !src.includes("logo") && !src.includes("icon") && !src.includes("1x1")) {
+        if (part.includes("2x") || part.includes("1200") || part.includes("800") || part.includes("1000")) {
+          imgs.push(src);
+        }
+      }
+    }
+  }
+
+  const jsonLdRegex = /"image"\s*:\s*"(https?:\/\/[^"]+\.(jpg|jpeg|png|webp)[^"]*)"/gi;
+  while ((match = jsonLdRegex.exec(html)) !== null) {
+    if (!match[1].includes("logo") && !match[1].includes("icon")) {
+      imgs.push(match[1]);
+    }
+  }
+
+  const jsonLdArrayRegex = /"image"\s*:\s*\[([\s\S]*?)\]/gi;
+  while ((match = jsonLdArrayRegex.exec(html)) !== null) {
+    const urlMatches = match[1].match(/"(https?:\/\/[^"]+\.(jpg|jpeg|png|webp)[^"]*)"/gi);
+    if (urlMatches) {
+      for (const u of urlMatches) {
+        const cleaned = u.replace(/"/g, "");
+        if (!cleaned.includes("logo") && !cleaned.includes("icon")) {
+          imgs.push(cleaned);
+        }
+      }
+    }
+  }
+
+  return [...new Set(imgs)].slice(0, 10);
 }
 
 function parseSpecsFromName(name: string, vendor?: string, description?: string): { specs: Record<string, string>; features: string[] } {
@@ -548,6 +599,292 @@ async function enrichFromEbuyer(searchTerm: string): Promise<EnrichmentData | nu
   return hasData ? data : null;
 }
 
+async function enrichFromOverclockers(searchTerm: string): Promise<EnrichmentData | null> {
+  const query = encodeURIComponent(searchTerm.substring(0, 80));
+  const searchHtml = await fetchPage(`https://www.overclockers.co.uk/search?sSearch=${query}`);
+  if (!searchHtml) return null;
+
+  const productLinks: string[] = [];
+  const linkRegex = /href="(https:\/\/www\.overclockers\.co\.uk\/[^"#]*\.html)"/gi;
+  let match;
+  while ((match = linkRegex.exec(searchHtml)) !== null) {
+    const link = match[1];
+    if (!productLinks.includes(link) && productLinks.length < 2 && !link.includes("/search") && !link.includes("/category")) {
+      productLinks.push(link);
+    }
+  }
+
+  if (productLinks.length === 0) return null;
+
+  const data: EnrichmentData = {};
+
+  for (const link of productLinks) {
+    await delay(1000);
+    const page = await fetchPage(link);
+    if (!page) continue;
+
+    const specs = extractSpecs(page);
+    if (Object.keys(specs).length > 0) data.specs = { ...data.specs, ...specs };
+
+    const features = extractFeatures(page);
+    if (features.length > 0) data.features = [...(data.features || []), ...features];
+
+    const images = extractImages(page, "https://www.overclockers.co.uk");
+    const ogImages = extractOgImages(page);
+    const allImages = [...images, ...ogImages];
+    if (allImages.length > 0) data.images = [...(data.images || []), ...allImages];
+
+    const metaDesc = page.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
+    if (metaDesc && metaDesc[1].length > 30) {
+      data.description = metaDesc[1].trim();
+    }
+
+    if (data.specs && Object.keys(data.specs).length > 3) break;
+  }
+
+  if (data.features) data.features = [...new Set(data.features)].slice(0, 10);
+  if (data.images) data.images = [...new Set(data.images)].slice(0, 6);
+
+  const hasData = (data.specs && Object.keys(data.specs).length > 0) ||
+    (data.features && data.features.length > 0) ||
+    (data.images && data.images.length > 0) ||
+    data.description;
+
+  return hasData ? data : null;
+}
+
+async function enrichFromBox(searchTerm: string): Promise<EnrichmentData | null> {
+  const query = encodeURIComponent(searchTerm.substring(0, 80));
+  const searchHtml = await fetchPage(`https://www.box.co.uk/search?q=${query}`);
+  if (!searchHtml) return null;
+
+  const productLinks: string[] = [];
+  const linkRegex = /href="(\/[^"#]*-p-\d+\.html)"/gi;
+  let match;
+  while ((match = linkRegex.exec(searchHtml)) !== null) {
+    const link = match[1];
+    if (!productLinks.includes(link) && productLinks.length < 2) {
+      productLinks.push(link);
+    }
+  }
+
+  const altLinkRegex = /href="(\/product\/[^"#]+)"/gi;
+  while ((match = altLinkRegex.exec(searchHtml)) !== null) {
+    const link = match[1];
+    if (!productLinks.includes(link) && productLinks.length < 2) {
+      productLinks.push(link);
+    }
+  }
+
+  if (productLinks.length === 0) return null;
+
+  const data: EnrichmentData = {};
+
+  for (const link of productLinks) {
+    await delay(1000);
+    const page = await fetchPage(`https://www.box.co.uk${link}`);
+    if (!page) continue;
+
+    const specs = extractSpecs(page);
+    if (Object.keys(specs).length > 0) data.specs = { ...data.specs, ...specs };
+
+    const features = extractFeatures(page);
+    if (features.length > 0) data.features = [...(data.features || []), ...features];
+
+    const images = extractImages(page, "https://www.box.co.uk");
+    const ogImages = extractOgImages(page);
+    const allImages = [...images, ...ogImages];
+    if (allImages.length > 0) data.images = [...(data.images || []), ...allImages];
+
+    const metaDesc = page.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
+    if (metaDesc && metaDesc[1].length > 30) {
+      data.description = metaDesc[1].trim();
+    }
+
+    if (data.specs && Object.keys(data.specs).length > 3) break;
+  }
+
+  if (data.features) data.features = [...new Set(data.features)].slice(0, 10);
+  if (data.images) data.images = [...new Set(data.images)].slice(0, 6);
+
+  const hasData = (data.specs && Object.keys(data.specs).length > 0) ||
+    (data.features && data.features.length > 0) ||
+    (data.images && data.images.length > 0) ||
+    data.description;
+
+  return hasData ? data : null;
+}
+
+async function enrichFromNovatech(searchTerm: string): Promise<EnrichmentData | null> {
+  const query = encodeURIComponent(searchTerm.substring(0, 80));
+  const searchHtml = await fetchPage(`https://www.novatech.co.uk/search/?search=${query}`);
+  if (!searchHtml) return null;
+
+  const productLinks: string[] = [];
+  const linkRegex = /href="(\/products\/[^"#]+)"/gi;
+  let match;
+  while ((match = linkRegex.exec(searchHtml)) !== null) {
+    const link = match[1];
+    if (!productLinks.includes(link) && productLinks.length < 2) {
+      productLinks.push(link);
+    }
+  }
+
+  if (productLinks.length === 0) return null;
+
+  const data: EnrichmentData = {};
+
+  for (const link of productLinks) {
+    await delay(1000);
+    const page = await fetchPage(`https://www.novatech.co.uk${link}`);
+    if (!page) continue;
+
+    const specs = extractSpecs(page);
+    if (Object.keys(specs).length > 0) data.specs = { ...data.specs, ...specs };
+
+    const features = extractFeatures(page);
+    if (features.length > 0) data.features = [...(data.features || []), ...features];
+
+    const images = extractImages(page, "https://www.novatech.co.uk");
+    const ogImages = extractOgImages(page);
+    const allImages = [...images, ...ogImages];
+    if (allImages.length > 0) data.images = [...(data.images || []), ...allImages];
+
+    const metaDesc = page.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
+    if (metaDesc && metaDesc[1].length > 30) {
+      data.description = metaDesc[1].trim();
+    }
+
+    if (data.specs && Object.keys(data.specs).length > 3) break;
+  }
+
+  if (data.features) data.features = [...new Set(data.features)].slice(0, 10);
+  if (data.images) data.images = [...new Set(data.images)].slice(0, 6);
+
+  const hasData = (data.specs && Object.keys(data.specs).length > 0) ||
+    (data.features && data.features.length > 0) ||
+    (data.images && data.images.length > 0) ||
+    data.description;
+
+  return hasData ? data : null;
+}
+
+async function enrichFromLambdatek(searchTerm: string): Promise<EnrichmentData | null> {
+  const query = encodeURIComponent(searchTerm.substring(0, 80));
+  const searchHtml = await fetchPage(`https://www.lambda-tek.com/search/${query}`);
+  if (!searchHtml) return null;
+
+  const productLinks: string[] = [];
+  const linkRegex = /href="(\/[^"#]*[A-Z0-9-]+\.html)"/gi;
+  let match;
+  while ((match = linkRegex.exec(searchHtml)) !== null) {
+    const link = match[1];
+    if (!productLinks.includes(link) && productLinks.length < 2 && !link.includes("/search")) {
+      productLinks.push(link);
+    }
+  }
+
+  if (productLinks.length === 0) return null;
+
+  const data: EnrichmentData = {};
+
+  for (const link of productLinks) {
+    await delay(1000);
+    const page = await fetchPage(`https://www.lambda-tek.com${link}`);
+    if (!page) continue;
+
+    const specs = extractSpecs(page);
+    if (Object.keys(specs).length > 0) data.specs = { ...data.specs, ...specs };
+
+    const features = extractFeatures(page);
+    if (features.length > 0) data.features = [...(data.features || []), ...features];
+
+    const images = extractImages(page, "https://www.lambda-tek.com");
+    const ogImages = extractOgImages(page);
+    const allImages = [...images, ...ogImages];
+    if (allImages.length > 0) data.images = [...(data.images || []), ...allImages];
+
+    if (data.specs && Object.keys(data.specs).length > 3) break;
+  }
+
+  if (data.features) data.features = [...new Set(data.features)].slice(0, 10);
+  if (data.images) data.images = [...new Set(data.images)].slice(0, 6);
+
+  const hasData = (data.specs && Object.keys(data.specs).length > 0) ||
+    (data.features && data.features.length > 0) ||
+    (data.images && data.images.length > 0);
+
+  return hasData ? data : null;
+}
+
+function extractOgImages(html: string): string[] {
+  const images: string[] = [];
+  const ogRegex = /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/gi;
+  let match;
+  while ((match = ogRegex.exec(html)) !== null) {
+    let src = match[1];
+    if (src.startsWith("//")) src = "https:" + src;
+    if (src.startsWith("http") && src.match(/\.(jpg|jpeg|png|webp)/i) && !src.includes("logo") && !src.includes("icon") && !src.includes("favicon")) {
+      images.push(src);
+    }
+  }
+
+  const twitterRegex = /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/gi;
+  while ((match = twitterRegex.exec(html)) !== null) {
+    let src = match[1];
+    if (src.startsWith("//")) src = "https:" + src;
+    if (src.startsWith("http") && src.match(/\.(jpg|jpeg|png|webp)/i) && !src.includes("logo")) {
+      images.push(src);
+    }
+  }
+
+  return [...new Set(images)];
+}
+
+async function fetchDuckDuckGoImages(searchTerm: string): Promise<string[]> {
+  try {
+    const query = encodeURIComponent(`${searchTerm} product photo`);
+    const html = await fetchPage(`https://lite.duckduckgo.com/lite/?q=${query}&kp=1`);
+    if (!html) return [];
+
+    const images: string[] = [];
+    const resultRegex = /href="(https?:\/\/[^"]+\.(jpg|jpeg|png|webp)[^"]*)"/gi;
+    let match;
+    while ((match = resultRegex.exec(html)) !== null && images.length < 4) {
+      const src = match[1];
+      if (!src.includes("duckduckgo") && !src.includes("logo") && !src.includes("icon") && !src.includes("avatar") && !src.includes("pixel")) {
+        images.push(src);
+      }
+    }
+
+    return images;
+  } catch {
+    return [];
+  }
+}
+
+async function fetchGoogleShoppingImage(searchTerm: string): Promise<string[]> {
+  try {
+    const query = encodeURIComponent(searchTerm);
+    const html = await fetchPage(`https://www.google.co.uk/search?q=${query}&tbm=isch&safe=active`);
+    if (!html) return [];
+
+    const images: string[] = [];
+    const imgRegex = /\["(https:\/\/[^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/gi;
+    let match;
+    while ((match = imgRegex.exec(html)) !== null && images.length < 3) {
+      const src = match[1].replace(/\\u0026/g, "&");
+      if (src.length > 50 && !src.includes("gstatic") && !src.includes("google") && !src.includes("logo") && !src.includes("icon")) {
+        images.push(src);
+      }
+    }
+
+    return images;
+  } catch {
+    return [];
+  }
+}
+
 async function fetchAmazonImages(searchTerm: string, _category?: string): Promise<string[]> {
   const url = `https://www.amazon.co.uk/s?k=${encodeURIComponent(searchTerm)}`;
   const html = await fetchPage(url);
@@ -621,47 +958,64 @@ async function enrichProduct(name: string, vendor?: string, mpn?: string, catego
     await delay(3000);
   }
 
+  const retailerSources: Array<{ name: string; fn: (term: string) => Promise<EnrichmentData | null> }> = [
+    { name: "Scan.co.uk", fn: enrichFromScan },
+    { name: "CCL", fn: enrichFromCCL },
+    { name: "eBuyer", fn: enrichFromEbuyer },
+    { name: "Overclockers UK", fn: enrichFromOverclockers },
+    { name: "Box.co.uk", fn: enrichFromBox },
+    { name: "Novatech", fn: enrichFromNovatech },
+    { name: "Lambda-tek", fn: enrichFromLambdatek },
+  ];
+
   for (const term of searchTerms) {
-    console.log(`[Enricher]   Trying Scan.co.uk specs: "${term}"`);
-    const scanData = await enrichFromScan(term);
-    if (scanData) {
-      if (scanData.specs && Object.keys(scanData.specs).length > 0) data.specs = scanData.specs;
-      if (scanData.features && scanData.features.length > 0) data.features = scanData.features;
-      if (scanData.description) data.description = scanData.description;
-      if (!data.images && scanData.images && scanData.images.length > 0) {
-        data.images = scanData.images;
-        data.image = scanData.images[0];
-      }
-      if (data.specs && Object.keys(data.specs).length > 0) break;
-    }
-    await delay(1500);
+    for (const source of retailerSources) {
+      if (data.specs && Object.keys(data.specs).length >= 5 && data.images && data.images.length >= 2) break;
 
-    console.log(`[Enricher]   Trying CCL specs: "${term}"`);
-    const cclData = await enrichFromCCL(term);
-    if (cclData) {
-      if (cclData.specs && Object.keys(cclData.specs).length > 0) data.specs = { ...data.specs, ...cclData.specs };
-      if (cclData.features && cclData.features.length > 0) data.features = [...(data.features || []), ...cclData.features];
-      if (!data.images && cclData.images && cclData.images.length > 0) {
-        data.images = cclData.images;
-        data.image = cclData.images[0];
+      console.log(`[Enricher]   Trying ${source.name}: "${term}"`);
+      try {
+        const result = await source.fn(term);
+        if (result) {
+          if (result.specs && Object.keys(result.specs).length > 0) data.specs = { ...data.specs, ...result.specs };
+          if (result.features && result.features.length > 0) data.features = [...new Set([...(data.features || []), ...result.features])].slice(0, 15);
+          if (result.description && !data.description) data.description = result.description;
+          if (result.images && result.images.length > 0) {
+            data.images = [...new Set([...(data.images || []), ...result.images])].slice(0, 10);
+            if (!data.image) data.image = data.images[0];
+          }
+          console.log(`[Enricher]   ${source.name} found: ${Object.keys(result.specs || {}).length} specs, ${(result.features || []).length} features, ${(result.images || []).length} images`);
+        }
+      } catch (e: any) {
+        console.log(`[Enricher]   ${source.name} error: ${e.message}`);
       }
-      if (data.specs && Object.keys(data.specs).length > 0) break;
+      await delay(1500);
     }
-    await delay(1500);
 
-    console.log(`[Enricher]   Trying eBuyer specs: "${term}"`);
-    const ebuyerData = await enrichFromEbuyer(term);
-    if (ebuyerData) {
-      if (ebuyerData.specs && Object.keys(ebuyerData.specs).length > 0) data.specs = { ...data.specs, ...ebuyerData.specs };
-      if (ebuyerData.features && ebuyerData.features.length > 0) data.features = [...(data.features || []), ...ebuyerData.features];
-      if (ebuyerData.description && !data.description) data.description = ebuyerData.description;
-      if (!data.images && ebuyerData.images && ebuyerData.images.length > 0) {
-        data.images = ebuyerData.images;
-        data.image = ebuyerData.images[0];
+    if (data.specs && Object.keys(data.specs).length >= 3) break;
+  }
+
+  if (!data.images || data.images.length === 0) {
+    for (const term of searchTerms) {
+      console.log(`[Enricher]   Trying DuckDuckGo images: "${term}"`);
+      const ddgImages = await fetchDuckDuckGoImages(term);
+      if (ddgImages.length > 0) {
+        data.images = ddgImages;
+        data.image = ddgImages[0];
+        console.log(`[Enricher]   DuckDuckGo found ${ddgImages.length} images`);
+        break;
       }
-      if (data.specs && Object.keys(data.specs).length > 0) break;
+      await delay(2000);
+
+      console.log(`[Enricher]   Trying Google image search: "${term}"`);
+      const googleImages = await fetchGoogleShoppingImage(term);
+      if (googleImages.length > 0) {
+        data.images = googleImages;
+        data.image = googleImages[0];
+        console.log(`[Enricher]   Google found ${googleImages.length} images`);
+        break;
+      }
+      await delay(2000);
     }
-    await delay(1500);
   }
 
   const hasData = (data.specs && Object.keys(data.specs).length > 0) ||
@@ -828,22 +1182,61 @@ export async function pullMissingImages(): Promise<{ updated: number; skipped: n
       }
       if (product.mpn && product.mpn.length > 3) searchTerms.push(product.mpn);
 
-      let foundImage: string | null = null;
+      let foundImages: string[] = [];
       for (const term of searchTerms) {
-        const imgs = await fetchAmazonImages(term);
-        if (imgs.length > 0) {
-          foundImage = imgs[0];
-          const updates: Record<string, any> = { image: imgs[0], images: JSON.stringify(imgs) };
-          await storage.updateProduct(product.id, updates);
-          updated++;
-          pullImageProgress.updated = updated;
-          console.log(`[PullImages] ${pullImageProgress.current}/${needImages.length}: ${product.name} → ${imgs[0]}`);
+        const amazonImgs = await fetchAmazonImages(term);
+        if (amazonImgs.length > 0) {
+          foundImages = amazonImgs;
+          console.log(`[PullImages] Amazon found ${amazonImgs.length} for: ${product.name}`);
           break;
         }
         await delay(3000);
       }
 
-      if (!foundImage) {
+      if (foundImages.length === 0) {
+        for (const term of searchTerms) {
+          const retailerFns: Array<{ name: string; fn: (t: string) => Promise<EnrichmentData | null> }> = [
+            { name: "Scan", fn: enrichFromScan },
+            { name: "CCL", fn: enrichFromCCL },
+            { name: "eBuyer", fn: enrichFromEbuyer },
+            { name: "Overclockers", fn: enrichFromOverclockers },
+            { name: "Box", fn: enrichFromBox },
+            { name: "Novatech", fn: enrichFromNovatech },
+          ];
+          for (const source of retailerFns) {
+            try {
+              const result = await source.fn(term);
+              if (result?.images && result.images.length > 0) {
+                foundImages = result.images;
+                console.log(`[PullImages] ${source.name} found ${result.images.length} for: ${product.name}`);
+                break;
+              }
+            } catch {}
+            await delay(1500);
+          }
+          if (foundImages.length > 0) break;
+        }
+      }
+
+      if (foundImages.length === 0) {
+        for (const term of searchTerms) {
+          const ddgImgs = await fetchDuckDuckGoImages(term);
+          if (ddgImgs.length > 0) {
+            foundImages = ddgImgs;
+            console.log(`[PullImages] DuckDuckGo found ${ddgImgs.length} for: ${product.name}`);
+            break;
+          }
+          await delay(2000);
+        }
+      }
+
+      if (foundImages.length > 0) {
+        const updates: Record<string, any> = { image: foundImages[0], images: JSON.stringify(foundImages) };
+        await storage.updateProduct(product.id, updates);
+        updated++;
+        pullImageProgress.updated = updated;
+        console.log(`[PullImages] ${pullImageProgress.current}/${needImages.length}: ${product.name} → ${foundImages[0]}`);
+      } else {
         skipped++;
         pullImageProgress.skipped = skipped;
         console.log(`[PullImages] No image found for: ${product.name} (keeping existing)`);

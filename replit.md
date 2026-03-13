@@ -48,12 +48,15 @@ A fully functional e-commerce store for Thorn Tech Solutions Ltd (Company Reg: 1
 - Pricing: internet-matched price if above cost+VAT+5%; otherwise cost×1.2×1.05 minimum
 
 ## Product Enrichment
-- `server/productEnricher.ts` — Scrapes UK retailer sites (Scan, CCL) for specs, features, images; also parses specs from VIP description text
-- Amazon image search with `_AC_SL1500_` suffix for high-res images, CAPTCHA detection, 3s delays
+- `server/productEnricher.ts` — Scrapes 7 UK retailer sites + 3 image search engines for specs, features, images, descriptions
+- **Retailer sources**: Scan.co.uk, CCL Online, eBuyer, Overclockers UK, Box.co.uk, Novatech, Lambda-tek
+- **Image sources**: Amazon (primary, high-res _AC_SL1500_), DuckDuckGo images, Google image search (fallback)
+- **Image extraction**: Regular img tags, data-src lazy loading, data-zoom-image/data-large/data-full hi-res, srcset 2x variants, Open Graph/Twitter Card images, JSON-LD structured data images
 - Stores enriched data in: specs (JSON), features (JSON array), images (JSON array of URLs)
-- Admin panel has: "Enrich Products" (batch), "Re-enrich Low Specs" (resets products with <3 specs), "Upgrade Image Quality" (SL500→SL1500), "Reset All", "Clear Bad Images", "Pull Missing Images"
+- Admin panel has: "Enrich Products" (batch), "Re-enrich Low Specs" (resets products with <3 specs), "Upgrade Image Quality" (SL500→SL1500), "Reset All", "Clear Bad Images", "Pull Missing Images", "Tag Sources"
 - Tracks progress across batches (continues from where it left off)
 - Product page displays: image gallery (max 550px), key features, full specs table, description fallback
+- `source` field on products tracks wholesaler origin (VIP Computers, feed name, etc.)
 
 ## Price Matching
 - `server/priceMatcher.ts` — Searches DuckDuckGo, Bing, PriceSpy for internet prices

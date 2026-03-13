@@ -24,8 +24,9 @@ export default function Home() {
   });
 
   usePageTitle();
-  const catMap = new Map(categories.map(c => [c.id, c]));
-  const latestProducts = [...products].reverse().slice(0, 10);
+  const catMap = new Map((categories || []).map(c => [c.id, c]));
+  const safeProducts = Array.isArray(products) ? products : [];
+  const latestProducts = [...safeProducts].reverse().slice(0, 10);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
