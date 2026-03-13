@@ -523,7 +523,8 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         if (existing.name !== name) updates.name = name;
         if (existing.slug !== slug) updates.slug = slug;
         if (existing.inStock !== isInStock) updates.inStock = isInStock;
-        if (imageUrl && imageUrl !== existing.image && !existing.image?.includes("media-amazon.com")) updates.image = imageUrl;
+        const hasEnrichedImage = existing.image && !existing.image.includes("vip-computers.com") && !existing.image.includes("placeholder") && !existing.image.includes("no-image") && !existing.image.includes("default");
+        if (imageUrl && imageUrl !== existing.image && !hasEnrichedImage) updates.image = imageUrl;
         if (vp.Manufacturer && vp.Manufacturer !== existing.vendor) updates.vendor = vp.Manufacturer;
         if (mpn && existing.mpn !== mpn) updates.mpn = mpn;
 

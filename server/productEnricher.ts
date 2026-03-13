@@ -1293,38 +1293,75 @@ export async function enrichProducts(batchSize = 500): Promise<EnrichResult> {
 
       const updates: Record<string, any> = { enrichedAt: new Date() };
 
+      let existingSpecs: Record<string, string> = {};
+      try { if (product.specs) existingSpecs = typeof product.specs === "string" ? JSON.parse(product.specs) : product.specs; } catch {}
+      let existingFeatures: string[] = [];
+      try { if (product.features) existingFeatures = typeof product.features === "string" ? JSON.parse(product.features) : product.features; } catch {}
+      let existingImages: string[] = [];
+      try { if (product.images) existingImages = typeof product.images === "string" ? JSON.parse(product.images) : product.images; } catch {}
+
+      const hasGoodSpecs = Object.keys(existingSpecs).length >= 3;
+      const hasGoodFeatures = existingFeatures.length >= 3;
+      const hasGoodImages = existingImages.length >= 2 && product.image && !product.image.includes("vip-computers.com") && !product.image.includes("placeholder");
+      const hasGoodDescription = product.description && product.description.length >= 80;
+
       const { specs: nameSpecs, features: nameFeatures } = parseSpecsFromName(product.name, product.vendor || undefined, product.description || undefined);
       const descSpecs = parseSpecsFromDescription(product.description || "");
       const descFeatures = parseFeaturesFromDescription(product.description || "");
 
       let webData: EnrichmentData | null = null;
-      try {
-        const category = product.categoryId ? categories.find(c => c.id === product.categoryId) : null;
-        webData = await enrichProduct(product.name, product.vendor || undefined, product.mpn || undefined, category?.name || undefined);
-      } catch (e: any) {
-        console.log(`[Enricher]   Web fetch failed: ${e.message}`);
+      if (!hasGoodSpecs || !hasGoodImages || !hasGoodFeatures) {
+        try {
+          const category = product.categoryId ? categories.find(c => c.id === product.categoryId) : null;
+          webData = await enrichProduct(product.name, product.vendor || undefined, product.mpn || undefined, category?.name || undefined);
+        } catch (e: any) {
+          console.log(`[Enricher]   Web fetch failed: ${e.message}`);
+        }
+      } else {
+        console.log(`[Enricher]   Product already has good data (${Object.keys(existingSpecs).length} specs, ${existingFeatures.length} features, ${existingImages.length} images) — skipping web fetch`);
       }
 
-      const finalSpecs = { ...nameSpecs, ...descSpecs, ...(webData?.specs || {}) };
-      const finalFeatures = [...new Set([...(webData?.features || []), ...descFeatures, ...nameFeatures])].slice(0, 15);
+      const mergedSpecs = { ...nameSpecs, ...descSpecs, ...(webData?.specs || {}) };
+      const finalSpecs = hasGoodSpecs
+        ? { ...mergedSpecs, ...existingSpecs }
+        : { ...existingSpecs, ...mergedSpecs };
+      const mergedFeatures = [...new Set([...(webData?.features || []), ...descFeatures, ...nameFeatures])];
+      const finalFeatures = hasGoodFeatures
+        ? [...new Set([...existingFeatures, ...mergedFeatures])].slice(0, 20)
+        : [...new Set([...mergedFeatures, ...existingFeatures])].slice(0, 20);
 
-      if (Object.keys(finalSpecs).length > 0) {
+      if (Object.keys(finalSpecs).length > Object.keys(existingSpecs).length) {
+        updates.specs = JSON.stringify(finalSpecs);
+        console.log(`[Enricher]   Specs: ${Object.keys(existingSpecs).length} → ${Object.keys(finalSpecs).length}`);
+      } else if (Object.keys(existingSpecs).length === 0 && Object.keys(finalSpecs).length > 0) {
         updates.specs = JSON.stringify(finalSpecs);
       }
-      if (finalFeatures.length > 0) {
+
+      if (finalFeatures.length > existingFeatures.length) {
+        updates.features = JSON.stringify(finalFeatures);
+        console.log(`[Enricher]   Features: ${existingFeatures.length} → ${finalFeatures.length}`);
+      } else if (existingFeatures.length === 0 && finalFeatures.length > 0) {
         updates.features = JSON.stringify(finalFeatures);
       }
+
       if (webData?.images && webData.images.length > 0) {
-        updates.images = JSON.stringify(webData.images);
-        if (!product.image || product.image.includes("vip-computers.com")) {
+        const combinedImages = [...new Set([...existingImages, ...webData.images])].slice(0, 15);
+        if (combinedImages.length > existingImages.length) {
+          updates.images = JSON.stringify(combinedImages);
+          console.log(`[Enricher]   Images: ${existingImages.length} → ${combinedImages.length}`);
+        }
+        const isBadImage = !product.image || product.image.includes("vip-computers.com") || product.image.includes("placeholder") || product.image.includes("no-image") || product.image.includes("default");
+        if (isBadImage) {
           updates.image = webData.images[0];
-          console.log(`[Enricher]   Set image: ${webData.images[0]}`);
+          console.log(`[Enricher]   Replaced bad main image with: ${webData.images[0]}`);
         }
       } else if (product.image) {
         console.log(`[Enricher]   Keeping existing image: ${product.image}`);
       }
-      if (webData?.description && (!product.description || product.description.length < 50)) {
+
+      if (webData?.description && !hasGoodDescription) {
         updates.description = webData.description;
+        console.log(`[Enricher]   Added description (${webData.description.length} chars)`);
       }
 
       await storage.updateProduct(product.id, updates);
@@ -1370,7 +1407,10 @@ export async function pullMissingImages(): Promise<{ updated: number; skipped: n
   const categories = await storage.getCategories();
   const needImages = allProducts.filter(p => {
     if (enrichedIds.has(p.id)) return false;
-    if (!p.image || p.image.includes("vip-computers.com")) return true;
+    if (!p.image || p.image.includes("vip-computers.com") || p.image.includes("placeholder") || p.image.includes("no-image") || p.image.includes("default")) return true;
+    let existingImgs: string[] = [];
+    try { if (p.images) existingImgs = typeof p.images === "string" ? JSON.parse(p.images) : p.images; } catch {}
+    if (existingImgs.length < 2) return true;
     return false;
   });
   console.log(`[PullImages] ${needImages.length} products need images out of ${allProducts.length} total (${enrichedIds.size} already handled by enricher)`);
@@ -1455,11 +1495,20 @@ export async function pullMissingImages(): Promise<{ updated: number; skipped: n
       }
 
       if (foundImages.length > 0) {
-        const updates: Record<string, any> = { image: foundImages[0], images: JSON.stringify(foundImages) };
+        let currentImages: string[] = [];
+        try { if (product.images) currentImages = typeof product.images === "string" ? JSON.parse(product.images) : product.images; } catch {}
+        const goodExisting = currentImages.filter(img => img && !img.includes("vip-computers.com") && !img.includes("placeholder") && !img.includes("no-image"));
+        const merged = [...new Set([...goodExisting, ...foundImages])].slice(0, 15);
+
+        const updates: Record<string, any> = { images: JSON.stringify(merged) };
+        const isBadMainImage = !product.image || product.image.includes("vip-computers.com") || product.image.includes("placeholder") || product.image.includes("no-image") || product.image.includes("default");
+        if (isBadMainImage) {
+          updates.image = merged[0];
+        }
         await storage.updateProduct(product.id, updates);
         updated++;
         pullImageProgress.updated = updated;
-        console.log(`[PullImages] ${pullImageProgress.current}/${needImages.length}: ${product.name} → ${foundImages.length} images`);
+        console.log(`[PullImages] ${pullImageProgress.current}/${needImages.length}: ${product.name} → ${merged.length} images (${goodExisting.length} kept + ${foundImages.length} new)`);
       } else {
         skipped++;
         pullImageProgress.skipped = skipped;
