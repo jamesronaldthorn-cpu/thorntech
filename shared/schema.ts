@@ -127,6 +127,21 @@ export const basketEvents = pgTable("basket_events", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const customerReviews = pgTable("customer_reviews", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  name: text("name").notNull(),
+  location: text("location"),
+  email: text("email"),
+  rating: integer("rating").notNull(),
+  title: text("title").notNull(),
+  text: text("text").notNull(),
+  product: text("product"),
+  approved: boolean("approved").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertCustomerReviewSchema = createInsertSchema(customerReviews).omit({ id: true, createdAt: true, approved: true });
+
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertCategorySchema = createInsertSchema(categories).omit({ id: true });
 export const insertProductSchema = createInsertSchema(products).omit({ id: true });
@@ -161,3 +176,5 @@ export type FeedSource = typeof feedSources.$inferSelect;
 export type InsertFeedSource = z.infer<typeof insertFeedSourceSchema>;
 export type BlogPost = typeof blogPosts.$inferSelect;
 export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
+export type CustomerReview = typeof customerReviews.$inferSelect;
+export type InsertCustomerReview = z.infer<typeof insertCustomerReviewSchema>;

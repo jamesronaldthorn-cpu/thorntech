@@ -1,6 +1,6 @@
 import { eq, sql, gte, desc, count } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { users, categories, products, orders, customFeeds, feedSources, pageViews, basketEvents, blogPosts, type User, type InsertUser, type Category, type InsertCategory, type Product, type InsertProduct, type Order, type InsertOrder, type CustomFeed, type InsertCustomFeed, type FeedSource, type InsertFeedSource, type BlogPost, type InsertBlogPost } from "@shared/schema";
+import { users, categories, products, orders, customFeeds, feedSources, pageViews, basketEvents, blogPosts, customerReviews, type User, type InsertUser, type Category, type InsertCategory, type Product, type InsertProduct, type Order, type InsertOrder, type CustomFeed, type InsertCustomFeed, type FeedSource, type InsertFeedSource, type BlogPost, type InsertBlogPost, type CustomerReview, type InsertCustomerReview } from "@shared/schema";
 
 export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
@@ -48,6 +48,10 @@ export interface IStorage {
   recordBasketEvent(productId: number, productName: string, productPrice: number, quantity: number, ip?: string, userAgent?: string): Promise<void>;
   getBasketEvents(limit?: number): Promise<{ id: number; productId: number; productName: string; productPrice: number; quantity: number; ip: string | null; createdAt: Date | null }[]>;
   getBasketStats(): Promise<{ today: number; week: number; total: number; topProducts: { productName: string; count: number }[]; recentEvents: { id: number; productName: string; productPrice: number; quantity: number; createdAt: Date | null; ip: string | null }[] }>;
+  getReviews(approvedOnly?: boolean): Promise<CustomerReview[]>;
+  createReview(review: InsertCustomerReview): Promise<CustomerReview>;
+  approveReview(id: number): Promise<CustomerReview | undefined>;
+  deleteReview(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -335,6 +339,27 @@ export class DatabaseStorage implements IStorage {
       topProducts: topProducts.map(p => ({ productName: p.productName, count: Number(p.count) })),
       recentEvents: recentEvents.map(e => ({ id: e.id, productName: e.productName, productPrice: e.productPrice, quantity: e.quantity, createdAt: e.createdAt, ip: e.ip })),
     };
+  }
+  async getReviews(approvedOnly = false): Promise<CustomerReview[]> {
+    if (approvedOnly) {
+      return this.db.select().from(customerReviews).where(eq(customerReviews.approved, true)).orderBy(desc(customerReviews.createdAt));
+    }
+    return this.db.select().from(customerReviews).orderBy(desc(customerReviews.createdAt));
+  }
+
+  async createReview(review: InsertCustomerReview): Promise<CustomerReview> {
+    const [created] = await this.db.insert(customerReviews).values(review).returning();
+    return created;
+  }
+
+  async approveReview(id: number): Promise<CustomerReview | undefined> {
+    const [updated] = await this.db.update(customerReviews).set({ approved: true }).where(eq(customerReviews.id, id)).returning();
+    return updated;
+  }
+
+  async deleteReview(id: number): Promise<boolean> {
+    const result = await this.db.delete(customerReviews).where(eq(customerReviews.id, id)).returning();
+    return result.length > 0;
   }
 }
 

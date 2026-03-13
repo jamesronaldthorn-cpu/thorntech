@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Package, Tag, ShoppingCart, Plus, Pencil, Trash2, LogOut,
-  Eye, EyeOff, X, Save, Search, ChevronDown, ChevronUp, Rss, Upload, Copy, ExternalLink, Download, Loader2, CheckCircle, AlertCircle, Users, KeyRound, BarChart3, TrendingUp, Globe, Calendar, RotateCcw, Sparkles
+  Eye, EyeOff, X, Save, Search, ChevronDown, ChevronUp, Rss, Upload, Copy, ExternalLink, Download, Loader2, CheckCircle, AlertCircle, Users, KeyRound, BarChart3, TrendingUp, Globe, Calendar, RotateCcw, Sparkles, Star
 } from "lucide-react";
 import type { Product, Category, Order, CustomFeed, FeedSource, BlogPost } from "@shared/schema";
 import { FileText } from "lucide-react";
@@ -406,7 +406,20 @@ function BlogForm({ post, onSave, onCancel }: { post?: BlogPost; onSave: (data: 
   );
 }
 
-type Tab = "dashboard" | "products" | "categories" | "orders" | "feeds" | "users" | "blog";
+interface AdminReview {
+  id: number;
+  name: string;
+  location: string | null;
+  email: string | null;
+  rating: number;
+  title: string;
+  text: string;
+  product: string | null;
+  approved: boolean;
+  createdAt: string | null;
+}
+
+type Tab = "dashboard" | "products" | "categories" | "orders" | "feeds" | "users" | "blog" | "reviews";
 
 export default function AdminPage() {
   const [authed, setAuthed] = useState(!!localStorage.getItem("admin_token"));
@@ -422,6 +435,7 @@ export default function AdminPage() {
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [resetPasswordId, setResetPasswordId] = useState<number | null>(null);
   const [newPassword, setNewPassword] = useState("");
+  const [adminReviews, setAdminReviews] = useState<AdminReview[]>([]);
   const [userMessage, setUserMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
@@ -457,7 +471,7 @@ export default function AdminPage() {
 
   const loadData = async () => {
     try {
-      const [pRes, cRes, oRes, fRes, sRes, uRes, stRes, bRes] = await Promise.all([
+      const [pRes, cRes, oRes, fRes, sRes, uRes, stRes, bRes, rvRes] = await Promise.all([
         adminFetch("/api/admin/products"),
         adminFetch("/api/admin/categories"),
         adminFetch("/api/admin/orders"),
@@ -466,6 +480,7 @@ export default function AdminPage() {
         adminFetch("/api/admin/users"),
         adminFetch("/api/admin/stats"),
         adminFetch("/api/admin/blog"),
+        adminFetch("/api/admin/reviews"),
       ]);
       if (pRes.status === 401) { localStorage.removeItem("admin_token"); setAuthed(false); return; }
       setProducts(await pRes.json());
@@ -476,6 +491,7 @@ export default function AdminPage() {
       setUsersList(await uRes.json());
       if (stRes.ok) setStats(await stRes.json());
       if (bRes.ok) setBlogPosts(await bRes.json());
+      if (rvRes.ok) setAdminReviews(await rvRes.json());
       try {
         const xRes = await adminFetch("/api/xero/status");
         if (xRes.ok) setXeroStatus(await xRes.json());
@@ -798,6 +814,7 @@ export default function AdminPage() {
     { key: "users", label: "Users", icon: <Users className="w-4 h-4" />, count: usersList.length },
     { key: "feeds", label: "Feeds", icon: <Rss className="w-4 h-4" />, count: customFeeds.length },
     { key: "blog", label: "Blog", icon: <FileText className="w-4 h-4" />, count: blogPosts.length },
+    { key: "reviews", label: "Reviews", icon: <Star className="w-4 h-4" />, count: adminReviews.filter(r => !r.approved).length },
   ];
 
   const filteredUsers = usersList.filter(u =>
@@ -2029,6 +2046,63 @@ export default function AdminPage() {
                         <Button size="sm" variant="ghost" onClick={() => deleteBlogPost(post.id)} className="text-gray-400 hover:text-red-400 h-8 w-8 p-0" data-testid={`button-delete-blog-${post.id}`}><Trash2 className="w-3.5 h-3.5" /></Button>
                       </div>
                     </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === "reviews" && (
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold flex items-center gap-2"><Star className="w-5 h-5 text-primary" /> Customer Reviews</h2>
+            <p className="text-sm text-gray-400">Manage customer reviews. Pending reviews need approval before they appear on the site.</p>
+            {adminReviews.length === 0 ? (
+              <div className="bg-white/5 rounded-lg p-8 text-center text-gray-400">No reviews yet.</div>
+            ) : (
+              <div className="space-y-3">
+                {adminReviews.map(rv => (
+                  <div key={rv.id} className={`bg-white/5 rounded-lg p-4 border ${rv.approved ? "border-green-500/20" : "border-yellow-500/20"}`} data-testid={`admin-review-${rv.id}`}>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold">{rv.title}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${rv.approved ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>
+                            {rv.approved ? "Approved" : "Pending"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className="flex gap-0.5">
+                            {[1,2,3,4,5].map(i => (
+                              <Star key={i} className={`w-3.5 h-3.5 ${i <= rv.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-600"}`} />
+                            ))}
+                          </div>
+                          <span className="text-xs text-gray-500">by {rv.name}{rv.location ? `, ${rv.location}` : ""}</span>
+                          {rv.email && <span className="text-xs text-gray-500">({rv.email})</span>}
+                          {rv.product && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{rv.product}</span>}
+                        </div>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {!rv.approved && (
+                          <Button size="sm" variant="ghost" className="text-green-400 hover:text-green-300 h-8 px-3" onClick={async () => {
+                            await adminFetch(`/api/admin/reviews/${rv.id}/approve`, { method: "POST" });
+                            loadData();
+                          }} data-testid={`button-approve-review-${rv.id}`}>
+                            <CheckCircle className="w-3.5 h-3.5 mr-1" /> Approve
+                          </Button>
+                        )}
+                        <Button size="sm" variant="ghost" className="text-gray-400 hover:text-red-400 h-8 w-8 p-0" onClick={async () => {
+                          if (confirm("Delete this review?")) {
+                            await adminFetch(`/api/admin/reviews/${rv.id}`, { method: "DELETE" });
+                            loadData();
+                          }
+                        }} data-testid={`button-delete-review-${rv.id}`}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-300 mt-1">{rv.text}</p>
+                    {rv.createdAt && <p className="text-xs text-gray-500 mt-2">{new Date(rv.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</p>}
                   </div>
                 ))}
               </div>

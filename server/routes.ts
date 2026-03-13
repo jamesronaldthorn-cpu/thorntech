@@ -1013,6 +1013,44 @@ export async function registerRoutes(
     res.json(post);
   });
 
+  app.get("/api/reviews", async (_req, res) => {
+    const reviews = await storage.getReviews(true);
+    res.json(reviews);
+  });
+
+  app.post("/api/reviews", async (req, res) => {
+    try {
+      const { name, location, email, rating, title, text, product } = req.body;
+      if (!name || !rating || !title || !text) {
+        return res.status(400).json({ error: "Name, rating, title and review text are required" });
+      }
+      if (rating < 1 || rating > 5) {
+        return res.status(400).json({ error: "Rating must be between 1 and 5" });
+      }
+      const review = await storage.createReview({ name, location: location || null, email: email || null, rating, title, text, product: product || null });
+      res.json({ success: true, message: "Thank you! Your review has been submitted and will appear once approved.", review });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/admin/reviews", adminAuth, async (_req, res) => {
+    const reviews = await storage.getReviews(false);
+    res.json(reviews);
+  });
+
+  app.post("/api/admin/reviews/:id/approve", adminAuth, async (req, res) => {
+    const review = await storage.approveReview(parseInt(req.params.id));
+    if (!review) return res.status(404).json({ error: "Review not found" });
+    res.json(review);
+  });
+
+  app.delete("/api/admin/reviews/:id", adminAuth, async (req, res) => {
+    const deleted = await storage.deleteReview(parseInt(req.params.id));
+    if (!deleted) return res.status(404).json({ error: "Review not found" });
+    res.json({ success: true });
+  });
+
   // Xero routes
   app.get("/api/xero/connect", adminAuth, async (_req, res) => {
     try {
