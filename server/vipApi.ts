@@ -582,6 +582,7 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         vendor: vp.Manufacturer || null,
         mpn,
         ean,
+        source: "VIP Computers",
         stripeProductId: null,
         stripePriceId: null,
       };

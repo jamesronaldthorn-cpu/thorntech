@@ -159,6 +159,7 @@ export async function importProducts(items: any[], fallbackCategoryId: number | 
         badge: null,
         inStock: item.inStock !== false,
         vendor: item.vendor || null,
+        source: feedSource.name || "Custom Feed",
         stripeProductId: null,
         stripePriceId: null,
       });

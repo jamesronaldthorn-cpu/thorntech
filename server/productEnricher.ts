@@ -496,6 +496,58 @@ async function enrichFromCCL(searchTerm: string): Promise<EnrichmentData | null>
   return hasData ? data : null;
 }
 
+async function enrichFromEbuyer(searchTerm: string): Promise<EnrichmentData | null> {
+  const query = encodeURIComponent(searchTerm.substring(0, 80));
+  const searchHtml = await fetchPage(`https://www.ebuyer.com/search?q=${query}`);
+  if (!searchHtml) return null;
+
+  const productLinks: string[] = [];
+  const linkRegex = /href="(\/product\/[^"#]+)"/gi;
+  let match;
+  while ((match = linkRegex.exec(searchHtml)) !== null) {
+    const link = match[1];
+    if (!productLinks.includes(link) && productLinks.length < 2) {
+      productLinks.push(link);
+    }
+  }
+
+  if (productLinks.length === 0) return null;
+
+  const data: EnrichmentData = {};
+
+  for (const link of productLinks) {
+    await delay(1000);
+    const page = await fetchPage(`https://www.ebuyer.com${link}`);
+    if (!page) continue;
+
+    const specs = extractSpecs(page);
+    if (Object.keys(specs).length > 0) data.specs = { ...data.specs, ...specs };
+
+    const features = extractFeatures(page);
+    if (features.length > 0) data.features = [...(data.features || []), ...features];
+
+    const images = extractImages(page, "https://www.ebuyer.com");
+    if (images.length > 0) data.images = [...(data.images || []), ...images];
+
+    const metaDesc = page.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
+    if (metaDesc && metaDesc[1].length > 30) {
+      data.description = metaDesc[1].trim();
+    }
+
+    if (data.specs && Object.keys(data.specs).length > 3) break;
+  }
+
+  if (data.features) data.features = [...new Set(data.features)].slice(0, 10);
+  if (data.images) data.images = [...new Set(data.images)].slice(0, 6);
+
+  const hasData = (data.specs && Object.keys(data.specs).length > 0) ||
+    (data.features && data.features.length > 0) ||
+    (data.images && data.images.length > 0) ||
+    data.description;
+
+  return hasData ? data : null;
+}
+
 async function fetchAmazonImages(searchTerm: string, _category?: string): Promise<string[]> {
   const url = `https://www.amazon.co.uk/s?k=${encodeURIComponent(searchTerm)}`;
   const html = await fetchPage(url);
@@ -592,6 +644,20 @@ async function enrichProduct(name: string, vendor?: string, mpn?: string, catego
       if (!data.images && cclData.images && cclData.images.length > 0) {
         data.images = cclData.images;
         data.image = cclData.images[0];
+      }
+      if (data.specs && Object.keys(data.specs).length > 0) break;
+    }
+    await delay(1500);
+
+    console.log(`[Enricher]   Trying eBuyer specs: "${term}"`);
+    const ebuyerData = await enrichFromEbuyer(term);
+    if (ebuyerData) {
+      if (ebuyerData.specs && Object.keys(ebuyerData.specs).length > 0) data.specs = { ...data.specs, ...ebuyerData.specs };
+      if (ebuyerData.features && ebuyerData.features.length > 0) data.features = [...(data.features || []), ...ebuyerData.features];
+      if (ebuyerData.description && !data.description) data.description = ebuyerData.description;
+      if (!data.images && ebuyerData.images && ebuyerData.images.length > 0) {
+        data.images = ebuyerData.images;
+        data.image = ebuyerData.images[0];
       }
       if (data.specs && Object.keys(data.specs).length > 0) break;
     }

@@ -226,6 +226,12 @@ export default function ProductPage() {
               <p className="text-xs text-muted-foreground mb-2">MPN: {product.mpn}</p>
             )}
 
+            {(descParagraphs.length > 0 || (product.description && !product.description.includes(":"))) && (
+              <p className="text-sm text-muted-foreground leading-relaxed mb-4 line-clamp-4">
+                {descParagraphs.length > 0 ? descParagraphs.slice(0, 2).join(" ") : product.description}
+              </p>
+            )}
+
             <div className="flex items-center gap-3 mb-2">
               {product.compareAtPrice && (
                 <span className="text-xl text-muted-foreground line-through">{formatPrice(product.compareAtPrice)}</span>

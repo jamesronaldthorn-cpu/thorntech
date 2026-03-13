@@ -1464,8 +1464,15 @@ export default function AdminPage() {
                     <tr key={p.id} className="border-b border-white/5 hover:bg-white/5 transition" data-testid={`row-product-${p.id}`}>
                       <td className="py-3 px-3 text-gray-500">{p.id}</td>
                       <td className="py-3 px-3">
-                        <div className="font-medium text-white">{p.name}</div>
-                        <div className="text-xs text-gray-500">{p.slug}</div>
+                        <a href={`/product/${p.slug}`} target="_blank" rel="noopener noreferrer" className="font-medium text-white hover:text-purple-400 transition-colors">
+                          {p.name}
+                        </a>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-xs text-gray-500">{p.slug}</span>
+                          {(p as any).source && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400">{(p as any).source}</span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-3">
                         <span className="text-purple-400 font-medium">£{p.price.toFixed(2)}</span>
@@ -1480,6 +1487,7 @@ export default function AdminPage() {
                       <td className="py-3 px-3 hidden lg:table-cell text-gray-400">{p.badge || "—"}</td>
                       <td className="py-3 px-3">
                         <div className="flex gap-1">
+                          <a href={`/product/${p.slug}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center text-gray-400 hover:text-blue-400 h-8 w-8 p-0" data-testid={`button-view-product-${p.id}`}><ExternalLink className="w-3.5 h-3.5" /></a>
                           <Button size="sm" variant="ghost" onClick={() => { setEditingProduct(p); setShowProductForm(false); }} className="text-gray-400 hover:text-white h-8 w-8 p-0" data-testid={`button-edit-product-${p.id}`}><Pencil className="w-3.5 h-3.5" /></Button>
                           <Button size="sm" variant="ghost" onClick={() => deleteProduct(p.id)} className="text-gray-400 hover:text-red-400 h-8 w-8 p-0" data-testid={`button-delete-product-${p.id}`}><Trash2 className="w-3.5 h-3.5" /></Button>
                         </div>

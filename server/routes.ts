@@ -36,6 +36,7 @@ function generateSitemapXml(products: Product[], categories: Category[], siteUrl
     `  <url><loc>${siteUrl}/privacy</loc><changefreq>monthly</changefreq><priority>0.5</priority><lastmod>${now}</lastmod></url>`,
     `  <url><loc>${siteUrl}/contact</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>${now}</lastmod></url>`,
     `  <url><loc>${siteUrl}/about</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>${now}</lastmod></url>`,
+    `  <url><loc>${siteUrl}/reviews</loc><changefreq>weekly</changefreq><priority>0.7</priority><lastmod>${now}</lastmod></url>`,
     ...categories.map(c => `  <url><loc>${siteUrl}/category/${c.slug}</loc><changefreq>daily</changefreq><priority>0.8</priority><lastmod>${now}</lastmod></url>`),
     ...products.map(p => `  <url><loc>${siteUrl}/product/${p.slug}</loc><changefreq>weekly</changefreq><priority>0.6</priority><lastmod>${now}</lastmod></url>`),
   ];
@@ -1193,6 +1194,22 @@ export async function registerRoutes(
       console.log(`[PullImages] Done: ${result.updated} images pulled, ${result.skipped} skipped, ${result.errors} errors`);
     } catch (e: any) {
       console.error("[PullImages] Error:", e.message);
+    }
+  });
+
+  app.post("/api/admin/tag-sources", adminAuth, async (_req, res) => {
+    try {
+      const allProducts = await storage.getProducts();
+      let tagged = 0;
+      for (const p of allProducts) {
+        if (!(p as any).source && p.mpn) {
+          await storage.updateProduct(p.id, { source: "VIP Computers" } as any);
+          tagged++;
+        }
+      }
+      res.json({ tagged, message: `Tagged ${tagged} products with VIP Computers source.` });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
     }
   });
 

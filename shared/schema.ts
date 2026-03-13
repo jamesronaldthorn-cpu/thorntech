@@ -41,6 +41,7 @@ export const products = pgTable("products", {
   mpn: text("mpn"),
   ean: text("ean"),
   enrichedAt: timestamp("enriched_at"),
+  source: text("source"),
   stripeProductId: text("stripe_product_id"),
   stripePriceId: text("stripe_price_id"),
 });
