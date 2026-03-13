@@ -18,6 +18,7 @@ import OrderStatusPage from "@/pages/order-status";
 import BlogPostPage, { BlogListPage } from "@/pages/blog";
 import SearchPage from "@/pages/search";
 import PrivacyPage from "@/pages/privacy";
+import AboutPage from "@/pages/about";
 
 function Router() {
   return (
@@ -38,6 +39,7 @@ function Router() {
       <Route path="/blog" component={BlogListPage} />
       <Route path="/blog/:slug" component={BlogPostPage} />
       <Route path="/search" component={SearchPage} />
+      <Route path="/about" component={AboutPage} />
       <Route component={NotFound} />
     </Switch>
   );

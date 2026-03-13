@@ -8,7 +8,7 @@ import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
 import CategoryDropdown from "@/components/CategoryDropdown";
-import { usePageTitle, ItemListJsonLd } from "@/components/SEO";
+import { usePageTitle, ItemListJsonLd, FAQJsonLd } from "@/components/SEO";
 import type { Product, Category } from "@shared/schema";
 import heroBgImg from "@/assets/images/hero-bg.png";
 
@@ -183,6 +183,13 @@ export default function Home() {
         </div>
       </section>
 
+      <FAQJsonLd faqs={[
+        { question: "Do all components come with a warranty?", answer: "Yes, every product sold by Thorn Tech Solutions is brand new and comes with a full UK manufacturer's warranty, ranging from 1 year to limited lifetime warranties for certain RAM and PSU models." },
+        { question: "How long does UK delivery take?", answer: "Orders for in-stock items placed before 2 PM are typically dispatched the same day. Standard UK delivery takes 1-3 working days with tracked and insured couriers." },
+        { question: "Can you help me choose the right parts for my build?", answer: "Of course! Our team of hardware enthusiasts can review your parts list and provide suggestions based on your budget and performance requirements. Contact us via our contact page." },
+        { question: "What is your returns policy?", answer: "We offer a 14-day return period for items in original unopened packaging. For faulty items, we provide full testing and replacement under manufacturer warranty." },
+        { question: "Do you offer discounts for bulk or business orders?", answer: "Yes, we support businesses, educational institutions, and system integrators with bulk pricing and specialized account management." }
+      ]} />
       {/* FAQ Section */}
       <section className="py-24 bg-muted/20">
         <div className="container px-4 mx-auto max-w-4xl">

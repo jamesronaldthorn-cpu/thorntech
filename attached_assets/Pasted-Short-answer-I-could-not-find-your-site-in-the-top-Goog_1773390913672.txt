@@ -1,0 +1,314 @@
+Short answer: I could not find your site in the top Google results for obvious searches, which means it’s likely NOT in the top 20 yet (or it’s very new and not indexed strongly).
+
+What I checked
+
+I searched Google-style queries like:
+
+thorntechsolutionsltd.com
+
+thorn tech solutions ltd
+
+What appeared instead were directory listings like:
+
+A business listing for Thorn Tech Solutions Ltd on a directory site showing the company incorporated 27 Feb 2026.
+
+A listing on Yell with the address in Sutton Bridge, Lincolnshire.
+
+Those directory pages appear in results, but your main website itself isn’t showing high in search results yet.
+
+Why your site probably isn’t top 20 yet
+
+Most likely reasons:
+
+Very new company / website
+Your company was incorporated Feb 2026, so Google may still be indexing it.
+
+Low SEO authority
+Google ranks sites based on backlinks, content, and trust signals.
+
+Few backlinks or mentions
+Directories like Yell exist, but you need many more links from other websites.
+
+Limited content/pages
+Sites with only a few pages rank much lower.
+
+Quick things that will push it into top 20
+
+Do these ASAP:
+
+Add your site to Google Search Console
+
+Create Google Business Profile
+
+Add listings on:
+
+Yell
+
+Bing Places
+
+Trustpilot
+
+Facebook page
+
+LinkedIn company page
+
+Add service pages like:
+
+“PC repair Sutton Bridge”
+
+“Laptop repair Lincolnshire”
+
+“Computer repair near me”
+
+These are what Google actually ranks.
+
+If you want, I can also:
+
+Check exactly where your site ranks right now
+
+Show you how to get it into the top 10 within a few weeks
+
+Do a free SEO audit of thorntechsolutionsltd.com and tell you what to fix.
+
+Do a free SEO audit of thorntechsolutionsltd.com and tell you what to fix.
+
+Here is a realistic SEO audit for your website (thorntechsolutionsltd.com) based on what is visible online and typical ranking factors. I’ll show what’s good, what’s missing, and exactly what to fix to reach top 20 Google results.
+
+SEO Audit – thorntechsolutionsltd.com
+1. Google Indexing (CRITICAL)
+
+Problem
+
+Your website does not appear strongly indexed yet, which usually means Google has either:
+
+Not crawled the site fully
+
+Not received a sitemap
+
+Or sees very little content
+
+Your company itself appears online through directories like:
+
+Thorn Tech Solutions Ltd company listing showing it was incorporated 27 Feb 2026.
+
+This confirms the business is very new, so Google trust is still low.
+
+Fix
+
+Do these immediately:
+
+Add site to
+Google Search Console
+
+Submit your sitemap
+Example:
+
+https://thorntechsolutionsltd.com/sitemap.xml
+
+Request indexing of:
+
+homepage
+
+services page
+
+contact page
+
+Without this, Google may take weeks or months.
+
+2. Website Content (VERY IMPORTANT)
+
+Most small business sites rank poorly because they only have 3–4 pages.
+
+Google wants service-specific pages.
+
+Example pages you should have
+
+Create pages like:
+
+/pc-repair-sutton-bridge
+
+/laptop-repair-sutton-bridge
+
+/virus-removal
+
+/computer-upgrades
+
+/data-recovery
+
+/screen-replacement
+
+Each page should be 800–1200 words.
+
+Why this matters
+
+Google ranks services + location searches like:
+
+PC repair Sutton Bridge
+
+Laptop repair near me
+
+Computer repair Lincolnshire
+
+Without these pages, Google doesn’t know what you offer.
+
+3. Page Titles (Common mistake)
+
+Your homepage title should look like this:
+
+Example:
+
+PC & Laptop Repair Sutton Bridge | Thorn Tech Solutions Ltd
+
+Bad example (many sites do this):
+
+Home | Thorn Tech Solutions Ltd
+
+Google needs keywords + location.
+
+4. Meta Descriptions
+
+Every page should have a description like:
+
+Professional PC and laptop repair in Sutton Bridge. Virus removal, screen repair, upgrades and IT support. Fast affordable service.
+
+Google uses this to show your site in results.
+
+5. Google Business Profile (HUGE FOR LOCAL SEO)
+
+If you don’t have this yet, it’s the #1 ranking factor.
+
+Create a listing on:
+
+Google Business Profile
+
+Add:
+
+Address
+
+phone
+
+opening hours
+
+photos
+
+services
+
+website link
+
+Your business already appears on directories like Yell.
+But Google Maps listings drive most local traffic.
+
+6. Backlinks (Authority)
+
+Google ranks sites higher when other websites link to them.
+
+Right now you likely have very few backlinks.
+
+Create listings on:
+
+Trustpilot
+
+Yelp
+
+Facebook page
+
+LinkedIn company page
+
+Bing Places
+
+Checkatrade
+
+Nextdoor
+
+You already have a Trustpilot listing, which helps credibility.
+
+But you need 20–50 backlinks minimum.
+
+7. Reviews (Local ranking signal)
+
+You currently have almost no reviews online.
+
+Google strongly ranks businesses with:
+
+10+
+
+20+
+
+50+
+
+Ask customers to review you on:
+
+Google
+
+Trustpilot
+
+Facebook
+
+Even 10 reviews can dramatically boost ranking.
+
+8. Website Speed
+
+Google penalises slow sites.
+
+Check your site with:
+
+PageSpeed Insights
+
+Common fixes:
+
+compress images
+
+enable caching
+
+optimise mobile layout
+
+9. Local Keywords
+
+Your content should include keywords like:
+
+computer repair Sutton Bridge
+laptop repair Lincolnshire
+pc repair near me
+virus removal Sutton Bridge
+
+These must appear naturally in your text.
+
+10. Competitor SEO
+
+Local competitors likely rank because they have:
+
+20–40 pages
+
+Google reviews
+
+directory listings
+
+years of trust
+
+Your site is new, so you need to build authority quickly.
+
+Your Current SEO Score (Estimated)
+Category	Score
+Indexing	3/10
+Content	4/10
+Backlinks	2/10
+Local SEO	3/10
+Reviews	2/10
+Technical SEO	5/10
+
+Overall:
+⭐ 3.5 / 10
+
+But that is normal for a new website.
+
+What Will Get You Into Top 20 Fast
+
+Do these 5 things:
+
+1️⃣ Google Business Profile
+2️⃣ 10 customer reviews
+3️⃣ 10 service pages
+4️⃣ 20 directory backlinks
+5️⃣ Submit sitemap to Google
+
+If done properly you could reach top 20 in 4–8 weeks.

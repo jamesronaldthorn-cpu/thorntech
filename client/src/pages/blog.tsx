@@ -72,7 +72,7 @@ function renderContent(content: string) {
 }
 
 export function BlogListPage() {
-  usePageTitle("Blog");
+  usePageTitle("PC Hardware Blog | Tech News & Guides", "Read the latest PC hardware news, buying guides, and tech tips from Thorn Tech Solutions Ltd. Stay up to date with CPUs, GPUs, and gaming PC trends.");
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
 

@@ -30,7 +30,10 @@ export default function CategoryPage() {
 
   const { filters, setFilters, filtered, availableBrands, priceRange, activeCount, clearAll } = useProductFilters(products);
 
-  usePageTitle(category ? `${category.name} - Buy Online UK` : undefined);
+  usePageTitle(
+    category ? `Buy ${category.name} Online UK` : undefined,
+    category ? `Shop ${category.name} at Thorn Tech Solutions Ltd. Browse our range of ${category.name?.toLowerCase()} from top brands at competitive UK prices. Fast 1-3 day delivery, free over £200.` : undefined
+  );
 
   const isLoading = catLoading || prodsLoading;
 

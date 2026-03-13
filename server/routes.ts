@@ -34,6 +34,8 @@ function generateSitemapXml(products: Product[], categories: Category[], siteUrl
     `  <url><loc>${siteUrl}/</loc><changefreq>daily</changefreq><priority>1.0</priority><lastmod>${now}</lastmod></url>`,
     `  <url><loc>${siteUrl}/returns</loc><changefreq>monthly</changefreq><priority>0.5</priority><lastmod>${now}</lastmod></url>`,
     `  <url><loc>${siteUrl}/privacy</loc><changefreq>monthly</changefreq><priority>0.5</priority><lastmod>${now}</lastmod></url>`,
+    `  <url><loc>${siteUrl}/contact</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>${now}</lastmod></url>`,
+    `  <url><loc>${siteUrl}/about</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>${now}</lastmod></url>`,
     ...categories.map(c => `  <url><loc>${siteUrl}/category/${c.slug}</loc><changefreq>daily</changefreq><priority>0.8</priority><lastmod>${now}</lastmod></url>`),
     ...products.map(p => `  <url><loc>${siteUrl}/product/${p.slug}</loc><changefreq>weekly</changefreq><priority>0.6</priority><lastmod>${now}</lastmod></url>`),
   ];

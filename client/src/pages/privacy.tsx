@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import { usePageTitle } from "@/components/SEO";
 
 export default function PrivacyPage() {
-  usePageTitle("Privacy Policy");
+  usePageTitle("Privacy Policy", "Thorn Tech Solutions Ltd privacy policy. Learn how we handle your personal data, cookies, and payment information in compliance with GDPR and UK data protection law.");
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       <NavBar />

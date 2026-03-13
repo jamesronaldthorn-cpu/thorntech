@@ -1,26 +1,32 @@
 import { useEffect } from "react";
 
-interface SEOProps {
-  title?: string;
-  description?: string;
-}
-
-export function usePageTitle(title?: string) {
+export function usePageTitle(title?: string, description?: string) {
   useEffect(() => {
     const base = "Thorn Tech Solutions Ltd";
-    document.title = title ? `${title} | ${base}` : `${base} | PC Components & Hardware | UK`;
+    document.title = title ? `${title} | ${base}` : `Buy PC Components Online UK | ${base}`;
+
+    if (description) {
+      let meta = document.querySelector('meta[name="description"]') as HTMLMetaElement;
+      if (!meta) {
+        meta = document.createElement("meta");
+        meta.name = "description";
+        document.head.appendChild(meta);
+      }
+      meta.content = description;
+    }
+
     return () => {
-      document.title = `${base} | PC Components & Hardware | UK`;
+      document.title = `Buy PC Components Online UK | ${base}`;
     };
-  }, [title]);
+  }, [title, description]);
 }
 
-export function ProductJsonLd({ product, category }: { product: { name: string; description?: string | null; price: number; image?: string | null; inStock: boolean; slug: string; vendor?: string | null }; category?: string }) {
+export function ProductJsonLd({ product, category }: { product: { name: string; description?: string | null; price: number; image?: string | null; inStock: boolean; slug: string; vendor?: string | null; mpn?: string | null; ean?: string | null }; category?: string }) {
   useEffect(() => {
     const script = document.createElement("script");
     script.type = "application/ld+json";
     script.id = "product-jsonld";
-    script.textContent = JSON.stringify({
+    const data: any = {
       "@context": "https://schema.org",
       "@type": "Product",
       "name": product.name,
@@ -37,6 +43,7 @@ export function ProductJsonLd({ product, category }: { product: { name: string; 
         "price": product.price.toFixed(2),
         "priceCurrency": "GBP",
         "availability": product.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+        "itemCondition": "https://schema.org/NewCondition",
         "seller": {
           "@type": "Organization",
           "name": "Thorn Tech Solutions Ltd"
@@ -46,6 +53,11 @@ export function ProductJsonLd({ product, category }: { product: { name: string; 
           "shippingDestination": {
             "@type": "DefinedRegion",
             "addressCountry": "GB"
+          },
+          "shippingRate": {
+            "@type": "MonetaryAmount",
+            "value": product.price >= 200 ? "0.00" : "7.99",
+            "currency": "GBP"
           },
           "deliveryTime": {
             "@type": "ShippingDeliveryTime",
@@ -60,7 +72,10 @@ export function ProductJsonLd({ product, category }: { product: { name: string; 
           "returnMethod": "https://schema.org/ReturnByMail"
         }
       }
-    });
+    };
+    if (product.mpn) data.mpn = product.mpn;
+    if (product.ean) data.gtin13 = product.ean;
+    script.textContent = JSON.stringify(data);
     const existing = document.getElementById("product-jsonld");
     if (existing) existing.remove();
     document.head.appendChild(script);
@@ -113,6 +128,32 @@ export function ItemListJsonLd({ products }: { products: any[] }) {
     document.head.appendChild(script);
     return () => { script.remove(); };
   }, [products]);
+
+  return null;
+}
+
+export function FAQJsonLd({ faqs }: { faqs: { question: string; answer: string }[] }) {
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.id = "faq-jsonld";
+    script.textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": faqs.map(faq => ({
+        "@type": "Question",
+        "name": faq.question,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": faq.answer
+        }
+      }))
+    });
+    const existing = document.getElementById("faq-jsonld");
+    if (existing) existing.remove();
+    document.head.appendChild(script);
+    return () => { script.remove(); };
+  }, [faqs]);
 
   return null;
 }

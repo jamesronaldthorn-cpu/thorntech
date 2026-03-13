@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import { usePageTitle } from "@/components/SEO";
 
 export default function ReturnsPage() {
-  usePageTitle("Returns & Warranty Policy");
+  usePageTitle("Returns & Warranty Policy", "Thorn Tech Solutions Ltd returns policy. 30-day returns on PC components under the UK Consumer Rights Act 2015. Full manufacturer warranty on all products.");
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
       <NavBar />

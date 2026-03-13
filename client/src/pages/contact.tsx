@@ -9,7 +9,7 @@ import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 
 export default function ContactPage() {
-  usePageTitle("Contact Us");
+  usePageTitle("Contact Us | PC Components Help & Support", "Contact Thorn Tech Solutions Ltd for PC component enquiries, order support, and technical help. Call 07868 552028 or email thorntech@hotmail.com. UK-based customer service.");
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
   const [sent, setSent] = useState(false);
 

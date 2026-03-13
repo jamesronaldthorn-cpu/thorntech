@@ -119,7 +119,10 @@ export default function ProductPage() {
   const category = product ? catMap.get(product.categoryId ?? 0) : undefined;
   const relatedProducts = product ? allProducts.filter(p => p.categoryId === product.categoryId && p.id !== product.id).slice(0, 4) : [];
 
-  usePageTitle(product ? `${product.name} - Buy Online` : undefined);
+  usePageTitle(
+    product ? `${product.name} - Buy Online UK` : undefined,
+    product ? `Buy ${product.name} online at Thorn Tech Solutions Ltd. ${product.inStock ? "In stock" : "Currently out of stock"}. ${product.price ? `£${product.price.toFixed(2)} inc. VAT.` : ""} Fast UK delivery, secure checkout.` : undefined
+  );
 
   if (isLoading) {
     return (
