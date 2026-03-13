@@ -50,12 +50,14 @@ A fully functional e-commerce store for Thorn Tech Solutions Ltd (Company Reg: 1
 ## Product Enrichment
 - `server/productEnricher.ts` — Scrapes 7 UK retailer sites + 3 image search engines for specs, features, images, descriptions
 - **Retailer sources**: Scan.co.uk, CCL Online, eBuyer, Overclockers UK, Box.co.uk, Novatech, Lambda-tek
-- **Image sources**: Amazon (primary, high-res _AC_SL1500_), DuckDuckGo images, Google image search (fallback)
-- **Image extraction**: Regular img tags, data-src lazy loading, data-zoom-image/data-large/data-full hi-res, srcset 2x variants, Open Graph/Twitter Card images, JSON-LD structured data images
+- **Manufacturer sources** (priority 1): Corsair, MSI, Gigabyte, ASUS, NZXT, EVGA, Kingston, Samsung, Crucial, Noctua, Cooler Master, be quiet!, Seasonic, WD, AMD, Intel, Fractal Design, Thermaltake, Arctic, Lian Li, Phanteks, G.Skill, Seagate
+- **Image sources**: Manufacturer sites (first), Amazon (high-res _AC_SL1500_), UK retailers, DuckDuckGo, Google images (fallback)
+- **Image extraction**: img tags, data-src lazy loading, data-zoom-image/data-large/data-full hi-res, srcset 2x, Open Graph/Twitter Card, JSON-LD structured data images
+- Collects up to 15 images per product across all sources
+- Product page: large 500px image gallery with click-to-zoom lightbox, thumbnail strip, image counter
 - Stores enriched data in: specs (JSON), features (JSON array), images (JSON array of URLs)
-- Admin panel has: "Enrich Products" (batch), "Re-enrich Low Specs" (resets products with <3 specs), "Upgrade Image Quality" (SL500→SL1500), "Reset All", "Clear Bad Images", "Pull Missing Images", "Tag Sources"
+- Admin panel has: "Enrich Products" (batch), "Re-enrich Low Specs", "Upgrade Image Quality", "Reset All", "Clear Bad Images", "Pull Missing Images", "Tag Sources"
 - Tracks progress across batches (continues from where it left off)
-- Product page displays: image gallery (max 550px), key features, full specs table, description fallback
 - `source` field on products tracks wholesaler origin (VIP Computers, feed name, etc.)
 
 ## Price Matching

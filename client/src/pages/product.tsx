@@ -28,14 +28,15 @@ function ImageGallery({ product, imgError, setImgError }: { product: Product; im
 
   const [selected, setSelected] = useState(0);
   const [thumbErrors, setThumbErrors] = useState<Set<number>>(new Set());
+  const [zoomed, setZoomed] = useState(false);
 
   const validImages = allImages.filter((_, i) => !thumbErrors.has(i));
 
   if (validImages.length === 0) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-2xl">
+      <div className="w-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-2xl" style={{ minHeight: "400px" }}>
         <div className="text-primary/30 mb-4">
-          <Box className="w-20 h-20" />
+          <Box className="w-24 h-24" />
         </div>
         {product.vendor && (
           <span className="text-sm uppercase tracking-[0.2em] text-white/25 font-display">{product.vendor}</span>
@@ -47,51 +48,125 @@ function ImageGallery({ product, imgError, setImgError }: { product: Product; im
   const activeIdx = Math.min(selected, validImages.length - 1);
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="w-[280px] h-[280px] bg-white rounded-2xl border border-white/10 flex items-center justify-center relative overflow-hidden mx-auto">
-        {product.badge && (
-          <div className={`absolute top-4 left-4 z-10 text-sm font-bold px-3 py-1 rounded ${product.badge === "Sale" ? "bg-red-600" : "bg-primary"} text-white`}>{product.badge}</div>
-        )}
-        <img
-          src={validImages[activeIdx]}
-          alt={product.name}
-          className="max-w-[240px] max-h-[240px] object-contain product-image"
-          onError={() => {
-            if (activeIdx === 0 && allImages[0] === product.image) setImgError(true);
-            setThumbErrors(prev => new Set(prev).add(allImages.indexOf(validImages[activeIdx])));
-          }}
-        />
+    <>
+      <div className="flex flex-col gap-3 w-full">
+        <div
+          className="w-full bg-white rounded-2xl border border-white/10 flex items-center justify-center relative overflow-hidden cursor-zoom-in"
+          style={{ aspectRatio: "1", maxWidth: "500px", margin: "0 auto" }}
+          onClick={() => setZoomed(true)}
+          data-testid="image-gallery-main"
+        >
+          {product.badge && (
+            <div className={`absolute top-4 left-4 z-10 text-sm font-bold px-3 py-1 rounded ${product.badge === "Sale" ? "bg-red-600" : "bg-primary"} text-white`}>{product.badge}</div>
+          )}
+          <img
+            src={validImages[activeIdx]}
+            alt={product.name}
+            className="max-w-[90%] max-h-[90%] object-contain product-image"
+            onError={() => {
+              if (activeIdx === 0 && allImages[0] === product.image) setImgError(true);
+              setThumbErrors(prev => new Set(prev).add(allImages.indexOf(validImages[activeIdx])));
+            }}
+          />
+          {validImages.length > 1 && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); setSelected(s => (s - 1 + validImages.length) % validImages.length); }}
+                className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white rounded-full p-2 transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setSelected(s => (s + 1) % validImages.length); }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white rounded-full p-2 transition-colors"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </>
+          )}
+          <div className="absolute bottom-3 right-3 bg-black/50 text-white/70 text-xs px-2 py-1 rounded flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
+            Click to zoom
+          </div>
+        </div>
+
         {validImages.length > 1 && (
-          <>
-            <button
-              onClick={() => setSelected(s => (s - 1 + validImages.length) % validImages.length)}
-              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setSelected(s => (s + 1) % validImages.length)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </>
+          <div className="flex gap-2 overflow-x-auto pb-1 px-1 justify-center flex-wrap" style={{ maxWidth: "500px", margin: "0 auto" }}>
+            {validImages.map((img, i) => (
+              <button
+                key={i}
+                onClick={() => setSelected(i)}
+                className={`w-[72px] h-[72px] rounded-lg border-2 overflow-hidden shrink-0 bg-white ${i === activeIdx ? "border-primary shadow-lg shadow-primary/20" : "border-white/10 hover:border-white/30"} transition-all`}
+                data-testid={`thumb-image-${i}`}
+              >
+                <img src={img} alt="" className="w-full h-full object-contain p-1" onError={() => setThumbErrors(prev => new Set(prev).add(allImages.indexOf(img)))} />
+              </button>
+            ))}
+          </div>
+        )}
+
+        {validImages.length > 1 && (
+          <p className="text-center text-xs text-muted-foreground">{validImages.length} images available — {activeIdx + 1} of {validImages.length}</p>
         )}
       </div>
-      {validImages.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {validImages.map((img, i) => (
-            <button
-              key={i}
-              onClick={() => setSelected(i)}
-              className={`w-16 h-16 rounded-lg border-2 overflow-hidden shrink-0 bg-white ${i === activeIdx ? "border-primary" : "border-white/10 hover:border-white/30"} transition-colors`}
-            >
-              <img src={img} alt="" className="w-full h-full object-contain p-1" onError={() => setThumbErrors(prev => new Set(prev).add(allImages.indexOf(img)))} />
-            </button>
-          ))}
+
+      {zoomed && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center cursor-zoom-out"
+          onClick={() => setZoomed(false)}
+          data-testid="image-lightbox"
+        >
+          <button
+            onClick={() => setZoomed(false)}
+            className="absolute top-4 right-4 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-colors z-10"
+          >
+            <XCircle className="w-8 h-8" />
+          </button>
+
+          {validImages.length > 1 && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); setSelected(s => (s - 1 + validImages.length) % validImages.length); }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white rounded-full p-3 transition-colors z-10"
+              >
+                <ChevronLeft className="w-8 h-8" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setSelected(s => (s + 1) % validImages.length); }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white rounded-full p-3 transition-colors z-10"
+              >
+                <ChevronRight className="w-8 h-8" />
+              </button>
+            </>
+          )}
+
+          <img
+            src={validImages[activeIdx]}
+            alt={product.name}
+            className="max-w-[90vw] max-h-[85vh] object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          {validImages.length > 1 && (
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 bg-black/60 px-4 py-2 rounded-full">
+              {validImages.map((img, i) => (
+                <button
+                  key={i}
+                  onClick={(e) => { e.stopPropagation(); setSelected(i); }}
+                  className={`w-12 h-12 rounded border-2 overflow-hidden bg-white ${i === activeIdx ? "border-primary" : "border-transparent hover:border-white/40"} transition-all`}
+                >
+                  <img src={img} alt="" className="w-full h-full object-contain p-0.5" />
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white/60 text-sm">
+            {activeIdx + 1} / {validImages.length}
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -213,7 +288,7 @@ export default function ProductPage() {
       </div>
 
       <section className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-[500px_1fr] gap-10">
           <ImageGallery product={product} imgError={imgError} setImgError={setImgError} />
 
           <div className="flex flex-col">

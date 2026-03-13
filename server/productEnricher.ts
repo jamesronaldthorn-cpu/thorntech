@@ -885,6 +885,204 @@ async function fetchGoogleShoppingImage(searchTerm: string): Promise<string[]> {
   }
 }
 
+const MANUFACTURER_SITES: Record<string, { searchUrl: (q: string) => string; productLinkPattern: RegExp; baseUrl: string }> = {
+  "corsair": {
+    searchUrl: (q) => `https://www.corsair.com/uk/en/search?query=${encodeURIComponent(q)}&start=0&sz=12`,
+    productLinkPattern: /href="(\/uk\/en\/p\/[^"#]+)"/gi,
+    baseUrl: "https://www.corsair.com",
+  },
+  "msi": {
+    searchUrl: (q) => `https://www.msi.com/search/${encodeURIComponent(q)}`,
+    productLinkPattern: /href="(\/[A-Z][^"#]*\/[^"#]+\.html)"/gi,
+    baseUrl: "https://www.msi.com",
+  },
+  "gigabyte": {
+    searchUrl: (q) => `https://www.gigabyte.com/uk/search?keyword=${encodeURIComponent(q)}`,
+    productLinkPattern: /href="(\/uk\/[^"#]+\/[^"#]+)"/gi,
+    baseUrl: "https://www.gigabyte.com",
+  },
+  "asus": {
+    searchUrl: (q) => `https://www.asus.com/uk/searchresult?searchType=products&searchKey=${encodeURIComponent(q)}`,
+    productLinkPattern: /href="(\/uk\/[^"#]+\/[^"#]+\/)"/gi,
+    baseUrl: "https://www.asus.com",
+  },
+  "nzxt": {
+    searchUrl: (q) => `https://nzxt.com/collection/search?q=${encodeURIComponent(q)}`,
+    productLinkPattern: /href="(\/product\/[^"#]+)"/gi,
+    baseUrl: "https://nzxt.com",
+  },
+  "evga": {
+    searchUrl: (q) => `https://www.evga.com/products/productlist.aspx?type=0&keyword=${encodeURIComponent(q)}`,
+    productLinkPattern: /href="(\/products\/product\.aspx[^"#]+)"/gi,
+    baseUrl: "https://www.evga.com",
+  },
+  "kingston": {
+    searchUrl: (q) => `https://www.kingston.com/unitedkingdom/en/search?DeviceType=19&term=${encodeURIComponent(q)}`,
+    productLinkPattern: /href="(\/unitedkingdom\/en\/[^"#]+)"/gi,
+    baseUrl: "https://www.kingston.com",
+  },
+  "samsung": {
+    searchUrl: (q) => `https://www.samsung.com/uk/search/?searchvalue=${encodeURIComponent(q)}`,
+    productLinkPattern: /href="(\/uk\/[^"#]+\/[^"#]+\/)"/gi,
+    baseUrl: "https://www.samsung.com",
+  },
+  "crucial": {
+    searchUrl: (q) => `https://www.crucial.com/search?query=${encodeURIComponent(q)}`,
+    productLinkPattern: /href="(\/[a-z]+\/[^"#]+)"/gi,
+    baseUrl: "https://www.crucial.com",
+  },
+  "noctua": {
+    searchUrl: (q) => `https://noctua.at/en/search?q=${encodeURIComponent(q)}`,
+    productLinkPattern: /href="(\/en\/[^"#]+\.html)"/gi,
+    baseUrl: "https://noctua.at",
+  },
+  "cooler master": {
+    searchUrl: (q) => `https://www.coolermaster.com/uk/en-gb/catalog/?q=${encodeURIComponent(q)}`,
+    productLinkPattern: /href="(\/uk\/en-gb\/[^"#]+)"/gi,
+    baseUrl: "https://www.coolermaster.com",
+  },
+  "be quiet!": {
+    searchUrl: (q) => `https://www.bequiet.com/en/search/${encodeURIComponent(q)}`,
+    productLinkPattern: /href="(\/en\/[^"#]+\/[^"#]+)"/gi,
+    baseUrl: "https://www.bequiet.com",
+  },
+  "seasonic": {
+    searchUrl: (q) => `https://seasonic.com/?s=${encodeURIComponent(q)}`,
+    productLinkPattern: /href="(https:\/\/seasonic\.com\/[^"#]+)"/gi,
+    baseUrl: "https://seasonic.com",
+  },
+  "western digital": {
+    searchUrl: (q) => `https://www.westerndigital.com/en-gb/search#q=${encodeURIComponent(q)}`,
+    productLinkPattern: /href="(\/en-gb\/products\/[^"#]+)"/gi,
+    baseUrl: "https://www.westerndigital.com",
+  },
+  "amd": {
+    searchUrl: (q) => `https://www.amd.com/en/search.html#q=${encodeURIComponent(q)}`,
+    productLinkPattern: /href="(\/en\/products\/[^"#]+)"/gi,
+    baseUrl: "https://www.amd.com",
+  },
+  "intel": {
+    searchUrl: (q) => `https://www.intel.co.uk/content/www/uk/en/search.html#q=${encodeURIComponent(q)}`,
+    productLinkPattern: /href="(\/content\/www\/uk\/en\/products\/[^"#]+)"/gi,
+    baseUrl: "https://www.intel.co.uk",
+  },
+  "fractal design": {
+    searchUrl: (q) => `https://www.fractal-design.com/search/?q=${encodeURIComponent(q)}`,
+    productLinkPattern: /href="(\/products\/[^"#]+)"/gi,
+    baseUrl: "https://www.fractal-design.com",
+  },
+  "thermaltake": {
+    searchUrl: (q) => `https://uk.thermaltake.com/catalogsearch/result/?q=${encodeURIComponent(q)}`,
+    productLinkPattern: /href="(https:\/\/uk\.thermaltake\.com\/[^"#]+\.html)"/gi,
+    baseUrl: "https://uk.thermaltake.com",
+  },
+  "arctic": {
+    searchUrl: (q) => `https://www.arctic.de/en/search?q=${encodeURIComponent(q)}`,
+    productLinkPattern: /href="(\/en\/[^"#]+)"/gi,
+    baseUrl: "https://www.arctic.de",
+  },
+  "lian li": {
+    searchUrl: (q) => `https://lian-li.com/?s=${encodeURIComponent(q)}`,
+    productLinkPattern: /href="(https:\/\/lian-li\.com\/product\/[^"#]+)"/gi,
+    baseUrl: "https://lian-li.com",
+  },
+  "phanteks": {
+    searchUrl: (q) => `https://www.phanteks.com/search?q=${encodeURIComponent(q)}`,
+    productLinkPattern: /href="(\/[^"#]+)"/gi,
+    baseUrl: "https://www.phanteks.com",
+  },
+  "g.skill": {
+    searchUrl: (q) => `https://www.gskill.com/search?keyword=${encodeURIComponent(q)}`,
+    productLinkPattern: /href="(\/product\/[^"#]+)"/gi,
+    baseUrl: "https://www.gskill.com",
+  },
+  "seagate": {
+    searchUrl: (q) => `https://www.seagate.com/gb/en/search/?q=${encodeURIComponent(q)}`,
+    productLinkPattern: /href="(\/gb\/en\/[^"#]+)"/gi,
+    baseUrl: "https://www.seagate.com",
+  },
+};
+
+async function fetchManufacturerImages(vendor: string, productName: string, mpn?: string): Promise<EnrichmentData | null> {
+  const vendorLower = vendor.toLowerCase().replace(/\s+/g, " ").trim();
+  const config = MANUFACTURER_SITES[vendorLower];
+  if (!config) return null;
+
+  const searchTerm = mpn && mpn.length > 3 ? mpn : productName.substring(0, 60);
+
+  console.log(`[Enricher]   Trying manufacturer site (${vendor}): "${searchTerm}"`);
+
+  try {
+    const searchHtml = await fetchPage(config.searchUrl(searchTerm));
+    if (!searchHtml) return null;
+
+    const data: EnrichmentData = {};
+
+    const ogImages = extractOgImages(searchHtml);
+    if (ogImages.length > 0) {
+      data.images = ogImages;
+      data.image = ogImages[0];
+    }
+
+    const productLinks: string[] = [];
+    let match;
+    const regex = new RegExp(config.productLinkPattern.source, config.productLinkPattern.flags);
+    while ((match = regex.exec(searchHtml)) !== null) {
+      let link = match[1];
+      if (link.includes("/search") || link.includes("/category") || link.includes("/cart") || link.includes("/login") || link.includes("/account")) continue;
+      if (!productLinks.includes(link) && productLinks.length < 2) {
+        productLinks.push(link);
+      }
+    }
+
+    for (const link of productLinks) {
+      await delay(1500);
+      const fullUrl = link.startsWith("http") ? link : `${config.baseUrl}${link}`;
+      const page = await fetchPage(fullUrl);
+      if (!page) continue;
+
+      const specs = extractSpecs(page);
+      if (Object.keys(specs).length > 0) data.specs = { ...data.specs, ...specs };
+
+      const features = extractFeatures(page);
+      if (features.length > 0) data.features = [...(data.features || []), ...features];
+
+      const images = extractImages(page, config.baseUrl);
+      const pageOgImages = extractOgImages(page);
+      const allImages = [...images, ...pageOgImages].filter(img =>
+        !img.includes("logo") && !img.includes("icon") && !img.includes("favicon") && !img.includes("banner")
+      );
+      if (allImages.length > 0) {
+        data.images = [...new Set([...(data.images || []), ...allImages])].slice(0, 15);
+        if (!data.image) data.image = data.images[0];
+      }
+
+      const metaDesc = page.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
+      if (metaDesc && metaDesc[1].length > 30) {
+        data.description = metaDesc[1].trim();
+      }
+
+      if (data.images && data.images.length >= 3) break;
+    }
+
+    if (data.features) data.features = [...new Set(data.features)].slice(0, 12);
+
+    const hasData = (data.specs && Object.keys(data.specs).length > 0) ||
+      (data.features && data.features.length > 0) ||
+      (data.images && data.images.length > 0) ||
+      data.description;
+
+    if (hasData) {
+      console.log(`[Enricher]   Manufacturer (${vendor}): ${(data.images || []).length} images, ${Object.keys(data.specs || {}).length} specs, ${(data.features || []).length} features`);
+    }
+
+    return hasData ? data : null;
+  } catch (e: any) {
+    console.log(`[Enricher]   Manufacturer (${vendor}) error: ${e.message}`);
+    return null;
+  }
+}
+
 async function fetchAmazonImages(searchTerm: string, _category?: string): Promise<string[]> {
   const url = `https://www.amazon.co.uk/s?k=${encodeURIComponent(searchTerm)}`;
   const html = await fetchPage(url);
@@ -946,13 +1144,27 @@ async function enrichProduct(name: string, vendor?: string, mpn?: string, catego
 
   const data: EnrichmentData = {};
 
+  if (vendor) {
+    const mfgData = await fetchManufacturerImages(vendor, shortName, mpn);
+    if (mfgData) {
+      if (mfgData.images && mfgData.images.length > 0) {
+        data.images = mfgData.images;
+        data.image = mfgData.images[0];
+      }
+      if (mfgData.specs && Object.keys(mfgData.specs).length > 0) data.specs = mfgData.specs;
+      if (mfgData.features && mfgData.features.length > 0) data.features = mfgData.features;
+      if (mfgData.description) data.description = mfgData.description;
+    }
+    await delay(2000);
+  }
+
   for (const term of searchTerms) {
     console.log(`[Enricher]   Trying Amazon images: "${term}"`);
     const amazonImages = await fetchAmazonImages(term);
     if (amazonImages.length > 0) {
-      data.images = amazonImages;
-      data.image = amazonImages[0];
-      console.log(`[Enricher]   Found ${amazonImages.length} Amazon images`);
+      data.images = [...new Set([...(data.images || []), ...amazonImages])].slice(0, 15);
+      if (!data.image) data.image = amazonImages[0];
+      console.log(`[Enricher]   Found ${amazonImages.length} Amazon images (total: ${data.images.length})`);
       break;
     }
     await delay(3000);
@@ -970,20 +1182,22 @@ async function enrichProduct(name: string, vendor?: string, mpn?: string, catego
 
   for (const term of searchTerms) {
     for (const source of retailerSources) {
-      if (data.specs && Object.keys(data.specs).length >= 5 && data.images && data.images.length >= 2) break;
+      const hasEnoughSpecs = data.specs && Object.keys(data.specs).length >= 8;
+      const hasEnoughImages = data.images && data.images.length >= 8;
+      if (hasEnoughSpecs && hasEnoughImages) break;
 
       console.log(`[Enricher]   Trying ${source.name}: "${term}"`);
       try {
         const result = await source.fn(term);
         if (result) {
           if (result.specs && Object.keys(result.specs).length > 0) data.specs = { ...data.specs, ...result.specs };
-          if (result.features && result.features.length > 0) data.features = [...new Set([...(data.features || []), ...result.features])].slice(0, 15);
+          if (result.features && result.features.length > 0) data.features = [...new Set([...(data.features || []), ...result.features])].slice(0, 20);
           if (result.description && !data.description) data.description = result.description;
           if (result.images && result.images.length > 0) {
-            data.images = [...new Set([...(data.images || []), ...result.images])].slice(0, 10);
+            data.images = [...new Set([...(data.images || []), ...result.images])].slice(0, 15);
             if (!data.image) data.image = data.images[0];
           }
-          console.log(`[Enricher]   ${source.name} found: ${Object.keys(result.specs || {}).length} specs, ${(result.features || []).length} features, ${(result.images || []).length} images`);
+          console.log(`[Enricher]   ${source.name} found: ${Object.keys(result.specs || {}).length} specs, ${(result.features || []).length} features, ${(result.images || []).length} images (total images: ${(data.images || []).length})`);
         }
       } catch (e: any) {
         console.log(`[Enricher]   ${source.name} error: ${e.message}`);
@@ -991,28 +1205,28 @@ async function enrichProduct(name: string, vendor?: string, mpn?: string, catego
       await delay(1500);
     }
 
-    if (data.specs && Object.keys(data.specs).length >= 3) break;
+    if (data.specs && Object.keys(data.specs).length >= 5) break;
   }
 
-  if (!data.images || data.images.length === 0) {
+  if (!data.images || data.images.length < 3) {
     for (const term of searchTerms) {
       console.log(`[Enricher]   Trying DuckDuckGo images: "${term}"`);
       const ddgImages = await fetchDuckDuckGoImages(term);
       if (ddgImages.length > 0) {
-        data.images = ddgImages;
-        data.image = ddgImages[0];
-        console.log(`[Enricher]   DuckDuckGo found ${ddgImages.length} images`);
-        break;
+        data.images = [...new Set([...(data.images || []), ...ddgImages])].slice(0, 15);
+        if (!data.image) data.image = ddgImages[0];
+        console.log(`[Enricher]   DuckDuckGo found ${ddgImages.length} images (total: ${data.images.length})`);
+        if (data.images.length >= 4) break;
       }
       await delay(2000);
 
       console.log(`[Enricher]   Trying Google image search: "${term}"`);
       const googleImages = await fetchGoogleShoppingImage(term);
       if (googleImages.length > 0) {
-        data.images = googleImages;
-        data.image = googleImages[0];
-        console.log(`[Enricher]   Google found ${googleImages.length} images`);
-        break;
+        data.images = [...new Set([...(data.images || []), ...googleImages])].slice(0, 15);
+        if (!data.image) data.image = googleImages[0];
+        console.log(`[Enricher]   Google found ${googleImages.length} images (total: ${data.images.length})`);
+        if (data.images.length >= 4) break;
       }
       await delay(2000);
     }
@@ -1183,17 +1397,27 @@ export async function pullMissingImages(): Promise<{ updated: number; skipped: n
       if (product.mpn && product.mpn.length > 3) searchTerms.push(product.mpn);
 
       let foundImages: string[] = [];
+
+      if (product.vendor) {
+        const mfgData = await fetchManufacturerImages(product.vendor, product.name, product.mpn || undefined);
+        if (mfgData?.images && mfgData.images.length > 0) {
+          foundImages = mfgData.images;
+          console.log(`[PullImages] Manufacturer (${product.vendor}) found ${mfgData.images.length} for: ${product.name}`);
+        }
+        await delay(2000);
+      }
+
       for (const term of searchTerms) {
         const amazonImgs = await fetchAmazonImages(term);
         if (amazonImgs.length > 0) {
-          foundImages = amazonImgs;
-          console.log(`[PullImages] Amazon found ${amazonImgs.length} for: ${product.name}`);
+          foundImages = [...new Set([...foundImages, ...amazonImgs])].slice(0, 15);
+          console.log(`[PullImages] Amazon found ${amazonImgs.length} for: ${product.name} (total: ${foundImages.length})`);
           break;
         }
         await delay(3000);
       }
 
-      if (foundImages.length === 0) {
+      if (foundImages.length < 4) {
         for (const term of searchTerms) {
           const retailerFns: Array<{ name: string; fn: (t: string) => Promise<EnrichmentData | null> }> = [
             { name: "Scan", fn: enrichFromScan },
@@ -1207,23 +1431,23 @@ export async function pullMissingImages(): Promise<{ updated: number; skipped: n
             try {
               const result = await source.fn(term);
               if (result?.images && result.images.length > 0) {
-                foundImages = result.images;
-                console.log(`[PullImages] ${source.name} found ${result.images.length} for: ${product.name}`);
-                break;
+                foundImages = [...new Set([...foundImages, ...result.images])].slice(0, 15);
+                console.log(`[PullImages] ${source.name} found ${result.images.length} for: ${product.name} (total: ${foundImages.length})`);
+                if (foundImages.length >= 6) break;
               }
             } catch {}
             await delay(1500);
           }
-          if (foundImages.length > 0) break;
+          if (foundImages.length >= 4) break;
         }
       }
 
-      if (foundImages.length === 0) {
+      if (foundImages.length < 2) {
         for (const term of searchTerms) {
           const ddgImgs = await fetchDuckDuckGoImages(term);
           if (ddgImgs.length > 0) {
-            foundImages = ddgImgs;
-            console.log(`[PullImages] DuckDuckGo found ${ddgImgs.length} for: ${product.name}`);
+            foundImages = [...new Set([...foundImages, ...ddgImgs])].slice(0, 15);
+            console.log(`[PullImages] DuckDuckGo found ${ddgImgs.length} for: ${product.name} (total: ${foundImages.length})`);
             break;
           }
           await delay(2000);
@@ -1235,7 +1459,7 @@ export async function pullMissingImages(): Promise<{ updated: number; skipped: n
         await storage.updateProduct(product.id, updates);
         updated++;
         pullImageProgress.updated = updated;
-        console.log(`[PullImages] ${pullImageProgress.current}/${needImages.length}: ${product.name} → ${foundImages[0]}`);
+        console.log(`[PullImages] ${pullImageProgress.current}/${needImages.length}: ${product.name} → ${foundImages.length} images`);
       } else {
         skipped++;
         pullImageProgress.skipped = skipped;
