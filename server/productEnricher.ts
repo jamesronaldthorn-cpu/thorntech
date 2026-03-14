@@ -1152,6 +1152,42 @@ async function fetchProductImageByName(name: string, vendor?: string): Promise<s
   return [];
 }
 
+function validateImageRelevance(productName: string, vendor: string | undefined, imageUrl: string): boolean {
+  const imgLower = imageUrl.toLowerCase();
+  const nameLower = productName.toLowerCase();
+  const nameWords = nameLower.split(/[\s\-_\/,]+/).filter(w => w.length > 2);
+  const vendorLower = vendor?.toLowerCase() || "";
+
+  const genericBadPatterns = [
+    "no-image", "placeholder", "default", "coming-soon", "noimage",
+    "not-available", "image-not", "unavailable", "broken",
+    "logo", "icon", "sprite", "pixel", "1x1", "tracking", "avatar",
+    "banner", "promo", "advertisement", "newsletter", "social-media"
+  ];
+  if (genericBadPatterns.some(p => imgLower.includes(p))) return false;
+
+  if (imgLower.includes("media-amazon.com") || imgLower.includes("vip-computers.com")) return true;
+  if (vendorLower && imgLower.includes(vendorLower.replace(/\s+/g, ""))) return true;
+
+  const productCategory = detectProductCategory(nameLower);
+  const categoryConflicts: Record<string, string[]> = {
+    keyboard: ["monitor", "gpu", "graphics", "screen", "display", "projector", "television", "tv-"],
+    mouse: ["monitor", "gpu", "graphics", "screen", "display", "keyboard", "projector"],
+    audio: ["monitor", "gpu", "graphics", "screen", "display", "keyboard", "mouse-pad"],
+    monitor: ["keyboard", "mouse-pad", "headset", "headphone", "earphone"],
+    gpu: ["keyboard", "mouse-pad", "headset", "headphone", "monitor-arm"],
+    cpu: ["keyboard", "mouse", "headset", "monitor", "gpu", "graphics-card"],
+  };
+  const conflicts = categoryConflicts[productCategory] || [];
+  if (conflicts.some(c => imgLower.includes(c))) return false;
+
+  return true;
+}
+
+function filterRelevantImages(productName: string, vendor: string | undefined, images: string[]): string[] {
+  return images.filter(img => validateImageRelevance(productName, vendor, img));
+}
+
 async function enrichProduct(name: string, vendor?: string, mpn?: string, categoryName?: string): Promise<EnrichmentData | null> {
   const searchTerms: string[] = [];
 
@@ -1251,6 +1287,13 @@ async function enrichProduct(name: string, vendor?: string, mpn?: string, catego
         if (data.images.length >= 4) break;
       }
       await delay(2000);
+    }
+  }
+
+  if (data.images && data.images.length > 0) {
+    data.images = filterRelevantImages(name, vendor, data.images);
+    if (data.image && !validateImageRelevance(name, vendor, data.image)) {
+      data.image = data.images[0] || undefined;
     }
   }
 
@@ -1557,6 +1600,8 @@ export async function pullMissingImages(): Promise<{ updated: number; skipped: n
         }
       }
 
+      foundImages = filterRelevantImages(product.name, product.vendor || undefined, foundImages);
+
       if (foundImages.length > 0) {
         let currentImages: string[] = [];
         try { if (product.images) currentImages = typeof product.images === "string" ? JSON.parse(product.images) : product.images; } catch {}
@@ -1588,4 +1633,120 @@ export async function pullMissingImages(): Promise<{ updated: number; skipped: n
 
   pullImageProgress = { running: false, current: needImages.length, total: needImages.length, updated, skipped, errors, currentProduct: "", done: true };
   return { updated, skipped, errors };
+}
+
+export async function cleanBadImages(): Promise<{ checked: number; fixed: number; cleared: number }> {
+  const allProducts = await storage.getProducts();
+  let checked = 0;
+  let fixed = 0;
+  let cleared = 0;
+
+  console.log(`[BadImageCleaner] Checking ${allProducts.length} products for broken/bad images...`);
+
+  for (const p of allProducts) {
+    if (!p.image) continue;
+    checked++;
+
+    let imageOk = false;
+    try {
+      const res = await fetch(p.image, {
+        method: "HEAD",
+        signal: AbortSignal.timeout(8000),
+        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" },
+      });
+      if (res.ok) {
+        const ct = res.headers.get("content-type") || "";
+        imageOk = ct.includes("image");
+      }
+    } catch {}
+
+    if (imageOk) continue;
+
+    let replacementImage: string | null = null;
+    if (p.images) {
+      try {
+        const extras = typeof p.images === "string" ? JSON.parse(p.images) : p.images;
+        if (Array.isArray(extras)) {
+          for (const img of extras) {
+            if (img === p.image) continue;
+            try {
+              const c = await fetch(img, { method: "HEAD", signal: AbortSignal.timeout(5000), headers: { "User-Agent": "Mozilla/5.0" } });
+              if (c.ok) { replacementImage = img; break; }
+            } catch {}
+          }
+        }
+      } catch {}
+    }
+
+    if (replacementImage) {
+      await storage.updateProduct(p.id, { image: replacementImage });
+      fixed++;
+      console.log(`[BadImageCleaner] Fixed: "${p.name}" → ${replacementImage}`);
+    } else {
+      await storage.updateProduct(p.id, { image: null, images: null, enrichedAt: null } as any);
+      cleared++;
+      console.log(`[BadImageCleaner] Cleared broken image: "${p.name}"`);
+    }
+  }
+
+  console.log(`[BadImageCleaner] Done: checked ${checked}, fixed ${fixed}, cleared ${cleared}`);
+  return { checked, fixed, cleared };
+}
+
+let midnightSchedulerTimer: ReturnType<typeof setTimeout> | null = null;
+
+export function startMidnightEnricher() {
+  if (midnightSchedulerTimer) return;
+
+  function getMillisUntilMidnightUK(): number {
+    const now = new Date();
+    const ukFormatter = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", hour: "numeric", minute: "numeric", second: "numeric", hour12: false });
+    const parts = ukFormatter.formatToParts(now);
+    const hour = parseInt(parts.find(p => p.type === "hour")?.value || "0");
+    const minute = parseInt(parts.find(p => p.type === "minute")?.value || "0");
+    const second = parseInt(parts.find(p => p.type === "second")?.value || "0");
+    const nowMs = (hour * 3600 + minute * 60 + second) * 1000;
+    const midnightMs = 24 * 3600 * 1000;
+    return midnightMs - nowMs;
+  }
+
+  function scheduleNext() {
+    const msUntilMidnight = getMillisUntilMidnightUK();
+    const hoursUntil = (msUntilMidnight / 3600000).toFixed(1);
+    console.log(`[Midnight Enricher] Scheduled to run in ${hoursUntil} hours (midnight UK time)`);
+
+    midnightSchedulerTimer = setTimeout(async () => {
+      console.log("[Midnight Enricher] === Starting midnight enrichment run ===");
+      try {
+        enrichedIds.clear();
+        console.log("[Midnight Enricher] Step 1: Resetting all enrichment flags for full re-enrichment...");
+        const allProds = await storage.getProducts();
+        let resetCount = 0;
+        for (const p of allProds) {
+          if (p.enrichedAt) {
+            await storage.updateProduct(p.id, { enrichedAt: null } as any);
+            resetCount++;
+          }
+        }
+        console.log(`[Midnight Enricher] Reset ${resetCount} products for re-enrichment`);
+
+        console.log("[Midnight Enricher] Step 2: Running full enrichment (all products)...");
+        const enrichResult = await enrichProducts(9999);
+        console.log(`[Midnight Enricher] Enrichment done: ${enrichResult.enriched} web enriched, ${enrichResult.parsedFromName} parsed, ${enrichResult.noDataFound} no data, ${enrichResult.errors} errors`);
+
+        console.log("[Midnight Enricher] Step 3: Cleaning bad/broken images...");
+        const cleanResult = await cleanBadImages();
+        console.log(`[Midnight Enricher] Bad image cleanup done: ${cleanResult.fixed} fixed, ${cleanResult.cleared} cleared`);
+
+        console.log("[Midnight Enricher] === Midnight run complete ===");
+      } catch (e: any) {
+        console.error("[Midnight Enricher] Error:", e.message);
+      }
+
+      scheduleNext();
+    }, msUntilMidnight);
+  }
+
+  console.log("[Midnight Enricher] Scheduler started");
+  scheduleNext();
 }

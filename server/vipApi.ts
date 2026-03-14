@@ -649,18 +649,23 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         if (existing.name !== name) updates.name = name;
         if (existing.slug !== slug) updates.slug = slug;
         if (existing.inStock !== isInStock) updates.inStock = isInStock;
-        if (imageUrl && !existing.image) {
-          updates.image = imageUrl;
-        } else if (imageUrl && existing.image && existing.image.includes("ftp://")) {
+        const hasNoImage = !existing.image;
+        const hasBadImage = existing.image && (existing.image.includes("ftp://") || existing.image.includes("placeholder") || existing.image.includes("no-image") || existing.image.includes("default"));
+        if (imageUrl && (hasNoImage || hasBadImage)) {
           updates.image = imageUrl;
         }
 
         if (allVipImages.length > 0) {
           let existingImages: string[] = [];
           try { if (existing.images) existingImages = typeof existing.images === "string" ? JSON.parse(existing.images) : existing.images; } catch {}
-          const merged = [...new Set([...allVipImages, ...existingImages])].slice(0, 15);
-          if (merged.length > existingImages.length) {
-            updates.images = JSON.stringify(merged);
+          const goodExisting = existingImages.filter(img => img && !img.includes("placeholder") && !img.includes("no-image") && !img.includes("ftp://"));
+          if (goodExisting.length === 0) {
+            updates.images = JSON.stringify(allVipImages.slice(0, 15));
+          } else {
+            const merged = [...new Set([...goodExisting, ...allVipImages])].slice(0, 15);
+            if (merged.length > goodExisting.length) {
+              updates.images = JSON.stringify(merged);
+            }
           }
         }
 
