@@ -402,6 +402,60 @@ function getProductDescription(product: VipProduct): string {
   return parts.join("\n") || product.Description;
 }
 
+function extractVipSpecs(product: VipProduct): Record<string, string> {
+  const specs: Record<string, string> = {};
+  if (!product.Attributes) return specs;
+  const attrs = Array.isArray(product.Attributes) ? product.Attributes : [product.Attributes];
+  const skip = new Set(["Product Name", "Web Address", "EAN", "Model Number", "Description", "Long Description", "Marketing Text"]);
+  for (const attr of attrs) {
+    const name = attr.AttributeName?.trim();
+    const value = String(attr.AttributeValue || "").trim();
+    if (!name || !value || skip.has(name) || value.length > 200 || value.length < 1) continue;
+    specs[name] = value;
+  }
+  return specs;
+}
+
+function extractVipFeatures(product: VipProduct): string[] {
+  const features: string[] = [];
+  if (!product.Attributes) return features;
+  const attrs = Array.isArray(product.Attributes) ? product.Attributes : [product.Attributes];
+
+  const longDesc = attrs.find((a: any) => a.AttributeName === "Long Description" || a.AttributeName === "Marketing Text");
+  if (longDesc?.AttributeValue) {
+    const text = String(longDesc.AttributeValue);
+    const bullets = text.split(/[•\-\n]/).map(s => s.trim()).filter(s => s.length > 10 && s.length < 150);
+    for (const b of bullets.slice(0, 15)) {
+      features.push(b);
+    }
+  }
+
+  if (features.length === 0) {
+    const featureAttrs = ["Key Feature 1", "Key Feature 2", "Key Feature 3", "Key Feature 4", "Key Feature 5",
+      "Feature 1", "Feature 2", "Feature 3", "Feature 4", "Feature 5",
+      "Highlight 1", "Highlight 2", "Highlight 3", "Highlight 4", "Highlight 5"];
+    for (const fa of featureAttrs) {
+      const found = attrs.find((a: any) => a.AttributeName === fa);
+      if (found?.AttributeValue) {
+        const val = String(found.AttributeValue).trim();
+        if (val.length > 5 && val.length < 150) features.push(val);
+      }
+    }
+  }
+
+  const specFeatureNames = new Set(["Connectivity", "Special Features", "Technology", "Compatibility", "Included Accessories", "RGB Lighting", "Cooling Technology"]);
+  for (const attr of attrs) {
+    if (specFeatureNames.has(attr.AttributeName) && attr.AttributeValue) {
+      const val = String(attr.AttributeValue).trim();
+      if (val.length > 5 && val.length < 120 && !features.includes(val)) {
+        features.push(val);
+      }
+    }
+  }
+
+  return features;
+}
+
 const vipCategoryMap: Record<string, string> = {
   "Accessories": "accessories",
   "Adapters & Docks": "cables-adapters",
@@ -523,8 +577,31 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         if (existing.name !== name) updates.name = name;
         if (existing.slug !== slug) updates.slug = slug;
         if (existing.inStock !== isInStock) updates.inStock = isInStock;
-        const hasEnrichedImage = existing.image && !existing.image.includes("vip-computers.com") && !existing.image.includes("placeholder") && !existing.image.includes("no-image") && !existing.image.includes("default");
-        if (imageUrl && imageUrl !== existing.image && !hasEnrichedImage) updates.image = imageUrl;
+        if (imageUrl && !existing.image) {
+          updates.image = imageUrl;
+        } else if (imageUrl && existing.image && existing.image.includes("vip-computers.com") && imageUrl !== existing.image) {
+          updates.image = imageUrl;
+        }
+
+        const vipSpecs = extractVipSpecs(vp);
+        const vipFeatures = extractVipFeatures(vp);
+        if (Object.keys(vipSpecs).length > 0) {
+          let existingSpecs: Record<string, string> = {};
+          try { if (existing.specs) existingSpecs = JSON.parse(existing.specs as string); } catch {}
+          if (Object.keys(existingSpecs).length === 0) {
+            updates.specs = JSON.stringify(vipSpecs);
+          } else {
+            const merged = { ...vipSpecs, ...existingSpecs };
+            updates.specs = JSON.stringify(merged);
+          }
+        }
+        if (vipFeatures.length > 0) {
+          let existingFeatures: string[] = [];
+          try { if (existing.features) existingFeatures = JSON.parse(existing.features as string); } catch {}
+          if (existingFeatures.length === 0) {
+            updates.features = JSON.stringify(vipFeatures);
+          }
+        }
         if (vp.Manufacturer && vp.Manufacturer !== existing.vendor) updates.vendor = vp.Manufacturer;
         if (mpn && existing.mpn !== mpn) updates.mpn = mpn;
 
@@ -569,6 +646,8 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
 
       const description = getProductDescription(vp);
       const ean = vp.EAN ? String(vp.EAN).trim() : null;
+      const vipSpecs = extractVipSpecs(vp);
+      const vipFeatures = extractVipFeatures(vp);
       const productData = {
         name,
         slug,
@@ -578,6 +657,8 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         compareAtPrice: null,
         categoryId,
         image: imageUrl,
+        specs: Object.keys(vipSpecs).length > 0 ? JSON.stringify(vipSpecs) : null,
+        features: vipFeatures.length > 0 ? JSON.stringify(vipFeatures) : null,
         badge: null as string | null,
         inStock: isInStock,
         vendor: vp.Manufacturer || null,
