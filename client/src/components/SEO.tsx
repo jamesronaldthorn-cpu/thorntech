@@ -3,7 +3,7 @@ import { useEffect } from "react";
 export function usePageTitle(title?: string, description?: string) {
   useEffect(() => {
     const base = "Thorn Tech Solutions Ltd";
-    document.title = title ? `${title} | ${base}` : `Buy PC Components Online UK | ${base}`;
+    document.title = title || `Buy PC Components Online UK | ${base}`;
 
     if (description) {
       let meta = document.querySelector('meta[name="description"]') as HTMLMetaElement;
@@ -13,7 +13,25 @@ export function usePageTitle(title?: string, description?: string) {
         document.head.appendChild(meta);
       }
       meta.content = description;
+
+      let ogDesc = document.querySelector('meta[property="og:description"]') as HTMLMetaElement;
+      if (ogDesc) ogDesc.content = description;
+      let twDesc = document.querySelector('meta[name="twitter:description"]') as HTMLMetaElement;
+      if (twDesc) twDesc.content = description;
     }
+
+    if (title) {
+      let ogTitle = document.querySelector('meta[property="og:title"]') as HTMLMetaElement;
+      if (ogTitle) ogTitle.content = title;
+      let twTitle = document.querySelector('meta[name="twitter:title"]') as HTMLMetaElement;
+      if (twTitle) twTitle.content = title;
+    }
+
+    const canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
+    if (canonical) canonical.href = `https://thorntechsolutionsltd.com${window.location.pathname}`;
+
+    let ogUrl = document.querySelector('meta[property="og:url"]') as HTMLMetaElement;
+    if (ogUrl) ogUrl.content = `https://thorntechsolutionsltd.com${window.location.pathname}`;
 
     return () => {
       document.title = `Buy PC Components Online UK | ${base}`;

@@ -885,161 +885,57 @@ async function fetchGoogleShoppingImage(searchTerm: string): Promise<string[]> {
   }
 }
 
-const MANUFACTURER_SITES: Record<string, { searchUrl: (q: string) => string; productLinkPattern: RegExp; baseUrl: string }> = {
-  "corsair": {
-    searchUrl: (q) => `https://www.corsair.com/uk/en/search?query=${encodeURIComponent(q)}&start=0&sz=12`,
-    productLinkPattern: /href="(\/uk\/en\/p\/[^"#]+)"/gi,
-    baseUrl: "https://www.corsair.com",
-  },
-  "msi": {
-    searchUrl: (q) => `https://www.msi.com/search/${encodeURIComponent(q)}`,
-    productLinkPattern: /href="(\/[A-Z][^"#]*\/[^"#]+\.html)"/gi,
-    baseUrl: "https://www.msi.com",
-  },
-  "gigabyte": {
-    searchUrl: (q) => `https://www.gigabyte.com/uk/search?keyword=${encodeURIComponent(q)}`,
-    productLinkPattern: /href="(\/uk\/[^"#]+\/[^"#]+)"/gi,
-    baseUrl: "https://www.gigabyte.com",
-  },
-  "asus": {
-    searchUrl: (q) => `https://www.asus.com/uk/searchresult?searchType=products&searchKey=${encodeURIComponent(q)}`,
-    productLinkPattern: /href="(\/uk\/[^"#]+\/[^"#]+\/)"/gi,
-    baseUrl: "https://www.asus.com",
-  },
-  "nzxt": {
-    searchUrl: (q) => `https://nzxt.com/collection/search?q=${encodeURIComponent(q)}`,
-    productLinkPattern: /href="(\/product\/[^"#]+)"/gi,
-    baseUrl: "https://nzxt.com",
-  },
-  "evga": {
-    searchUrl: (q) => `https://www.evga.com/products/productlist.aspx?type=0&keyword=${encodeURIComponent(q)}`,
-    productLinkPattern: /href="(\/products\/product\.aspx[^"#]+)"/gi,
-    baseUrl: "https://www.evga.com",
-  },
-  "kingston": {
-    searchUrl: (q) => `https://www.kingston.com/unitedkingdom/en/search?DeviceType=19&term=${encodeURIComponent(q)}`,
-    productLinkPattern: /href="(\/unitedkingdom\/en\/[^"#]+)"/gi,
-    baseUrl: "https://www.kingston.com",
-  },
-  "samsung": {
-    searchUrl: (q) => `https://www.samsung.com/uk/search/?searchvalue=${encodeURIComponent(q)}`,
-    productLinkPattern: /href="(\/uk\/[^"#]+\/[^"#]+\/)"/gi,
-    baseUrl: "https://www.samsung.com",
-  },
-  "crucial": {
-    searchUrl: (q) => `https://www.crucial.com/search?query=${encodeURIComponent(q)}`,
-    productLinkPattern: /href="(\/[a-z]+\/[^"#]+)"/gi,
-    baseUrl: "https://www.crucial.com",
-  },
-  "noctua": {
-    searchUrl: (q) => `https://noctua.at/en/search?q=${encodeURIComponent(q)}`,
-    productLinkPattern: /href="(\/en\/[^"#]+\.html)"/gi,
-    baseUrl: "https://noctua.at",
-  },
-  "cooler master": {
-    searchUrl: (q) => `https://www.coolermaster.com/uk/en-gb/catalog/?q=${encodeURIComponent(q)}`,
-    productLinkPattern: /href="(\/uk\/en-gb\/[^"#]+)"/gi,
-    baseUrl: "https://www.coolermaster.com",
-  },
-  "be quiet!": {
-    searchUrl: (q) => `https://www.bequiet.com/en/search/${encodeURIComponent(q)}`,
-    productLinkPattern: /href="(\/en\/[^"#]+\/[^"#]+)"/gi,
-    baseUrl: "https://www.bequiet.com",
-  },
-  "seasonic": {
-    searchUrl: (q) => `https://seasonic.com/?s=${encodeURIComponent(q)}`,
-    productLinkPattern: /href="(https:\/\/seasonic\.com\/[^"#]+)"/gi,
-    baseUrl: "https://seasonic.com",
-  },
-  "western digital": {
-    searchUrl: (q) => `https://www.westerndigital.com/en-gb/search#q=${encodeURIComponent(q)}`,
-    productLinkPattern: /href="(\/en-gb\/products\/[^"#]+)"/gi,
-    baseUrl: "https://www.westerndigital.com",
-  },
-  "amd": {
-    searchUrl: (q) => `https://www.amd.com/en/search.html#q=${encodeURIComponent(q)}`,
-    productLinkPattern: /href="(\/en\/products\/[^"#]+)"/gi,
-    baseUrl: "https://www.amd.com",
-  },
-  "intel": {
-    searchUrl: (q) => `https://www.intel.co.uk/content/www/uk/en/search.html#q=${encodeURIComponent(q)}`,
-    productLinkPattern: /href="(\/content\/www\/uk\/en\/products\/[^"#]+)"/gi,
-    baseUrl: "https://www.intel.co.uk",
-  },
-  "fractal design": {
-    searchUrl: (q) => `https://www.fractal-design.com/search/?q=${encodeURIComponent(q)}`,
-    productLinkPattern: /href="(\/products\/[^"#]+)"/gi,
-    baseUrl: "https://www.fractal-design.com",
-  },
-  "thermaltake": {
-    searchUrl: (q) => `https://uk.thermaltake.com/catalogsearch/result/?q=${encodeURIComponent(q)}`,
-    productLinkPattern: /href="(https:\/\/uk\.thermaltake\.com\/[^"#]+\.html)"/gi,
-    baseUrl: "https://uk.thermaltake.com",
-  },
-  "arctic": {
-    searchUrl: (q) => `https://www.arctic.de/en/search?q=${encodeURIComponent(q)}`,
-    productLinkPattern: /href="(\/en\/[^"#]+)"/gi,
-    baseUrl: "https://www.arctic.de",
-  },
-  "lian li": {
-    searchUrl: (q) => `https://lian-li.com/?s=${encodeURIComponent(q)}`,
-    productLinkPattern: /href="(https:\/\/lian-li\.com\/product\/[^"#]+)"/gi,
-    baseUrl: "https://lian-li.com",
-  },
-  "phanteks": {
-    searchUrl: (q) => `https://www.phanteks.com/search?q=${encodeURIComponent(q)}`,
-    productLinkPattern: /href="(\/[^"#]+)"/gi,
-    baseUrl: "https://www.phanteks.com",
-  },
-  "g.skill": {
-    searchUrl: (q) => `https://www.gskill.com/search?keyword=${encodeURIComponent(q)}`,
-    productLinkPattern: /href="(\/product\/[^"#]+)"/gi,
-    baseUrl: "https://www.gskill.com",
-  },
-  "seagate": {
-    searchUrl: (q) => `https://www.seagate.com/gb/en/search/?q=${encodeURIComponent(q)}`,
-    productLinkPattern: /href="(\/gb\/en\/[^"#]+)"/gi,
-    baseUrl: "https://www.seagate.com",
-  },
-};
-
-async function fetchManufacturerImages(vendor: string, productName: string, mpn?: string): Promise<EnrichmentData | null> {
-  const vendorLower = vendor.toLowerCase().replace(/\s+/g, " ").trim();
-  const config = MANUFACTURER_SITES[vendorLower];
-  if (!config) return null;
-
-  const searchTerm = mpn && mpn.length > 3 ? mpn : productName.substring(0, 60);
-
-  console.log(`[Enricher]   Trying manufacturer site (${vendor}): "${searchTerm}"`);
-
+async function fetchGoogleCachedProductPage(searchTerm: string, site?: string): Promise<EnrichmentData | null> {
   try {
-    const searchHtml = await fetchPage(config.searchUrl(searchTerm));
-    if (!searchHtml) return null;
+    const siteFilter = site ? `site:${site} ` : "";
+    const query = encodeURIComponent(`${siteFilter}${searchTerm}`);
+    const html = await fetchPage(`https://www.google.co.uk/search?q=${query}&hl=en&gl=uk`);
+    if (!html || html.length < 5000) return null;
 
     const data: EnrichmentData = {};
 
-    const ogImages = extractOgImages(searchHtml);
-    if (ogImages.length > 0) {
-      data.images = ogImages;
-      data.image = ogImages[0];
-    }
-
-    const productLinks: string[] = [];
+    const imgRegex = /\["(https:\/\/[^"]+\.(?:jpg|jpeg|png|webp)[^"]*)",\d+,\d+\]/gi;
     let match;
-    const regex = new RegExp(config.productLinkPattern.source, config.productLinkPattern.flags);
-    while ((match = regex.exec(searchHtml)) !== null) {
-      let link = match[1];
-      if (link.includes("/search") || link.includes("/category") || link.includes("/cart") || link.includes("/login") || link.includes("/account")) continue;
-      if (!productLinks.includes(link) && productLinks.length < 2) {
-        productLinks.push(link);
+    const imgs: string[] = [];
+    while ((match = imgRegex.exec(html)) !== null && imgs.length < 8) {
+      const src = match[1].replace(/\\u003d/g, "=").replace(/\\u0026/g, "&").replace(/\\x3d/g, "=").replace(/\\x26/g, "&");
+      if (src.length > 50 && !src.includes("gstatic") && !src.includes("google") && !src.includes("logo") && !src.includes("icon") && !src.includes("favicon") && !src.includes("1x1") && !src.includes("pixel")) {
+        imgs.push(src);
       }
     }
 
-    for (const link of productLinks) {
+    const encImgRegex = /src="(https:\/\/encrypted-tbn[^"]+)"/gi;
+    while ((match = encImgRegex.exec(html)) !== null && imgs.length < 10) {
+      imgs.push(match[1].replace(/&amp;/g, "&"));
+    }
+
+    if (imgs.length > 0) data.images = [...new Set(imgs)].slice(0, 10);
+
+    const snippetRegex = /class="[^"]*(?:VwiC3b|IsZvec|yXK7lf)[^"]*"[^>]*>([\s\S]*?)<\//gi;
+    const snippets: string[] = [];
+    while ((match = snippetRegex.exec(html)) !== null) {
+      const text = cleanHtml(match[1]);
+      if (text.length > 40 && !text.includes("Missing:") && !text.includes("Must include:")) {
+        snippets.push(text);
+      }
+    }
+    if (snippets.length > 0 && snippets[0].length > 50) {
+      data.description = snippets[0].slice(0, 300);
+    }
+
+    const linkRegex = /href="(https?:\/\/[^"]+)" [^>]*data-/gi;
+    const productLinks: string[] = [];
+    while ((match = linkRegex.exec(html)) !== null && productLinks.length < 3) {
+      const url = match[1].replace(/&amp;/g, "&");
+      if (!url.includes("google") && !url.includes("youtube") && !url.includes("facebook") && !url.includes("twitter") && !url.includes("reddit")) {
+        productLinks.push(url);
+      }
+    }
+
+    for (const link of productLinks.slice(0, 2)) {
       await delay(1500);
-      const fullUrl = link.startsWith("http") ? link : `${config.baseUrl}${link}`;
-      const page = await fetchPage(fullUrl);
-      if (!page) continue;
+      const page = await fetchPage(link);
+      if (!page || page.length < 5000) continue;
 
       const specs = extractSpecs(page);
       if (Object.keys(specs).length > 0) data.specs = { ...data.specs, ...specs };
@@ -1047,22 +943,21 @@ async function fetchManufacturerImages(vendor: string, productName: string, mpn?
       const features = extractFeatures(page);
       if (features.length > 0) data.features = [...(data.features || []), ...features];
 
-      const images = extractImages(page, config.baseUrl);
-      const pageOgImages = extractOgImages(page);
-      const allImages = [...images, ...pageOgImages].filter(img =>
-        !img.includes("logo") && !img.includes("icon") && !img.includes("favicon") && !img.includes("banner")
+      const pageImages = extractImages(page, new URL(link).origin);
+      const ogImages = extractOgImages(page);
+      const allPageImgs = [...pageImages, ...ogImages].filter(img =>
+        !img.includes("logo") && !img.includes("icon") && !img.includes("favicon") && !img.includes("banner") && !img.includes("sprite") && !img.includes("pixel") && !img.includes("1x1")
       );
-      if (allImages.length > 0) {
-        data.images = [...new Set([...(data.images || []), ...allImages])].slice(0, 15);
-        if (!data.image) data.image = data.images[0];
+      if (allPageImgs.length > 0) {
+        data.images = [...new Set([...(data.images || []), ...allPageImgs])].slice(0, 15);
       }
 
-      const metaDesc = page.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
-      if (metaDesc && metaDesc[1].length > 30) {
-        data.description = metaDesc[1].trim();
+      const metaDesc = page.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']{40,})["']/i);
+      if (metaDesc && (!data.description || metaDesc[1].length > data.description.length)) {
+        data.description = metaDesc[1].trim().slice(0, 300);
       }
 
-      if (data.images && data.images.length >= 3) break;
+      if (data.specs && Object.keys(data.specs).length >= 5 && data.images && data.images.length >= 4) break;
     }
 
     if (data.features) data.features = [...new Set(data.features)].slice(0, 12);
@@ -1072,11 +967,104 @@ async function fetchManufacturerImages(vendor: string, productName: string, mpn?
       (data.images && data.images.length > 0) ||
       data.description;
 
-    if (hasData) {
+    return hasData ? data : null;
+  } catch (e: any) {
+    console.log(`[Enricher]   Google cached page error: ${e.message}`);
+    return null;
+  }
+}
+
+const MANUFACTURER_DOMAINS: Record<string, string> = {
+  "corsair": "corsair.com",
+  "msi": "msi.com",
+  "gigabyte": "gigabyte.com",
+  "asus": "asus.com",
+  "nzxt": "nzxt.com",
+  "evga": "evga.com",
+  "kingston": "kingston.com",
+  "samsung": "samsung.com",
+  "crucial": "crucial.com",
+  "noctua": "noctua.at",
+  "cooler master": "coolermaster.com",
+  "be quiet!": "bequiet.com",
+  "seasonic": "seasonic.com",
+  "western digital": "westerndigital.com",
+  "wd": "westerndigital.com",
+  "amd": "amd.com",
+  "intel": "intel.com",
+  "fractal design": "fractal-design.com",
+  "thermaltake": "thermaltake.com",
+  "arctic": "arctic.de",
+  "lian li": "lian-li.com",
+  "phanteks": "phanteks.com",
+  "g.skill": "gskill.com",
+  "seagate": "seagate.com",
+  "sapphire": "sapphiretech.com",
+  "xfx": "xfxforce.com",
+  "powercolor": "powercolor.com",
+  "zotac": "zotac.com",
+  "palit": "palit.com",
+  "pny": "pny.com",
+  "asrock": "asrock.com",
+  "deepcool": "deepcool.com",
+  "antec": "antec.com",
+  "silverstone": "silverstonetek.com",
+  "razer": "razer.com",
+  "logitech": "logitechg.com",
+  "steelseries": "steelseries.com",
+  "hyperx": "hyperx.com",
+  "benq": "benq.com",
+  "aoc": "aoc.com",
+  "acer": "acer.com",
+  "dell": "dell.com",
+  "lg": "lg.com",
+  "tp-link": "tp-link.com",
+  "netgear": "netgear.com",
+  "adata": "adata.com",
+  "sabrent": "sabrent.com",
+  "team": "teamgroupinc.com",
+  "patriot": "patriotmemory.com",
+  "cougar": "cougargaming.com",
+  "montech": "montech.com",
+};
+
+async function fetchManufacturerImages(vendor: string, productName: string, mpn?: string): Promise<EnrichmentData | null> {
+  const vendorLower = vendor.toLowerCase().replace(/\s+/g, " ").trim();
+  const domain = MANUFACTURER_DOMAINS[vendorLower];
+
+  const searchTerm = mpn && mpn.length > 4 ? `${vendor} ${mpn}` : `${vendor} ${productName}`.substring(0, 80);
+  console.log(`[Enricher]   Trying manufacturer data via Google (${vendor}): "${searchTerm}"`);
+
+  try {
+    const data = await fetchGoogleCachedProductPage(searchTerm, domain);
+
+    if (data) {
       console.log(`[Enricher]   Manufacturer (${vendor}): ${(data.images || []).length} images, ${Object.keys(data.specs || {}).length} specs, ${(data.features || []).length} features`);
     }
 
-    return hasData ? data : null;
+    if (!data || (!data.images || data.images.length < 2)) {
+      console.log(`[Enricher]   Trying broader Google search for ${vendor}...`);
+      const broadData = await fetchGoogleCachedProductPage(searchTerm);
+      if (broadData) {
+        if (!data) return broadData;
+        if (broadData.images && broadData.images.length > 0) {
+          data.images = [...new Set([...(data.images || []), ...broadData.images])].slice(0, 15);
+        }
+        if (broadData.specs && Object.keys(broadData.specs).length > Object.keys(data.specs || {}).length) {
+          data.specs = { ...data.specs, ...broadData.specs };
+        }
+        if (broadData.features && broadData.features.length > (data.features || []).length) {
+          data.features = [...new Set([...(data.features || []), ...broadData.features])].slice(0, 12);
+        }
+        if (broadData.description && (!data.description || broadData.description.length > data.description.length)) {
+          data.description = broadData.description;
+        }
+        console.log(`[Enricher]   After broad search: ${(data.images || []).length} images, ${Object.keys(data.specs || {}).length} specs`);
+      }
+      await delay(2000);
+    }
+
+    return data;
   } catch (e: any) {
     console.log(`[Enricher]   Manufacturer (${vendor}) error: ${e.message}`);
     return null;
@@ -1240,6 +1228,41 @@ async function enrichProduct(name: string, vendor?: string, mpn?: string, catego
   return hasData ? data : null;
 }
 
+function generateSeoDescription(name: string, vendor: string | undefined, specs: Record<string, string>, features: string[]): string {
+  const parts: string[] = [];
+  const brand = vendor || specs["Brand"] || "";
+
+  parts.push(`Buy the ${name} from Thorn Tech Solutions Ltd, a trusted UK PC components retailer.`);
+
+  const specHighlights: string[] = [];
+  if (specs["Memory / Capacity"]) specHighlights.push(specs["Memory / Capacity"]);
+  if (specs["Capacity"]) specHighlights.push(specs["Capacity"]);
+  if (specs["Clock Speed"]) specHighlights.push(`${specs["Clock Speed"]} clock speed`);
+  if (specs["Speed"]) specHighlights.push(`${specs["Speed"]} speed`);
+  if (specs["Cores"]) specHighlights.push(`${specs["Cores"]} cores`);
+  if (specs["Socket"]) specHighlights.push(`${specs["Socket"]} socket`);
+  if (specs["Chipset"]) specHighlights.push(`${specs["Chipset"]} chipset`);
+  if (specs["Form Factor"]) specHighlights.push(`${specs["Form Factor"]} form factor`);
+  if (specs["Interface"]) specHighlights.push(`${specs["Interface"]} interface`);
+  if (specs["Efficiency"]) specHighlights.push(`${specs["Efficiency"]} rated`);
+  if (specs["Panel Type"]) specHighlights.push(`${specs["Panel Type"]} panel`);
+  if (specs["Resolution"]) specHighlights.push(`${specs["Resolution"]} resolution`);
+  if (specs["Refresh Rate"]) specHighlights.push(`${specs["Refresh Rate"]} refresh rate`);
+  if (specs["Wattage"]) specHighlights.push(`${specs["Wattage"]} power`);
+
+  if (specHighlights.length > 0) {
+    parts.push(`Key specs: ${specHighlights.slice(0, 5).join(", ")}.`);
+  }
+
+  if (features.length > 0) {
+    parts.push(`Features include ${features.slice(0, 3).join(", ")}.`);
+  }
+
+  parts.push("Fast 1-3 day UK delivery, free shipping over £200. All prices include VAT.");
+
+  return parts.join(" ");
+}
+
 const enrichedIds = new Set<number>();
 
 let enrichLiveProgress = { current: 0, total: 0, currentProduct: "" };
@@ -1362,6 +1385,12 @@ export async function enrichProducts(batchSize = 500): Promise<EnrichResult> {
       if (webData?.description && !hasGoodDescription) {
         updates.description = webData.description;
         console.log(`[Enricher]   Added description (${webData.description.length} chars)`);
+      } else if (!hasGoodDescription) {
+        const generated = generateSeoDescription(product.name, product.vendor || undefined, finalSpecs, finalFeatures);
+        if (generated.length > 80) {
+          updates.description = generated;
+          console.log(`[Enricher]   Generated SEO description (${generated.length} chars)`);
+        }
       }
 
       await storage.updateProduct(product.id, updates);

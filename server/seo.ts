@@ -154,6 +154,59 @@ export async function getSeoData(path: string): Promise<SeoData | null> {
       description: "Learn about Thorn Tech Solutions Ltd, a UK-based PC components retailer. Company Reg: 17058756. Based in Sutton Bridge, Lincolnshire.",
       canonical: `${SITE_URL}/about`,
       ogType: "website",
+      noscriptContent: `<h1>About Thorn Tech Solutions Ltd</h1><p>Thorn Tech Solutions Ltd is a UK-based PC components retailer (Company Reg: 17058756) based in Sutton Bridge, Lincolnshire. We sell CPUs, graphics cards, motherboards, RAM, SSDs, cases, PSUs, cooling, and peripherals from top brands. Contact us at thorntech@hotmail.com or call 07868 552028.</p>`,
+    };
+  }
+
+  if (path === "/returns" || path === "/returns/") {
+    return {
+      title: `Returns Policy | ${SITE_NAME}`,
+      description: "Our returns policy at Thorn Tech Solutions Ltd. 30-day returns on all PC components. UK consumer rights protected.",
+      canonical: `${SITE_URL}/returns`,
+      ogType: "website",
+    };
+  }
+
+  if (path === "/privacy" || path === "/privacy/") {
+    return {
+      title: `Privacy Policy | ${SITE_NAME}`,
+      description: "Privacy policy for Thorn Tech Solutions Ltd. How we handle your data when shopping for PC components online.",
+      canonical: `${SITE_URL}/privacy`,
+      ogType: "website",
+    };
+  }
+
+  if (path === "/basket" || path === "/basket/") {
+    return {
+      title: `Shopping Basket | ${SITE_NAME}`,
+      description: "Your shopping basket at Thorn Tech Solutions Ltd. Review your PC components before checkout.",
+      canonical: `${SITE_URL}/basket`,
+      ogType: "website",
+    };
+  }
+
+  if (path === "/" || path === "") {
+    const [products, categories] = await Promise.all([storage.getProducts(), storage.getCategories()]);
+    const inStock = products.filter(p => p.inStock && p.price > 0 && p.slug !== "test-product-do-not-buy");
+    const catLinks = categories.map(c => `<li><a href="${SITE_URL}/category/${c.slug}">${escHtml(c.name)}</a></li>`).join("");
+    const prodLinks = inStock.slice(0, 30).map(p => `<li><a href="${SITE_URL}/product/${p.slug}">${escHtml(p.name)} - £${(p.price / 100).toFixed(2)}</a></li>`).join("");
+    return {
+      title: `Buy PC Components Online UK | ${SITE_NAME}`,
+      description: `Buy PC components online from ${SITE_NAME}. ${inStock.length}+ products in stock: CPUs, graphics cards, motherboards, RAM, SSDs, gaming PC parts. Fast 1-3 day UK delivery, free shipping over £200.`,
+      canonical: SITE_URL,
+      ogType: "website",
+      jsonLd: {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "url": SITE_URL,
+        "name": SITE_NAME,
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": `${SITE_URL}/search?q={search_term_string}`,
+          "query-input": "required name=search_term_string"
+        }
+      },
+      noscriptContent: `<h1>Buy PC Components Online UK - ${escHtml(SITE_NAME)}</h1><p>Shop ${inStock.length}+ PC components from trusted brands. Fast 1-3 day UK delivery, free over £200. All prices include VAT.</p><h2>Categories</h2><ul>${catLinks}</ul><h2>Popular Products</h2><ul>${prodLinks}</ul><p>Contact: thorntech@hotmail.com | 07868 552028 | Sutton Bridge, Lincolnshire | Company Reg: 17058756</p>`,
     };
   }
 
