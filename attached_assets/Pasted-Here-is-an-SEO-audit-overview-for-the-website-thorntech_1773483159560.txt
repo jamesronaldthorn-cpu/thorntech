@@ -1,0 +1,258 @@
+Here is an SEO audit overview for the website “thorntechsolutionsltd.com” based on available data and standard SEO best-practice checks. (Some items are inferred because the site itself returns limited index data in search results.)
+
+SEO Audit – thorntechsolutionsltd.com
+1. Domain & Business Background
+
+The company appears to be Thorn Tech Solutions Ltd, a UK-registered business incorporated 27 February 2026 and operating in computer and software retail (SIC 47410).
+
+This means the domain and business are extremely new, which significantly affects SEO rankings.
+
+Impact on SEO
+
+New domains often take 3–6 months to build authority
+
+Google trust signals are limited
+
+Few backlinks and reviews
+
+2. Indexing & Visibility
+Google Index Status
+
+Search results show very few indexed pages.
+
+Issues
+
+Low index count
+
+No visible ranking pages
+
+Brand search visibility is weak
+
+Recommendation
+
+Submit XML sitemap to Google Search Console
+
+Ensure robots.txt allows crawling
+
+Request indexing of key pages
+
+3. On-Page SEO (Likely Issues)
+
+Typical problems seen on new small business sites:
+
+Missing or Weak Elements
+
+Check for:
+
+Unique meta titles
+
+Optimised meta descriptions
+
+Proper H1 headings
+
+Keyword targeting
+
+Internal links
+
+Example keyword targets:
+
+Page	Target Keyword
+Homepage	computer repair Sutton Bridge
+Service page	laptop repair Lincolnshire
+Shop page	refurbished computers UK
+4. Technical SEO
+Common Technical Issues
+
+Potential issues to verify:
+
+Page speed
+
+Mobile responsiveness
+
+Core Web Vitals
+
+Schema markup
+
+Important technical checks:
+
+Factor	Ideal
+Page speed	<2.5s
+Mobile usability	100% responsive
+HTTPS	enabled
+Structured data	LocalBusiness schema
+5. Backlink Profile
+
+The domain appears to have little or no backlink authority.
+
+Only a few external references exist:
+
+Business listings
+
+Directory mentions
+
+One review profile (Trustpilot)
+
+Example:
+
+The business has only one review currently on Trustpilot.
+
+Impact
+
+Low backlinks = low domain authority.
+
+Fix
+
+Build links from:
+
+Local directories
+
+Tech blogs
+
+Supplier partnerships
+
+Local press
+
+6. Local SEO
+
+Local SEO is critical for this business.
+
+Address:
+
+Sutton Bridge, Spalding, Lincolnshire.
+
+Must-have assets
+
+Google Business Profile
+
+Bing Places
+
+Apple Maps listing
+
+Yelp
+
+Yell
+
+Local keywords to target:
+
+computer repair Sutton Bridge
+
+PC repair Spalding
+
+laptop repair Lincolnshire
+
+phone repair Sutton Bridge
+
+7. Content SEO
+
+Most small repair websites lack content.
+
+Missing Content Opportunities
+
+Create pages for:
+
+Laptop repair
+
+PC repair
+
+Phone repair
+
+Virus removal
+
+Data recovery
+
+Refurbished computers
+
+Also publish blog posts:
+
+Examples:
+
+"How to speed up a slow laptop"
+
+"Signs your hard drive is failing"
+
+"Windows reinstall guide"
+
+Content = rankings.
+
+8. Competitor Gap
+
+Competitors usually dominate search for:
+
+laptop repair near me
+
+pc repair shop
+
+computer repair services
+
+You need:
+
+more content
+
+more backlinks
+
+local reviews
+
+9. Conversion SEO
+
+Ensure:
+
+Click-to-call buttons
+
+WhatsApp contact
+
+Online booking
+
+Repair quote form
+
+Local SEO works best when conversion is easy.
+
+10. Priority SEO Fixes
+Critical (Do First)
+
+Google Search Console setup
+
+XML sitemap submission
+
+Google Business Profile optimisation
+
+10–20 local citations
+
+Add service pages
+
+Medium Priority
+
+Add blog content
+
+Improve page speed
+
+Add structured data
+
+Get 10+ reviews
+
+Long-Term
+
+Build backlinks
+
+Create repair guides
+
+Publish YouTube tutorials
+
+Estimated SEO Score
+Category	Score
+Technical SEO	6/10
+On-Page SEO	5/10
+Content	3/10
+Backlinks	2/10
+Local SEO	5/10
+
+Overall SEO maturity: Beginner / Early stage
+
+Expected SEO Growth Timeline
+
+If optimized properly:
+
+Time	Result
+1 month	Indexed pages increase
+3 months	Local rankings appear
+6 months	Top-10 local rankings possible
+12 months	Strong local authority
