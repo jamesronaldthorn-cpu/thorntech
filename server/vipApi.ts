@@ -67,15 +67,29 @@ interface VipStock {
 
 function buildImageUrl(product: VipProduct): string | null {
   if (product.ProductImage) {
-    let imgPath = product.ProductImage;
+    let imgPath = String(product.ProductImage).trim();
+    if (!imgPath || imgPath === "0" || imgPath.toLowerCase() === "null" || imgPath.toLowerCase() === "n/a") {
+      return buildFallbackImageUrl(product);
+    }
     if (imgPath.startsWith("http")) return imgPath;
-    if (imgPath.startsWith("/")) {
-      return `https://www.vip-computers.com${imgPath}`;
+    if (imgPath.startsWith("//")) return `https:${imgPath}`;
+    if (imgPath.startsWith("/")) return `https://www.vip-computers.com${imgPath}`;
+    const hasExt = /\.(jpg|jpeg|png|webp|gif)$/i.test(imgPath);
+    if (hasExt) {
+      return `https://www.vip-computers.com/uk/images/products/${imgPath}`;
     }
-    const match = imgPath.match(/(\d+)\.(jpg|jpeg|png|webp)$/i);
-    if (match) {
-      return `https://www.vip-computers.com/uk/images/products/${match[1]}.${match[2]}`;
+    const numMatch = imgPath.match(/^(\d+)$/);
+    if (numMatch) {
+      return `https://www.vip-computers.com/uk/images/products/${numMatch[1]}.jpg`;
     }
+    return `https://www.vip-computers.com/uk/images/products/${imgPath}.jpg`;
+  }
+  return buildFallbackImageUrl(product);
+}
+
+function buildFallbackImageUrl(product: VipProduct): string | null {
+  if (product.ProdID) {
+    return `https://www.vip-computers.com/uk/images/products/${product.ProdID}.jpg`;
   }
   return null;
 }
@@ -541,6 +555,10 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
     errors: [],
   };
 
+  let imgSampled = 0;
+  let imgNull = 0;
+  let imgSet = 0;
+
   for (const vp of vipProducts) {
     try {
       let price = priceMap.get(vp.ProdID) || priceMap.get(vp.SKU);
@@ -564,6 +582,13 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
       const name = getProductName(vp);
       let slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "").replace(/^-+/, "").substring(0, 80);
       const imageUrl = buildImageUrl(vp);
+
+      if (imgSampled < 10) {
+        console.log(`[VIP] Image sample #${imgSampled + 1}: "${name}" ProductImage="${vp.ProductImage}" → imageUrl="${imageUrl}" ProdID=${vp.ProdID}`);
+        imgSampled++;
+      }
+      if (imageUrl) imgSet++;
+      else imgNull++;
 
       const catSlug = vipCategoryMap[vp.ProductGroup];
       let categoryId: number | null = catSlug ? (catBySlug.get(catSlug) || null) : null;
@@ -693,6 +718,7 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
   }
 
   console.log(`[VIP] Sync complete: ${result.imported} imported, ${result.updated} updated, ${result.skipped} skipped, ${result.outOfStock} out of stock, ${result.errors.length} errors`);
+  console.log(`[VIP] Image stats: ${imgSet} products got VIP image URLs, ${imgNull} had no image from VIP`);
   if (result.errors.length > 0) {
     console.log(`[VIP] First 10 errors:`);
     result.errors.slice(0, 10).forEach((e, i) => console.log(`[VIP]   ${i + 1}. ${e}`));

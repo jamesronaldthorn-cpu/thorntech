@@ -1126,6 +1126,20 @@ export async function registerRoutes(
       }
       syncStatus = { running: false, result: { ...result, dedupRemoved }, error: null };
       console.log(`[VIP] Sync complete: ${result.imported} new, ${result.updated} updated`);
+
+      const allProducts = await storage.getProducts();
+      const noImage = allProducts.filter(p => !p.image && p.inStock);
+      console.log(`[VIP] Post-sync: ${noImage.length} in-stock products have no image — will attempt pull`);
+      if (noImage.length > 0) {
+        try {
+          const { pullMissingImages } = await import("./productEnricher");
+          pullMissingImages().then(r => {
+            console.log(`[VIP→PullImages] Auto-pull complete: ${r.updated} images found, ${r.skipped} skipped, ${r.errors} errors`);
+          }).catch(e => console.error("[VIP→PullImages] Auto-pull error:", e.message));
+        } catch (e: any) {
+          console.error("[VIP→PullImages] Failed to start auto-pull:", e.message);
+        }
+      }
     } catch (e: any) {
       console.error("[VIP] Sync error:", e);
       syncStatus = { running: false, result: null, error: e.message };
