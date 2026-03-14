@@ -73,6 +73,13 @@ function buildImageUrl(product: VipProduct): string | null {
     }
     if (imgPath.startsWith("http")) return imgPath;
     if (imgPath.startsWith("//")) return `https:${imgPath}`;
+    if (imgPath.startsWith("ftp://")) {
+      const ftpFilename = imgPath.split("/").pop();
+      if (ftpFilename && /\.(jpg|jpeg|png|webp|gif)$/i.test(ftpFilename)) {
+        return `https://www.vip-computers.com/uk/images/products/${ftpFilename}`;
+      }
+      return buildFallbackImageUrl(product);
+    }
     if (imgPath.startsWith("/")) return `https://www.vip-computers.com${imgPath}`;
     const hasExt = /\.(jpg|jpeg|png|webp|gif)$/i.test(imgPath);
     if (hasExt) {
