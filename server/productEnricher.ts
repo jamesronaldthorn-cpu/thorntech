@@ -186,11 +186,32 @@ function extractImages(html: string, baseUrl: string): string[] {
   return [...new Set(imgs)].slice(0, 10);
 }
 
+function detectProductCategory(nameLower: string): string {
+  if (nameLower.includes("keyboard") || nameLower.includes("keycap") || nameLower.includes("key switch")) return "keyboard";
+  if (nameLower.includes("mouse") || nameLower.includes("mice") || nameLower.includes("trackball") || nameLower.includes("mousepad") || nameLower.includes("mouse pad")) return "mouse";
+  if (nameLower.includes("headset") || nameLower.includes("headphone") || nameLower.includes("earphone") || nameLower.includes("earbuds")) return "audio";
+  if (nameLower.includes("speaker") || nameLower.includes("soundbar") || nameLower.includes("subwoofer")) return "audio";
+  if (nameLower.includes("monitor") || nameLower.includes("display") || (nameLower.includes("screen") && !nameLower.includes("screen protector"))) return "monitor";
+  if (nameLower.includes("graphics card") || nameLower.includes("gpu") || nameLower.match(/\b(rtx|gtx|rx)\s*\d{3,4}/i)) return "gpu";
+  if (nameLower.includes("processor") || nameLower.includes("cpu") || nameLower.match(/\b(ryzen|core i\d|xeon|athlon|pentium|celeron)\b/i)) return "cpu";
+  if (nameLower.includes("motherboard") || nameLower.includes("mainboard")) return "motherboard";
+  if (nameLower.includes("power supply") || nameLower.includes("psu") || nameLower.includes("80 plus") || nameLower.includes("80+")) return "psu";
+  if (nameLower.includes("case") || nameLower.includes("chassis") || nameLower.includes("tower") || nameLower.includes("enclosure")) return "case";
+  if (nameLower.includes("cooler") || nameLower.includes("fan") || nameLower.includes("radiator") || nameLower.includes("thermal")) return "cooling";
+  if (nameLower.includes("ssd") || nameLower.includes("hard drive") || nameLower.includes("hdd") || nameLower.includes("nvme") || nameLower.includes("storage")) return "storage";
+  if (nameLower.includes("memory") || nameLower.includes("ram") || nameLower.includes("dimm")) return "memory";
+  if (nameLower.includes("webcam") || nameLower.includes("camera")) return "webcam";
+  if (nameLower.includes("router") || nameLower.includes("switch") || nameLower.includes("access point") || nameLower.includes("network")) return "networking";
+  if (nameLower.includes("cable") || nameLower.includes("adapter") || nameLower.includes("hub") || nameLower.includes("dock")) return "cable";
+  return "other";
+}
+
 function parseSpecsFromName(name: string, vendor?: string, description?: string): { specs: Record<string, string>; features: string[] } {
   const specs: Record<string, string> = {};
   const features: string[] = [];
   const combined = `${name} ${description || ""}`;
   const nameLower = combined.toLowerCase();
+  const category = detectProductCategory(nameLower);
 
   if (vendor) specs["Brand"] = vendor;
 
@@ -250,19 +271,24 @@ function parseSpecsFromName(name: string, vendor?: string, description?: string)
   const wattMatch = name.match(/(\d+)\s*W(?:att)?(?:\b|$|,)/i);
   if (wattMatch) specs["Wattage"] = wattMatch[1] + "W";
 
-  const sizeMatch = name.match(/([\d.]+)["'']\s*(?:inch)?|(\d+(?:\.\d+)?)\s*inch/i);
-  if (sizeMatch) specs["Screen Size"] = (sizeMatch[1] || sizeMatch[2]) + '"';
+  const displayCategories = new Set(["monitor", "gpu", "other"]);
+  if (displayCategories.has(category)) {
+    const sizeMatch = name.match(/([\d.]+)["'']\s*(?:inch)?|(\d+(?:\.\d+)?)\s*inch/i);
+    if (sizeMatch) specs["Screen Size"] = (sizeMatch[1] || sizeMatch[2]) + '"';
 
-  const resMatch = name.match(/(\d{3,4})\s*x\s*(\d{3,4})/);
-  if (resMatch) specs["Resolution"] = resMatch[1] + " x " + resMatch[2];
+    const resMatch = name.match(/(\d{3,4})\s*x\s*(\d{3,4})/);
+    if (resMatch) specs["Resolution"] = resMatch[1] + " x " + resMatch[2];
 
-  if (nameLower.includes("4k") || nameLower.includes("uhd")) specs["Resolution"] = "4K UHD (3840 x 2160)";
-  if (nameLower.includes("1440p") || nameLower.includes("qhd")) specs["Resolution"] = "2560 x 1440 (QHD)";
-  if (nameLower.includes("1080p") || nameLower.includes("full hd")) specs["Resolution"] = "1920 x 1080 (Full HD)";
-  if (nameLower.includes("720p")) specs["Resolution"] = "1280 x 720 (HD)";
+    if (nameLower.includes("4k") || nameLower.includes("uhd")) specs["Resolution"] = "4K UHD (3840 x 2160)";
+    if (nameLower.includes("1440p") || nameLower.includes("qhd")) specs["Resolution"] = "2560 x 1440 (QHD)";
+    if (nameLower.includes("1080p") || nameLower.includes("full hd")) specs["Resolution"] = "1920 x 1080 (Full HD)";
+    if (nameLower.includes("720p")) specs["Resolution"] = "1280 x 720 (HD)";
+  }
 
-  const hzMatch = name.match(/(\d+)\s*Hz/i);
-  if (hzMatch && parseInt(hzMatch[1]) >= 30) specs["Refresh Rate"] = hzMatch[1] + " Hz";
+  if (displayCategories.has(category)) {
+    const hzMatch = name.match(/(\d+)\s*Hz/i);
+    if (hzMatch && parseInt(hzMatch[1]) >= 30) specs["Refresh Rate"] = hzMatch[1] + " Hz";
+  }
 
   const rpmMatch = name.match(/(\d+)\s*RPM/i);
   if (rpmMatch) specs["Speed"] = rpmMatch[1] + " RPM";
@@ -361,26 +387,34 @@ function parseSpecsFromName(name: string, vendor?: string, description?: string)
   if (nameLower.includes("wireless")) features.push("Wireless connectivity");
   if (nameLower.includes("noise cancel")) features.push("Active noise cancellation");
   if (nameLower.includes("hot swap") || nameLower.includes("hot-swap")) features.push("Hot-swappable design");
-  if (nameLower.includes("dust filter") || nameLower.includes("dust-filter")) features.push("Integrated dust filters");
-  if (nameLower.includes("tempered glass")) features.push("Tempered glass side panel");
-  if (nameLower.includes("mesh") && nameLower.includes("front")) features.push("Mesh front panel for airflow");
-  if (nameLower.includes("80 plus platinum") || nameLower.includes("80+ platinum")) { features.push("80 PLUS Platinum certified efficiency"); specs["Efficiency"] = "80 PLUS Platinum"; }
-  else if (nameLower.includes("80 plus gold") || nameLower.includes("80+ gold")) { features.push("80 PLUS Gold certified efficiency"); specs["Efficiency"] = "80 PLUS Gold"; }
-  else if (nameLower.includes("80 plus bronze") || nameLower.includes("80+ bronze")) { features.push("80 PLUS Bronze certified efficiency"); specs["Efficiency"] = "80 PLUS Bronze"; }
-  else if (nameLower.includes("80 plus") || nameLower.includes("80+")) { features.push("80 PLUS certified efficiency"); specs["Efficiency"] = "80 PLUS"; }
-  if (nameLower.includes("ips")) { specs["Panel Type"] = "IPS"; features.push("IPS panel for wide viewing angles and accurate colours"); }
-  else if (nameLower.includes("va panel") || nameLower.includes(" va ")) specs["Panel Type"] = "VA";
-  else if (nameLower.includes(" tn ")) specs["Panel Type"] = "TN";
-  else if (nameLower.includes("oled")) { specs["Panel Type"] = "OLED"; features.push("OLED display for deep blacks and vivid colours"); }
-  if (nameLower.includes("curved")) features.push("Curved display for immersive viewing");
-  if (nameLower.includes("ultrawide")) features.push("Ultrawide aspect ratio");
-  if (nameLower.includes("freesync")) features.push("AMD FreeSync adaptive sync");
-  if (nameLower.includes("g-sync") || nameLower.includes("gsync")) features.push("NVIDIA G-Sync compatible");
-  if (nameLower.includes("hdr")) features.push("HDR support");
-  if (nameLower.includes("aio") || nameLower.includes("all-in-one")) features.push("All-in-one liquid cooler");
-  if (nameLower.includes("tower cooler") || nameLower.includes("air cooler")) features.push("Tower air cooler design");
-  if (nameLower.includes("dual fan") || nameLower.includes("2 fan")) features.push("Dual fan design");
-  if (nameLower.includes("triple fan") || nameLower.includes("3 fan")) features.push("Triple fan design");
+  const isMonitorLike = category === "monitor" || category === "gpu";
+  const isNotPeripheral = category !== "keyboard" && category !== "mouse" && category !== "audio" && category !== "webcam" && category !== "cable" && category !== "networking";
+  if (isNotPeripheral && (nameLower.includes("dust filter") || nameLower.includes("dust-filter"))) features.push("Integrated dust filters");
+  if (isNotPeripheral && nameLower.includes("tempered glass")) features.push("Tempered glass side panel");
+  if (isNotPeripheral && nameLower.includes("mesh") && nameLower.includes("front")) features.push("Mesh front panel for airflow");
+  if (category === "psu" || category === "other") {
+    if (nameLower.includes("80 plus platinum") || nameLower.includes("80+ platinum")) { features.push("80 PLUS Platinum certified efficiency"); specs["Efficiency"] = "80 PLUS Platinum"; }
+    else if (nameLower.includes("80 plus gold") || nameLower.includes("80+ gold")) { features.push("80 PLUS Gold certified efficiency"); specs["Efficiency"] = "80 PLUS Gold"; }
+    else if (nameLower.includes("80 plus bronze") || nameLower.includes("80+ bronze")) { features.push("80 PLUS Bronze certified efficiency"); specs["Efficiency"] = "80 PLUS Bronze"; }
+    else if (nameLower.includes("80 plus") || nameLower.includes("80+")) { features.push("80 PLUS certified efficiency"); specs["Efficiency"] = "80 PLUS"; }
+  }
+  if (isMonitorLike) {
+    if (nameLower.includes("ips")) { specs["Panel Type"] = "IPS"; features.push("IPS panel for wide viewing angles and accurate colours"); }
+    else if (nameLower.includes("va panel") || nameLower.includes(" va ")) specs["Panel Type"] = "VA";
+    else if (nameLower.includes(" tn ")) specs["Panel Type"] = "TN";
+    else if (nameLower.includes("oled")) { specs["Panel Type"] = "OLED"; features.push("OLED display for deep blacks and vivid colours"); }
+    if (nameLower.includes("curved")) features.push("Curved display for immersive viewing");
+    if (nameLower.includes("ultrawide")) features.push("Ultrawide aspect ratio");
+    if (nameLower.includes("freesync")) features.push("AMD FreeSync adaptive sync");
+    if (nameLower.includes("g-sync") || nameLower.includes("gsync")) features.push("NVIDIA G-Sync compatible");
+    if (nameLower.includes("hdr")) features.push("HDR support");
+  }
+  if (isNotPeripheral) {
+    if (nameLower.includes("aio") || nameLower.includes("all-in-one")) features.push("All-in-one liquid cooler");
+    if (nameLower.includes("tower cooler") || nameLower.includes("air cooler")) features.push("Tower air cooler design");
+    if (nameLower.includes("dual fan") || nameLower.includes("2 fan")) features.push("Dual fan design");
+    if (nameLower.includes("triple fan") || nameLower.includes("3 fan")) features.push("Triple fan design");
+  }
   if (nameLower.includes("backlit") || nameLower.includes("back-lit")) features.push("Backlit keys/display");
   if (nameLower.includes("ergonomic")) features.push("Ergonomic design");
   if (nameLower.includes("programmable")) features.push("Programmable buttons/keys");

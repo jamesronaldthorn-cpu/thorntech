@@ -1,4 +1,4 @@
-import { eq, sql, gte, desc, count } from "drizzle-orm";
+import { eq, sql, gte, desc, count, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { users, categories, products, orders, customFeeds, feedSources, pageViews, basketEvents, blogPosts, customerReviews, type User, type InsertUser, type Category, type InsertCategory, type Product, type InsertProduct, type Order, type InsertOrder, type CustomFeed, type InsertCustomFeed, type FeedSource, type InsertFeedSource, type BlogPost, type InsertBlogPost, type CustomerReview, type InsertCustomerReview } from "@shared/schema";
 
@@ -272,15 +272,17 @@ export class DatabaseStorage implements IStorage {
     const weekStart = new Date(todayStart.getTime() - 6 * 24 * 60 * 60 * 1000);
     const monthStart = new Date(todayStart.getTime() - 29 * 24 * 60 * 60 * 1000);
 
-    const [todayResult] = await this.db.select({ count: count() }).from(pageViews).where(gte(pageViews.createdAt, todayStart));
-    const [weekResult] = await this.db.select({ count: count() }).from(pageViews).where(gte(pageViews.createdAt, weekStart));
-    const [monthResult] = await this.db.select({ count: count() }).from(pageViews).where(gte(pageViews.createdAt, monthStart));
-    const [totalResult] = await this.db.select({ count: count() }).from(pageViews);
+    const botFilter = sql`(${pageViews.userAgent} IS NULL OR NOT (${pageViews.userAgent} ~* 'bot|crawl|spider|slurp|archiv|facebook|twitter|whatsapp|telegram|discord|linkedin|pinterest|preview|fetch|wget|curl|monitor|check|scan|index|search|feed|rss|scrap|seo|ahrefs|semrush|majestic|moz|yandex|baidu|bing|google|duckduck|yahoo|sogou|exabot|ia_archiver|alexa|mediapartners|adsbot|lighthouse|pagespeed|gtmetrix|pingdom|uptimerobot|statuscake|headlesschrome|phantomjs|python|java/|perl|ruby|go-http|node-fetch|axios|postman|insomnia'))`;
+
+    const [todayResult] = await this.db.select({ count: count() }).from(pageViews).where(and(gte(pageViews.createdAt, todayStart), botFilter));
+    const [weekResult] = await this.db.select({ count: count() }).from(pageViews).where(and(gte(pageViews.createdAt, weekStart), botFilter));
+    const [monthResult] = await this.db.select({ count: count() }).from(pageViews).where(and(gte(pageViews.createdAt, monthStart), botFilter));
+    const [totalResult] = await this.db.select({ count: count() }).from(pageViews).where(botFilter);
 
     const topPages = await this.db
       .select({ path: pageViews.path, views: count() })
       .from(pageViews)
-      .where(gte(pageViews.createdAt, monthStart))
+      .where(and(gte(pageViews.createdAt, monthStart), botFilter))
       .groupBy(pageViews.path)
       .orderBy(desc(count()))
       .limit(10);
@@ -291,7 +293,7 @@ export class DatabaseStorage implements IStorage {
         views: count(),
       })
       .from(pageViews)
-      .where(gte(pageViews.createdAt, monthStart))
+      .where(and(gte(pageViews.createdAt, monthStart), botFilter))
       .groupBy(sql`TO_CHAR(${pageViews.createdAt}, 'YYYY-MM-DD')`)
       .orderBy(sql`TO_CHAR(${pageViews.createdAt}, 'YYYY-MM-DD')`);
 

@@ -455,7 +455,7 @@ function extractVipSpecs(product: VipProduct): Record<string, string> {
   const specs: Record<string, string> = {};
   if (!product.Attributes) return specs;
   const attrs = Array.isArray(product.Attributes) ? product.Attributes : [product.Attributes];
-  const skip = new Set(["Product Name", "Web Address", "EAN", "Model Number", "Description", "Long Description", "Marketing Text"]);
+  const skip = new Set(["Product Name", "Web Address", "EAN", "Model Number", "Description", "Long Description", "Marketing Text", "Special Features", "Key Features", "Features", "Highlights"]);
   for (const attr of attrs) {
     const name = attr.AttributeName?.trim();
     const value = String(attr.AttributeValue || "").trim();
@@ -470,12 +470,23 @@ function extractVipFeatures(product: VipProduct): string[] {
   if (!product.Attributes) return features;
   const attrs = Array.isArray(product.Attributes) ? product.Attributes : [product.Attributes];
 
+  const specialFeaturesAttr = attrs.find((a: any) =>
+    a.AttributeName === "Special Features" || a.AttributeName === "Key Features" || a.AttributeName === "Features" || a.AttributeName === "Highlights"
+  );
+  if (specialFeaturesAttr?.AttributeValue) {
+    const val = String(specialFeaturesAttr.AttributeValue).trim();
+    const parts = val.split(/[,;|]/).map(s => s.trim()).filter(s => s.length > 3 && s.length < 150);
+    for (const p of parts) {
+      if (!features.includes(p)) features.push(p);
+    }
+  }
+
   const longDesc = attrs.find((a: any) => a.AttributeName === "Long Description" || a.AttributeName === "Marketing Text");
   if (longDesc?.AttributeValue) {
     const text = String(longDesc.AttributeValue);
-    const bullets = text.split(/[•\-\n]/).map(s => s.trim()).filter(s => s.length > 10 && s.length < 150);
+    const bullets = text.split(/[•\n]/).map(s => s.trim()).filter(s => s.length > 10 && s.length < 150);
     for (const b of bullets.slice(0, 15)) {
-      features.push(b);
+      if (!features.includes(b)) features.push(b);
     }
   }
 
@@ -492,7 +503,7 @@ function extractVipFeatures(product: VipProduct): string[] {
     }
   }
 
-  const specFeatureNames = new Set(["Connectivity", "Special Features", "Technology", "Compatibility", "Included Accessories", "RGB Lighting", "Cooling Technology"]);
+  const specFeatureNames = new Set(["Connectivity", "Technology", "Compatibility", "Included Accessories", "RGB Lighting", "Cooling Technology"]);
   for (const attr of attrs) {
     if (specFeatureNames.has(attr.AttributeName) && attr.AttributeValue) {
       const val = String(attr.AttributeValue).trim();

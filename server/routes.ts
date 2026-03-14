@@ -13,6 +13,13 @@ import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "thorntech-jwt-secret-change-me";
 
+const BOT_PATTERNS = /bot|crawl|spider|slurp|archiv|facebook|twitter|whatsapp|telegram|discord|linkedin|pinterest|preview|fetch|wget|curl|http|monitor|check|scan|index|search|feed|rss|scrap|seo|ahrefs|semrush|majestic|moz|yandex|baidu|bing|google|duckduck|yahoo|sogou|exabot|ia_archiver|alexa|ask\s|mediapartners|adsbot|lighthouse|pagespeed|gtmetrix|pingdom|uptimerobot|statuscake|headlesschrome|phantomjs|python|java\/|perl|ruby|go-http|node-fetch|axios|postman|insomnia/i;
+
+function isBot(userAgent: string): boolean {
+  if (!userAgent || userAgent.length < 10) return true;
+  return BOT_PATTERNS.test(userAgent);
+}
+
 function escapeXml(str: string): string {
   return str
     .replace(/&/g, "&amp;")
@@ -80,7 +87,9 @@ export async function registerRoutes(
       const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.socket.remoteAddress || "";
       const userAgent = req.headers["user-agent"] || "";
       const referrer = req.headers["referer"] || "";
-      storage.recordPageView(req.path, ip, userAgent, referrer).catch(() => {});
+      if (!isBot(userAgent)) {
+        storage.recordPageView(req.path, ip, userAgent, referrer).catch(() => {});
+      }
     }
     next();
   });
