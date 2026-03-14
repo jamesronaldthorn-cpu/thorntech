@@ -1660,5 +1660,35 @@ ${cat ? `<g:product_type>${escXml(cat.name)}</g:product_type>` : ""}
     }
   })();
 
+  app.get("/api/img-proxy", async (req, res) => {
+    const url = req.query.url as string;
+    if (!url) return res.status(400).send("Missing url parameter");
+
+    try {
+      const parsed = new URL(url);
+      if (!["http:", "https:"].includes(parsed.protocol)) {
+        return res.status(400).send("Invalid URL");
+      }
+
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(8000),
+        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+      });
+
+      if (!response.ok) {
+        return res.status(response.status).send("Image not found");
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (contentType) res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=86400");
+
+      const buffer = Buffer.from(await response.arrayBuffer());
+      res.send(buffer);
+    } catch {
+      res.status(502).send("Failed to fetch image");
+    }
+  });
+
   return httpServer;
 }

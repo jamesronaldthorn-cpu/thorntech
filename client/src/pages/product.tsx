@@ -7,6 +7,7 @@ import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
 import { useCart } from "@/lib/cart";
+import { proxyImageUrl } from "@/lib/utils";
 import { usePageTitle, ProductJsonLd, BreadcrumbJsonLd } from "@/components/SEO";
 import type { Product, Category } from "@shared/schema";
 
@@ -90,7 +91,7 @@ function ImageGallery({ product, imgError, setImgError }: { product: Product; im
             <div className={`absolute top-4 left-4 z-10 text-sm font-bold px-3 py-1 rounded ${product.badge === "Sale" ? "bg-red-600" : "bg-primary"} text-white`}>{product.badge}</div>
           )}
           <img
-            src={validImages[activeIdx]}
+            src={proxyImageUrl(validImages[activeIdx])}
             alt={product.name}
             className="max-w-[90%] max-h-[90%] object-contain product-image"
             onError={() => {
@@ -129,7 +130,7 @@ function ImageGallery({ product, imgError, setImgError }: { product: Product; im
                 className={`w-[72px] h-[72px] rounded-lg border-2 overflow-hidden shrink-0 bg-white ${i === activeIdx ? "border-primary shadow-lg shadow-primary/20" : "border-white/10 hover:border-white/30"} transition-all`}
                 data-testid={`thumb-image-${i}`}
               >
-                <img src={img} alt="" className="w-full h-full object-contain p-1" onError={() => setThumbErrors(prev => new Set(prev).add(allImages.indexOf(img)))} />
+                <img src={proxyImageUrl(img)} alt="" className="w-full h-full object-contain p-1" onError={() => setThumbErrors(prev => new Set(prev).add(allImages.indexOf(img)))} />
               </button>
             ))}
           </div>
@@ -171,7 +172,7 @@ function ImageGallery({ product, imgError, setImgError }: { product: Product; im
           )}
 
           <img
-            src={validImages[activeIdx]}
+            src={proxyImageUrl(validImages[activeIdx])}
             alt={product.name}
             className="max-w-[90vw] max-h-[85vh] object-contain"
             onClick={(e) => e.stopPropagation()}
@@ -185,7 +186,7 @@ function ImageGallery({ product, imgError, setImgError }: { product: Product; im
                   onClick={(e) => { e.stopPropagation(); setSelected(i); }}
                   className={`w-12 h-12 rounded border-2 overflow-hidden bg-white ${i === activeIdx ? "border-primary" : "border-transparent hover:border-white/40"} transition-all`}
                 >
-                  <img src={img} alt="" className="w-full h-full object-contain p-0.5" />
+                  <img src={proxyImageUrl(img)} alt="" className="w-full h-full object-contain p-0.5" />
                 </button>
               ))}
             </div>

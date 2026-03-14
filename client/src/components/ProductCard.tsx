@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { Cpu, Monitor, HardDrive, Zap, Fan, Box, Keyboard, MemoryStick, Cable, Mouse, Wifi, Speaker, Headset, CircuitBoard, Server, ShoppingBasket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
+import { proxyImageUrl } from "@/lib/utils";
 import type { Product, Category } from "@shared/schema";
 import { useState } from "react";
 
@@ -59,7 +60,7 @@ export default function ProductCard({ product, category }: { product: Product; c
           )}
           {hasImage ? (
             <img
-              src={product.image!}
+              src={proxyImageUrl(product.image!)}
               alt={product.name}
               className="w-full h-full object-contain p-3"
               style={{ imageRendering: "auto" }}
