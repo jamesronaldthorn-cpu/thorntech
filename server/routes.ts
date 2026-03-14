@@ -1672,7 +1672,11 @@ ${cat ? `<g:product_type>${escXml(cat.name)}</g:product_type>` : ""}
 
       const response = await fetch(url, {
         signal: AbortSignal.timeout(8000),
-        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+          "Referer": "https://www.vip-computers.com/",
+        },
       });
 
       if (!response.ok) {
@@ -1682,6 +1686,7 @@ ${cat ? `<g:product_type>${escXml(cat.name)}</g:product_type>` : ""}
       const contentType = response.headers.get("content-type");
       if (contentType) res.setHeader("Content-Type", contentType);
       res.setHeader("Cache-Control", "public, max-age=86400");
+      res.setHeader("Access-Control-Allow-Origin", "*");
 
       const buffer = Buffer.from(await response.arrayBuffer());
       res.send(buffer);
