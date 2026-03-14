@@ -15,7 +15,7 @@ A fully functional e-commerce store for Thorn Tech Solutions Ltd (Company Reg: 1
 ## Data Model
 - **Users**: id, email, passwordHash, name, phone, address, city, postcode, createdAt
 - **Categories**: id, name, slug, description, icon
-- **Products**: id, name, slug, description, price, costPrice, compareAtPrice, categoryId, image, images (JSON array), specs (JSON obj), features (JSON array), badge, inStock, vendor, mpn, ean, enrichedAt, stripeProductId, stripePriceId
+- **Products**: id, name, slug, description, price, costPrice, compareAtPrice, categoryId, image, images (JSON array), specs (JSON obj), features (JSON array), vipFeatures (JSON array — VIP key features shown separately at top of product page), badge, inStock, vendor, mpn, ean, enrichedAt, stripeProductId, stripePriceId
 - **Orders**: id, userId (nullable), email, name, address, city, postcode, phone, total, status, paymentMethod, paymentId, items, createdAt
 - **CustomFeeds**: id, name, slug, content, createdAt, updatedAt
 - **FeedSources**: id, name, url, categoryId, intervalHours, enabled, lastImportAt, lastImportCount, lastError, createdAt
@@ -51,11 +51,13 @@ A fully functional e-commerce store for Thorn Tech Solutions Ltd (Company Reg: 1
 - `server/productEnricher.ts` — Scrapes 7 UK retailer sites + 3 image search engines for specs, features, images, descriptions
 - **Retailer sources**: Scan.co.uk, CCL Online, eBuyer, Overclockers UK, Box.co.uk, Novatech, Lambda-tek
 - **Manufacturer sources** (priority 1): Corsair, MSI, Gigabyte, ASUS, NZXT, EVGA, Kingston, Samsung, Crucial, Noctua, Cooler Master, be quiet!, Seasonic, WD, AMD, Intel, Fractal Design, Thermaltake, Arctic, Lian Li, Phanteks, G.Skill, Seagate
-- **Image sources**: Manufacturer sites (first), Amazon (high-res _AC_SL1500_), UK retailers, DuckDuckGo, Google images (fallback)
+- **Image sources**: VIP images (valid HTTPS URLs from vip-computers.com), Manufacturer sites, Amazon (high-res _AC_SL1500_), UK retailers, DuckDuckGo, Google images (fallback)
 - **Image extraction**: img tags, data-src lazy loading, data-zoom-image/data-large/data-full hi-res, srcset 2x, Open Graph/Twitter Card, JSON-LD structured data images
+- VIP images are treated as valid (not replaced) — enrichment adds additional images on top
 - Collects up to 15 images per product across all sources
 - Product page: large 500px image gallery with click-to-zoom lightbox, thumbnail strip, image counter
-- Stores enriched data in: specs (JSON), features (JSON array), images (JSON array of URLs)
+- Stores enriched data in: specs (JSON), features (JSON array), images (JSON array of URLs), vipFeatures (JSON array — separate from enriched features)
+- VIP key features (from Long Description / Marketing Text attributes) shown at top of product page in their own styled section
 - Admin panel has: "Enrich Products" (batch), "Re-enrich Low Specs", "Upgrade Image Quality", "Reset All", "Clear Bad Images", "Pull Missing Images", "Tag Sources"
 - Tracks progress across batches (continues from where it left off)
 - `source` field on products tracks wholesaler origin (VIP Computers, feed name, etc.)

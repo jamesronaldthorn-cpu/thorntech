@@ -65,33 +65,61 @@ interface VipStock {
   ProductStatus: number;
 }
 
-function buildImageUrl(product: VipProduct): string | null {
-  if (product.ProductImage) {
-    let imgPath = String(product.ProductImage).trim();
-    if (!imgPath || imgPath === "0" || imgPath.toLowerCase() === "null" || imgPath.toLowerCase() === "n/a") {
-      return buildFallbackImageUrl(product);
+function normalizeVipImageUrl(raw: string): string | null {
+  let imgPath = raw.trim();
+  if (!imgPath || imgPath === "0" || imgPath.toLowerCase() === "null" || imgPath.toLowerCase() === "n/a") return null;
+  if (imgPath.startsWith("ftp://")) {
+    const ftpFilename = imgPath.split("/").pop();
+    if (ftpFilename && /\.(jpg|jpeg|png|webp|gif)$/i.test(ftpFilename)) {
+      return `https://www.vip-computers.com/uk/images/products/${ftpFilename}`;
     }
-    if (imgPath.startsWith("http")) return imgPath;
-    if (imgPath.startsWith("//")) return `https:${imgPath}`;
-    if (imgPath.startsWith("ftp://")) {
-      const ftpFilename = imgPath.split("/").pop();
-      if (ftpFilename && /\.(jpg|jpeg|png|webp|gif)$/i.test(ftpFilename)) {
-        return `https://www.vip-computers.com/uk/images/products/${ftpFilename}`;
-      }
-      return buildFallbackImageUrl(product);
-    }
-    if (imgPath.startsWith("/")) return `https://www.vip-computers.com${imgPath}`;
-    const hasExt = /\.(jpg|jpeg|png|webp|gif)$/i.test(imgPath);
-    if (hasExt) {
-      return `https://www.vip-computers.com/uk/images/products/${imgPath}`;
-    }
-    const numMatch = imgPath.match(/^(\d+)$/);
-    if (numMatch) {
-      return `https://www.vip-computers.com/uk/images/products/${numMatch[1]}.jpg`;
-    }
+    return null;
+  }
+  if (imgPath.startsWith("http")) return imgPath;
+  if (imgPath.startsWith("//")) return `https:${imgPath}`;
+  if (imgPath.startsWith("/")) return `https://www.vip-computers.com${imgPath}`;
+  if (/\.(jpg|jpeg|png|webp|gif)$/i.test(imgPath)) {
+    return `https://www.vip-computers.com/uk/images/products/${imgPath}`;
+  }
+  if (/^\d+$/.test(imgPath)) {
     return `https://www.vip-computers.com/uk/images/products/${imgPath}.jpg`;
   }
+  return `https://www.vip-computers.com/uk/images/products/${imgPath}.jpg`;
+}
+
+function buildImageUrl(product: VipProduct): string | null {
+  if (product.ProductImage) {
+    const url = normalizeVipImageUrl(String(product.ProductImage));
+    if (url) return url;
+  }
   return buildFallbackImageUrl(product);
+}
+
+function extractAllVipImages(product: VipProduct): string[] {
+  const images: string[] = [];
+  if (product.ProductImage) {
+    const main = normalizeVipImageUrl(String(product.ProductImage));
+    if (main) images.push(main);
+  }
+  if (product.Attributes) {
+    const attrs = Array.isArray(product.Attributes) ? product.Attributes : [product.Attributes];
+    const imageAttrNames = ["Image", "Image 1", "Image 2", "Image 3", "Image 4", "Image 5",
+      "Additional Image", "Additional Image 1", "Additional Image 2", "Additional Image 3",
+      "Gallery Image", "Gallery Image 1", "Gallery Image 2", "Gallery Image 3",
+      "Product Image", "Product Image 2", "Product Image 3",
+      "Alternate Image", "Alt Image", "Secondary Image"];
+    for (const attr of attrs) {
+      const name = attr.AttributeName?.trim();
+      const value = String(attr.AttributeValue || "").trim();
+      if (!name || !value) continue;
+      if (imageAttrNames.some(n => name.toLowerCase() === n.toLowerCase()) ||
+          name.toLowerCase().includes("image") || name.toLowerCase().includes("photo") || name.toLowerCase().includes("picture")) {
+        const url = normalizeVipImageUrl(value);
+        if (url && !images.includes(url)) images.push(url);
+      }
+    }
+  }
+  return images;
 }
 
 function buildFallbackImageUrl(product: VipProduct): string | null {
@@ -589,9 +617,10 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
       const name = getProductName(vp);
       let slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "").replace(/^-+/, "").substring(0, 80);
       const imageUrl = buildImageUrl(vp);
+      const allVipImages = extractAllVipImages(vp);
 
       if (imgSampled < 10) {
-        console.log(`[VIP] Image sample #${imgSampled + 1}: "${name}" ProductImage="${vp.ProductImage}" → imageUrl="${imageUrl}" ProdID=${vp.ProdID}`);
+        console.log(`[VIP] Image sample #${imgSampled + 1}: "${name}" ProductImage="${vp.ProductImage}" → imageUrl="${imageUrl}" allImages=${allVipImages.length} ProdID=${vp.ProdID}`);
         imgSampled++;
       }
       if (imageUrl) imgSet++;
@@ -611,8 +640,17 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         if (existing.inStock !== isInStock) updates.inStock = isInStock;
         if (imageUrl && !existing.image) {
           updates.image = imageUrl;
-        } else if (imageUrl && existing.image && existing.image.includes("vip-computers.com") && imageUrl !== existing.image) {
+        } else if (imageUrl && existing.image && existing.image.includes("ftp://")) {
           updates.image = imageUrl;
+        }
+
+        if (allVipImages.length > 0) {
+          let existingImages: string[] = [];
+          try { if (existing.images) existingImages = typeof existing.images === "string" ? JSON.parse(existing.images) : existing.images; } catch {}
+          const merged = [...new Set([...allVipImages, ...existingImages])].slice(0, 15);
+          if (merged.length > existingImages.length) {
+            updates.images = JSON.stringify(merged);
+          }
         }
 
         const vipSpecs = extractVipSpecs(vp);
@@ -628,11 +666,7 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
           }
         }
         if (vipFeatures.length > 0) {
-          let existingFeatures: string[] = [];
-          try { if (existing.features) existingFeatures = JSON.parse(existing.features as string); } catch {}
-          if (existingFeatures.length === 0) {
-            updates.features = JSON.stringify(vipFeatures);
-          }
+          updates.vipFeatures = JSON.stringify(vipFeatures);
         }
         if (vp.Manufacturer && vp.Manufacturer !== existing.vendor) updates.vendor = vp.Manufacturer;
         if (mpn && existing.mpn !== mpn) updates.mpn = mpn;
@@ -689,8 +723,10 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         compareAtPrice: null,
         categoryId,
         image: imageUrl,
+        images: allVipImages.length > 0 ? JSON.stringify(allVipImages) : null,
         specs: Object.keys(vipSpecs).length > 0 ? JSON.stringify(vipSpecs) : null,
-        features: vipFeatures.length > 0 ? JSON.stringify(vipFeatures) : null,
+        features: null as string | null,
+        vipFeatures: vipFeatures.length > 0 ? JSON.stringify(vipFeatures) : null,
         badge: null as string | null,
         inStock: isInStock,
         vendor: vp.Manufacturer || null,

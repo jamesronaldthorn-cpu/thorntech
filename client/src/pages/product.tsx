@@ -278,6 +278,11 @@ export default function ProductPage() {
     if (product.features) features = JSON.parse(product.features as string);
   } catch {}
 
+  let vipFeatures: string[] = [];
+  try {
+    if ((product as any).vipFeatures) vipFeatures = JSON.parse((product as any).vipFeatures as string);
+  } catch {}
+
   const allSpecs = [
     ...descSpecs.map(s => ({ label: s.label, value: s.value })),
     ...Object.entries(webSpecs).map(([k, v]) => ({ label: k, value: v })),
@@ -290,7 +295,8 @@ export default function ProductPage() {
     return true;
   });
 
-  const hasRichContent = features.length > 0 || uniqueSpecs.length > 0 || descParagraphs.length > 0 || product.description;
+  const allFeatures = features.length > 0 ? features : vipFeatures;
+  const hasRichContent = allFeatures.length > 0 || uniqueSpecs.length > 0 || descParagraphs.length > 0 || product.description;
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
@@ -332,6 +338,23 @@ export default function ProductPage() {
               <p className="text-xs text-muted-foreground mb-2">MPN: {product.mpn}</p>
             )}
 
+            {vipFeatures.length > 0 && (
+              <div className="mb-5 p-4 rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20" data-testid="vip-features-section">
+                <h3 className="text-sm font-display font-bold mb-3 flex items-center gap-2 text-primary uppercase tracking-wider">
+                  <Star className="w-4 h-4" />
+                  Key Features
+                </h3>
+                <div className="space-y-2">
+                  {vipFeatures.map((f, i) => (
+                    <p key={i} className="text-sm text-muted-foreground leading-relaxed flex items-start gap-2">
+                      <CheckCircle className="w-3.5 h-3.5 text-primary mt-1 shrink-0" />
+                      <span>{f}</span>
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {(descParagraphs.length > 0 || (product.description && !product.description.includes(":"))) && (
               <p className="text-sm text-muted-foreground leading-relaxed mb-4 line-clamp-4">
                 {descParagraphs.length > 0 ? descParagraphs.slice(0, 2).join(" ") : product.description}
@@ -352,14 +375,14 @@ export default function ProductPage() {
               </div>
             )}
 
-            {features.length > 0 && features.length <= 4 && (
+            {allFeatures.length > 0 && allFeatures.length <= 4 && vipFeatures.length === 0 && (
               <div className="mb-6 p-4 rounded-lg bg-primary/5 border border-primary/10">
                 <h3 className="text-sm font-display font-bold mb-3 flex items-center gap-2">
                   <Star className="w-4 h-4 text-primary" />
                   KEY FEATURES
                 </h3>
                 <ul className="space-y-1.5">
-                  {features.slice(0, 4).map((f, i) => (
+                  {allFeatures.slice(0, 4).map((f, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
                       <CheckCircle className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
                       <span>{f}</span>
@@ -369,11 +392,11 @@ export default function ProductPage() {
               </div>
             )}
 
-            {features.length > 4 && (
+            {allFeatures.length > 4 && vipFeatures.length === 0 && (
               <div className="mb-6 p-3 rounded-lg bg-primary/5 border border-primary/10">
                 <p className="text-xs text-primary font-display font-bold flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
-                  {features.length} SPECIAL FEATURES — See full showcase below
+                  {allFeatures.length} SPECIAL FEATURES — See full showcase below
                 </p>
               </div>
             )}
@@ -425,7 +448,7 @@ export default function ProductPage() {
         </div>
       </section>
 
-      {(features.length > 0 || uniqueSpecs.length >= 3) && (
+      {(allFeatures.length > 0 || uniqueSpecs.length >= 3) && (
         <section className="relative py-16 overflow-hidden" data-testid="section-special-features">
           <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.06] via-primary/[0.03] to-transparent pointer-events-none" />
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
@@ -466,10 +489,10 @@ export default function ProductPage() {
               </div>
             )}
 
-            {features.length > 0 && (
+            {allFeatures.length > 0 && (
               <div className="max-w-5xl mx-auto">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {features.map((feature, i) => (
+                  {allFeatures.map((feature, i) => (
                     <div key={i} className="group flex items-start gap-4 p-5 bg-background border border-white/10 rounded-xl hover:border-primary/30 transition-all" data-testid={`feature-card-${i}`}>
                       <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
                         <CheckCircle className="w-5 h-5" />

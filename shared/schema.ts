@@ -35,6 +35,7 @@ export const products = pgTable("products", {
   images: text("images"),
   specs: text("specs"),
   features: text("features"),
+  vipFeatures: text("vip_features"),
   badge: text("badge"),
   inStock: boolean("in_stock").notNull().default(true),
   vendor: text("vendor"),

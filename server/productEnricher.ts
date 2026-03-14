@@ -1325,7 +1325,7 @@ export async function enrichProducts(batchSize = 500): Promise<EnrichResult> {
 
       const hasGoodSpecs = Object.keys(existingSpecs).length >= 3;
       const hasGoodFeatures = existingFeatures.length >= 3;
-      const hasGoodImages = existingImages.length >= 2 && product.image && !product.image.includes("vip-computers.com") && !product.image.includes("placeholder");
+      const hasGoodImages = existingImages.length >= 2 && product.image && !product.image.includes("placeholder");
       const hasGoodDescription = product.description && product.description.length >= 80;
 
       const { specs: nameSpecs, features: nameFeatures } = parseSpecsFromName(product.name, product.vendor || undefined, product.description || undefined);
@@ -1373,7 +1373,7 @@ export async function enrichProducts(batchSize = 500): Promise<EnrichResult> {
           updates.images = JSON.stringify(combinedImages);
           console.log(`[Enricher]   Images: ${existingImages.length} → ${combinedImages.length}`);
         }
-        const isBadImage = !product.image || product.image.includes("vip-computers.com") || product.image.includes("placeholder") || product.image.includes("no-image") || product.image.includes("default");
+        const isBadImage = !product.image || product.image.includes("placeholder") || product.image.includes("no-image") || product.image.includes("default");
         if (isBadImage) {
           updates.image = webData.images[0];
           console.log(`[Enricher]   Replaced bad main image with: ${webData.images[0]}`);
@@ -1436,7 +1436,7 @@ export async function pullMissingImages(): Promise<{ updated: number; skipped: n
   const categories = await storage.getCategories();
   const needImages = allProducts.filter(p => {
     if (enrichedIds.has(p.id)) return false;
-    if (!p.image || p.image.includes("vip-computers.com") || p.image.includes("placeholder") || p.image.includes("no-image") || p.image.includes("default")) return true;
+    if (!p.image || p.image.includes("placeholder") || p.image.includes("no-image") || p.image.includes("default")) return true;
     let existingImgs: string[] = [];
     try { if (p.images) existingImgs = typeof p.images === "string" ? JSON.parse(p.images) : p.images; } catch {}
     if (existingImgs.length < 2) return true;
@@ -1526,11 +1526,11 @@ export async function pullMissingImages(): Promise<{ updated: number; skipped: n
       if (foundImages.length > 0) {
         let currentImages: string[] = [];
         try { if (product.images) currentImages = typeof product.images === "string" ? JSON.parse(product.images) : product.images; } catch {}
-        const goodExisting = currentImages.filter(img => img && !img.includes("vip-computers.com") && !img.includes("placeholder") && !img.includes("no-image"));
+        const goodExisting = currentImages.filter(img => img && !img.includes("placeholder") && !img.includes("no-image"));
         const merged = [...new Set([...goodExisting, ...foundImages])].slice(0, 15);
 
         const updates: Record<string, any> = { images: JSON.stringify(merged) };
-        const isBadMainImage = !product.image || product.image.includes("vip-computers.com") || product.image.includes("placeholder") || product.image.includes("no-image") || product.image.includes("default");
+        const isBadMainImage = !product.image || product.image.includes("placeholder") || product.image.includes("no-image") || product.image.includes("default");
         if (isBadMainImage) {
           updates.image = merged[0];
         }
