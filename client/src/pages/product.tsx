@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
-import { ChevronRight, ShieldCheck, Truck, Package, Box, CheckCircle, XCircle, Cpu, Monitor, HardDrive, Zap, Fan, Keyboard, MemoryStick, Cable, Mouse, Wifi, Speaker, Headset, CircuitBoard, Server, Star, ChevronLeft } from "lucide-react";
+import { ChevronRight, ShieldCheck, Truck, Package, Box, CheckCircle, XCircle, Cpu, Monitor, HardDrive, Zap, Fan, Keyboard, MemoryStick, Cable, Mouse, Wifi, Speaker, Headset, CircuitBoard, Server, Star, ChevronLeft, Sparkles, Gauge, Award, Bolt, Layers, Thermometer, Maximize, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import NavBar from "@/components/NavBar";
@@ -9,6 +9,36 @@ import ProductCard from "@/components/ProductCard";
 import { useCart } from "@/lib/cart";
 import { usePageTitle, ProductJsonLd, BreadcrumbJsonLd } from "@/components/SEO";
 import type { Product, Category } from "@shared/schema";
+
+const SPEC_ICONS: Record<string, React.ReactNode> = {
+  "clock speed": <Gauge className="w-6 h-6" />,
+  "speed": <Gauge className="w-6 h-6" />,
+  "boost clock": <Gauge className="w-6 h-6" />,
+  "base clock": <Gauge className="w-6 h-6" />,
+  "frequency": <Gauge className="w-6 h-6" />,
+  "cores": <Cpu className="w-6 h-6" />,
+  "threads": <Cpu className="w-6 h-6" />,
+  "processor": <Cpu className="w-6 h-6" />,
+  "socket": <CircuitBoard className="w-6 h-6" />,
+  "chipset": <CircuitBoard className="w-6 h-6" />,
+  "memory": <MemoryStick className="w-6 h-6" />,
+  "memory / capacity": <MemoryStick className="w-6 h-6" />,
+  "capacity": <HardDrive className="w-6 h-6" />,
+  "storage": <HardDrive className="w-6 h-6" />,
+  "interface": <Cable className="w-6 h-6" />,
+  "form factor": <Layers className="w-6 h-6" />,
+  "wattage": <Zap className="w-6 h-6" />,
+  "tdp": <Thermometer className="w-6 h-6" />,
+  "efficiency": <Award className="w-6 h-6" />,
+  "resolution": <Maximize className="w-6 h-6" />,
+  "refresh rate": <BarChart3 className="w-6 h-6" />,
+  "panel type": <Monitor className="w-6 h-6" />,
+  "screen size": <Monitor className="w-6 h-6" />,
+  "fan size": <Fan className="w-6 h-6" />,
+  "cooling type": <Thermometer className="w-6 h-6" />,
+  "rgb": <Sparkles className="w-6 h-6" />,
+  "lighting": <Sparkles className="w-6 h-6" />,
+};
 
 function formatPrice(price: number) {
   return `£${price.toFixed(2)}`;
@@ -321,20 +351,29 @@ export default function ProductPage() {
               </div>
             )}
 
-            {features.length > 0 && (
+            {features.length > 0 && features.length <= 4 && (
               <div className="mb-6 p-4 rounded-lg bg-primary/5 border border-primary/10">
                 <h3 className="text-sm font-display font-bold mb-3 flex items-center gap-2">
                   <Star className="w-4 h-4 text-primary" />
                   KEY FEATURES
                 </h3>
                 <ul className="space-y-1.5">
-                  {features.slice(0, 6).map((f, i) => (
+                  {features.slice(0, 4).map((f, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
                       <CheckCircle className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
                       <span>{f}</span>
                     </li>
                   ))}
                 </ul>
+              </div>
+            )}
+
+            {features.length > 4 && (
+              <div className="mb-6 p-3 rounded-lg bg-primary/5 border border-primary/10">
+                <p className="text-xs text-primary font-display font-bold flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  {features.length} SPECIAL FEATURES — See full showcase below
+                </p>
               </div>
             )}
 
@@ -385,6 +424,67 @@ export default function ProductPage() {
         </div>
       </section>
 
+      {(features.length > 0 || uniqueSpecs.length >= 3) && (
+        <section className="relative py-16 overflow-hidden" data-testid="section-special-features">
+          <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.06] via-primary/[0.03] to-transparent pointer-events-none" />
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="container mx-auto px-4 relative z-10">
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/30 bg-primary/10 text-primary text-sm font-display font-bold tracking-widest mb-4">
+                <Sparkles className="w-4 h-4" />
+                SPECIAL FEATURES
+              </div>
+              <h2 className="text-3xl md:text-4xl font-display font-black">
+                WHAT MAKES THIS <span className="text-primary">STAND OUT</span>
+              </h2>
+              {product.vendor && (
+                <p className="text-muted-foreground mt-2">Key highlights of the {product.vendor} {product.name.replace(product.vendor || "", "").trim().split(" ").slice(0, 4).join(" ")}</p>
+              )}
+            </div>
+
+            {uniqueSpecs.length >= 3 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-12">
+                {uniqueSpecs.slice(0, 6).map((spec, i) => {
+                  const iconKey = spec.label.toLowerCase();
+                  const icon = SPEC_ICONS[iconKey] || <Bolt className="w-6 h-6" />;
+                  return (
+                    <div key={i} className="group relative bg-background border border-white/10 rounded-xl p-5 text-center hover:border-primary/40 transition-all hover:shadow-lg hover:shadow-primary/5" data-testid={`spec-highlight-${i}`}>
+                      <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="relative z-10">
+                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary mb-3 group-hover:scale-110 transition-transform">
+                          {icon}
+                        </div>
+                        <p className="text-[10px] font-display uppercase tracking-wider text-muted-foreground mb-1">{spec.label}</p>
+                        <p className="text-sm font-bold text-foreground leading-tight">{spec.value}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {features.length > 0 && (
+              <div className="max-w-5xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {features.map((feature, i) => (
+                    <div key={i} className="group flex items-start gap-4 p-5 bg-background border border-white/10 rounded-xl hover:border-primary/30 transition-all" data-testid={`feature-card-${i}`}>
+                      <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
+                        <CheckCircle className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground leading-relaxed">{feature}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {hasRichContent && (
         <section className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -401,25 +501,11 @@ export default function ProductPage() {
                   </div>
                 </div>
               )}
-
-              {features.length > 6 && (
-                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6">
-                  <h2 className="text-xl font-display font-bold mb-4">ALL FEATURES</h2>
-                  <ul className="space-y-2">
-                    {features.map((f, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                        <CheckCircle className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
-                        <span>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </div>
 
             {uniqueSpecs.length > 0 && (
               <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6">
-                <h2 className="text-xl font-display font-bold mb-4">SPECIFICATIONS</h2>
+                <h2 className="text-xl font-display font-bold mb-4">FULL SPECIFICATIONS</h2>
                 <div className="divide-y divide-white/5">
                   {uniqueSpecs.map((spec, i) => (
                     <div key={i} className="flex py-2.5 text-sm">
