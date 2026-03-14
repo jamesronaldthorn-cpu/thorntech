@@ -23,10 +23,18 @@ export default function Home() {
     queryFn: () => fetch("/api/products").then(r => r.json()),
   });
 
-  usePageTitle();
+  usePageTitle(
+    "Buy PC Components Online UK | Gaming PC Parts & Hardware",
+    "Shop PC components from Thorn Tech Solutions Ltd. CPUs, GPUs, motherboards, RAM, SSDs, gaming PC parts from top brands. Fast 1-3 day UK delivery, free over £200. All prices include VAT."
+  );
   const catMap = new Map((categories || []).map(c => [c.id, c]));
   const safeProducts = Array.isArray(products) ? products : [];
   const latestProducts = [...safeProducts].reverse().slice(0, 10);
+  const bestSellers = [...safeProducts]
+    .filter(p => p.inStock && p.price > 0 && p.image && p.slug !== "test-product-do-not-buy")
+    .sort((a, b) => (b.compareAtPrice ? 1 : 0) - (a.compareAtPrice ? 1 : 0))
+    .slice(0, 10);
+  const deals = safeProducts.filter(p => p.inStock && p.compareAtPrice && p.compareAtPrice > p.price && p.slug !== "test-product-do-not-buy").slice(0, 10);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
@@ -57,9 +65,9 @@ export default function Home() {
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
               UK PC Components &amp; Hardware
             </div>
-            <h2 className="text-5xl md:text-7xl font-display font-black tracking-tight mb-6 leading-tight">
+            <h1 className="text-5xl md:text-7xl font-display font-black tracking-tight mb-6 leading-tight">
               PC COMPONENTS <br/><span className="tech-gradient-text">FOR EVERY BUILD</span>
-            </h2>
+            </h1>
             <p className="text-lg text-muted-foreground mb-8 max-w-xl border-l-2 border-primary/50 pl-4">
               CPUs, GPUs, motherboards, RAM, storage, PSUs, cases and cooling — everything you need to build, upgrade, or repair your PC. All with UK warranty and 1-3 day delivery.
             </p>
@@ -86,6 +94,44 @@ export default function Home() {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
               {latestProducts.map((product) => (
+                <ProductCard key={product.id} product={product} category={catMap.get(product.categoryId ?? 0)} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {bestSellers.length > 0 && (
+        <section className="py-20 bg-muted/30">
+          <div className="container px-4 mx-auto">
+            <div className="flex items-end justify-between mb-10">
+              <div>
+                <h2 className="text-3xl font-display font-bold mb-2">BEST <span className="text-primary">SELLERS</span></h2>
+                <p className="text-sm text-muted-foreground">Our most popular PC components — trusted by UK builders</p>
+                <div className="h-1 w-20 bg-primary rounded-full mt-4"></div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              {bestSellers.map((product) => (
+                <ProductCard key={product.id} product={product} category={catMap.get(product.categoryId ?? 0)} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {deals.length > 0 && (
+        <section className="py-20">
+          <div className="container px-4 mx-auto">
+            <div className="flex items-end justify-between mb-10">
+              <div>
+                <h2 className="text-3xl font-display font-bold mb-2">DEALS &amp; <span className="text-primary">OFFERS</span></h2>
+                <p className="text-sm text-muted-foreground">Save on quality PC hardware — limited time discounts</p>
+                <div className="h-1 w-20 bg-primary rounded-full mt-4"></div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              {deals.map((product) => (
                 <ProductCard key={product.id} product={product} category={catMap.get(product.categoryId ?? 0)} />
               ))}
             </div>

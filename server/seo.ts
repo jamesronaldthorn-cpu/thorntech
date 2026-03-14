@@ -7,6 +7,109 @@ function escHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
+const CATEGORY_SEO: Record<string, { title: string; description: string; keywords: string[] }> = {
+  "processors": {
+    title: "Buy Processors (CPUs) UK",
+    description: "Shop Intel & AMD processors at competitive UK prices. From budget Ryzen 5 to high-end Core i9 and Threadripper CPUs for gaming, content creation and workstations. All CPUs are brand new with full UK warranty.",
+    keywords: ["buy CPU UK", "Intel processors UK", "AMD Ryzen UK", "gaming CPU", "best processor UK"]
+  },
+  "graphics-cards": {
+    title: "Buy Graphics Cards (GPUs) UK",
+    description: "Shop NVIDIA GeForce RTX and AMD Radeon RX graphics cards at great UK prices. Find the right GPU for 1080p, 1440p or 4K gaming. All GPUs are brand new, boxed and backed by UK warranty.",
+    keywords: ["buy GPU UK", "RTX graphics cards UK", "cheap GPUs UK", "gaming graphics card", "NVIDIA UK"]
+  },
+  "motherboards": {
+    title: "Buy Motherboards UK",
+    description: "Browse ATX, Micro-ATX and Mini-ITX motherboards for Intel and AMD platforms. From budget B-series to enthusiast X-series and Z-series boards with WiFi, PCIe 5.0 and DDR5 support.",
+    keywords: ["buy motherboard UK", "gaming motherboard UK", "AMD motherboard", "Intel motherboard", "ATX motherboard"]
+  },
+  "memory": {
+    title: "Buy RAM / Memory UK",
+    description: "Shop DDR4 and DDR5 desktop and laptop memory modules from Corsair, Kingston, G.Skill and more. High-speed kits for gaming, content creation and professional workloads.",
+    keywords: ["buy RAM UK", "DDR5 RAM UK", "DDR4 memory", "gaming RAM", "laptop memory UK"]
+  },
+  "storage": {
+    title: "Buy SSDs & Storage UK",
+    description: "Shop NVMe SSDs, SATA SSDs and hard drives for fast, reliable PC storage. PCIe Gen4 and Gen5 drives from Samsung, WD, Crucial, Seagate and more with full UK warranty.",
+    keywords: ["buy SSD UK", "NVMe SSD UK", "hard drive UK", "PC storage", "M.2 SSD"]
+  },
+  "power-supplies": {
+    title: "Buy Power Supplies (PSUs) UK",
+    description: "Shop modular and semi-modular PC power supplies from 450W to 1600W. 80+ Bronze, Gold, Platinum and Titanium rated PSUs from Corsair, Seasonic, EVGA and be quiet!.",
+    keywords: ["buy PSU UK", "PC power supply UK", "modular PSU", "gaming power supply", "80+ Gold PSU"]
+  },
+  "cooling": {
+    title: "Buy PC Cooling UK",
+    description: "Shop air coolers, AIO liquid coolers and case fans for your PC build. Tower coolers, 240mm/360mm AIO radiators and RGB fans from Noctua, Corsair, Arctic and more.",
+    keywords: ["buy PC cooling UK", "AIO cooler UK", "CPU cooler", "case fans", "liquid cooling UK"]
+  },
+  "cases": {
+    title: "Buy PC Cases UK",
+    description: "Shop ATX, Micro-ATX and Mini-ITX PC cases for your gaming or workstation build. Mid-tower, full-tower and compact cases from Corsair, NZXT, Fractal Design, Lian Li and more.",
+    keywords: ["buy PC case UK", "gaming case UK", "ATX case", "mid-tower case", "PC tower"]
+  },
+  "monitors": {
+    title: "Buy Monitors UK",
+    description: "Shop gaming, professional and ultrawide monitors. 1080p, 1440p and 4K displays with high refresh rates, IPS/VA panels and adaptive sync from ASUS, LG, Samsung and more.",
+    keywords: ["buy monitor UK", "gaming monitor UK", "4K monitor", "ultrawide monitor", "144Hz monitor"]
+  },
+  "keyboards": {
+    title: "Buy Keyboards UK",
+    description: "Shop mechanical, membrane and wireless keyboards for gaming and productivity. RGB backlit, hot-swappable and compact layouts from Corsair, Razer, Logitech and more.",
+    keywords: ["buy keyboard UK", "mechanical keyboard UK", "gaming keyboard", "wireless keyboard"]
+  },
+  "mice": {
+    title: "Buy Gaming & Wireless Mice UK",
+    description: "Shop gaming, wireless and ergonomic mice for every use case. High-DPI sensors, lightweight designs and programmable buttons from Logitech, Razer, SteelSeries and more.",
+    keywords: ["buy mouse UK", "gaming mouse UK", "wireless mouse", "ergonomic mouse"]
+  },
+  "headsets-audio": {
+    title: "Buy Gaming Headsets & Audio UK",
+    description: "Shop gaming headsets, speakers and audio accessories. Surround sound, wireless and wired headsets from HyperX, SteelSeries, Corsair, Razer and more for immersive PC gaming.",
+    keywords: ["buy gaming headset UK", "PC headset", "wireless headset UK", "gaming audio"]
+  },
+  "laptops": {
+    title: "Buy Laptops UK",
+    description: "Shop gaming, business and everyday laptops from top brands. Portable power for work, study and play with fast UK delivery and full manufacturer warranty.",
+    keywords: ["buy laptop UK", "gaming laptop UK", "business laptop", "student laptop"]
+  },
+  "networking": {
+    title: "Buy Networking Hardware UK",
+    description: "Shop WiFi adapters, routers, ethernet cards and network cables. Get reliable connectivity for gaming, streaming and working from home.",
+    keywords: ["buy WiFi adapter UK", "networking hardware", "ethernet card", "router UK"]
+  },
+  "cables-adapters": {
+    title: "Buy Cables & Adapters UK",
+    description: "Shop display cables, USB cables, adapters and extensions. HDMI, DisplayPort, USB-C and more for connecting your PC components and peripherals.",
+    keywords: ["buy cables UK", "HDMI cable", "DisplayPort cable", "USB-C adapter", "PC cables"]
+  },
+  "controllers-gaming": {
+    title: "Buy Game Controllers UK",
+    description: "Shop game controllers, joysticks and gaming accessories. Xbox, PlayStation and third-party controllers for PC gaming with full UK warranty.",
+    keywords: ["buy game controller UK", "PC controller", "Xbox controller PC", "gaming accessories"]
+  },
+  "accessories": {
+    title: "Buy PC Accessories UK",
+    description: "Shop mouse mats, cable management, tools and other PC accessories. Everything you need to complete your setup and keep it tidy.",
+    keywords: ["buy PC accessories UK", "mouse mat", "cable management", "PC tools"]
+  },
+  "pre-built-pcs": {
+    title: "Buy Pre-Built Gaming PCs UK",
+    description: "Shop ready-to-go gaming and workstation desktop PCs. Pre-built systems with the latest CPUs and GPUs, tested and ready for immediate use with UK warranty.",
+    keywords: ["buy pre-built PC UK", "gaming PC UK", "desktop PC", "workstation PC"]
+  },
+  "software": {
+    title: "Buy Software UK",
+    description: "Shop operating systems, antivirus and productivity software. Windows licences, security suites and utility software for your PC.",
+    keywords: ["buy software UK", "Windows licence UK", "antivirus software", "PC software"]
+  },
+  "optical-drives": {
+    title: "Buy Optical Drives UK",
+    description: "Shop DVD and Blu-ray internal and external drives. Read and write optical discs for data backup, media playback and software installation.",
+    keywords: ["buy optical drive UK", "DVD drive", "Blu-ray drive", "external disc drive"]
+  },
+};
+
 interface SeoData {
   title: string;
   description: string;
@@ -74,10 +177,13 @@ export async function getSeoData(path: string): Promise<SeoData | null> {
     if (cat) {
       const products = await storage.getProductsByCategory(cat.id);
       const inStock = products.filter(p => p.inStock);
-      const desc = cat.description || `Browse ${cat.name} at ${SITE_NAME}. ${inStock.length} products in stock with fast UK delivery.`;
+      const catSeo = CATEGORY_SEO[cat.slug];
+      const desc = catSeo?.description || cat.description || `Browse ${cat.name} at ${SITE_NAME}. ${inStock.length} products in stock with fast UK delivery.`;
+      const seoTitle = catSeo?.title || `Buy ${cat.name} Online UK`;
+      const brands = [...new Set(inStock.map(p => p.vendor).filter(Boolean))].slice(0, 8);
       return {
-        title: `${cat.name} | Buy Online UK | ${SITE_NAME}`,
-        description: desc.slice(0, 160),
+        title: `${seoTitle} | ${SITE_NAME}`,
+        description: `${desc.slice(0, 130)} ${inStock.length} in stock. Free UK delivery over £200.`,
         canonical: `${SITE_URL}/category/${cat.slug}`,
         ogType: "website",
         jsonLd: {
@@ -89,7 +195,7 @@ export async function getSeoData(path: string): Promise<SeoData | null> {
           "numberOfItems": inStock.length,
           "provider": { "@type": "Organization", "name": SITE_NAME }
         },
-        noscriptContent: `<h1>${escHtml(cat.name)}</h1><p>${escHtml(desc)}</p><ul>${inStock.slice(0, 20).map(p => `<li><a href="${SITE_URL}/product/${p.slug}">${escHtml(p.name)} - £${(p.price / 100).toFixed(2)}</a></li>`).join("")}</ul>`,
+        noscriptContent: `<h1>${escHtml(seoTitle)} - ${escHtml(SITE_NAME)}</h1><p>${escHtml(desc)}</p>${brands.length > 0 ? `<h2>Brands</h2><p>${brands.map(b => escHtml(b!)).join(", ")}</p>` : ""}<h2>${escHtml(cat.name)} Products (${inStock.length} in stock)</h2><ul>${inStock.slice(0, 30).map(p => `<li><a href="${SITE_URL}/product/${p.slug}">${escHtml(p.name)} - £${(p.price / 100).toFixed(2)}</a></li>`).join("")}</ul><p>Fast 1-3 day UK delivery. Free shipping on orders over £200. All prices include VAT. <a href="${SITE_URL}">Back to all categories</a></p>`,
       };
     }
   }

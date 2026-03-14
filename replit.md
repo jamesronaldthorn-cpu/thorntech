@@ -73,8 +73,12 @@ A fully functional e-commerce store for Thorn Tech Solutions Ltd (Company Reg: 1
 - Used on category and search pages
 
 ## SEO & Compliance
-- Dynamic page titles, Open Graph + Twitter Card meta tags
-- JSON-LD structured data (Store, Organization, WebSite with SearchAction, Product, Breadcrumb, ItemList)
+- **Server-side SEO injection** (`server/seo.ts`): Every page gets unique title, meta description, canonical, Open Graph, Twitter Card, JSON-LD, and noscript content injected before JavaScript loads
+- **Category SEO content**: 300+ word buying guides, FAQs with FAQ schema, brand listings, related category cross-links for 12 core categories
+- **Homepage SEO**: Keyword-optimized h1, best sellers section, deals section, FAQ section with FAQ schema, WebSite schema with SearchAction
+- **Product SEO**: Product schema with price, availability, shipping details, merchant returns policy
+- **Client-side SEO**: `usePageTitle` hook updates title, OG, Twitter, and canonical on navigation
+- JSON-LD structured data (Store, Organization, WebSite with SearchAction, Product, Breadcrumb, ItemList, FAQPage, CollectionPage)
 - Dynamic sitemap.xml with all products, categories, blog posts, privacy page, returns page
 - robots.txt blocking /admin and /api/
 - Google site verification tag
@@ -82,6 +86,7 @@ A fully functional e-commerce store for Thorn Tech Solutions Ltd (Company Reg: 1
 - Security headers: X-Content-Type-Options, X-Frame-Options, Referrer-Policy, HSTS, CSP
 - GDPR cookie consent banner (CookieConsent.tsx)
 - Privacy Policy page (/privacy)
+- PWA support: manifest.json, service worker, installable on mobile/desktop
 
 ## Key Files
 - `shared/schema.ts` — Drizzle schema

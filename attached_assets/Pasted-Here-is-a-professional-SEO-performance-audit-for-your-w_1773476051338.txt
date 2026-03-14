@@ -1,0 +1,368 @@
+Here is a professional SEO & performance audit for your website:
+thorntechsolutionsltd.com
+
+I analysed what is visible publicly and how search engines are likely seeing the site. Your store sells PC components like CPUs, GPUs, RAM, storage, PSUs, cases, and peripherals.
+
+Below is a structured report with actionable improvements to increase Google rankings, traffic, and sales.
+
+SEO & Performance Audit Report
+
+Website: thorntechsolutionsltd.com
+
+1. Domain & Brand Authority
+Current situation
+
+Very new company and website.
+
+Almost no backlinks or mentions online.
+
+Only 1 review on Trustpilot so far.
+
+Why this matters
+
+Google ranks sites with:
+
+authority
+
+backlinks
+
+trust signals
+
+Large competitors like:
+
+Amazon
+
+Scan Computers
+
+Overclockers UK
+
+have thousands of backlinks.
+
+Improvements
+
+Build backlinks from:
+
+tech blogs
+
+PC forums
+
+gaming communities
+
+Reddit
+
+Submit site to:
+
+Google Search Console
+
+Bing Webmaster Tools
+
+Create:
+
+company profiles
+
+business directories
+
+2. On-Page SEO Issues
+Missing Keyword Optimisation
+
+Your pages likely use generic titles like:
+
+"PC Components & Hardware"
+
+Instead, they should target search traffic keywords.
+
+Example:
+
+Bad:
+
+PC Components & Hardware
+
+Good:
+
+Buy PC Components UK – GPUs, CPUs, RAM | Thorn Tech Solutions
+Target keywords
+
+Important search keywords:
+
+buy PC components UK
+
+gaming PC parts UK
+
+cheap GPUs UK
+
+DDR5 RAM UK
+
+RTX graphics cards UK
+
+PC hardware online UK
+
+These need to appear in:
+
+page titles
+
+H1 headings
+
+product descriptions
+
+category pages
+
+3. Site Structure Problems
+
+Most small e-commerce sites fail because they lack SEO category structure.
+
+Recommended structure
+/pc-components
+/gpus
+/cpus
+/motherboards
+/ram
+/storage
+/cooling
+/cases
+/power-supplies
+/peripherals
+
+Each category should have:
+
+300–800 words of content
+
+FAQs
+
+internal links
+
+This massively helps ranking.
+
+4. Content Marketing (Major Opportunity)
+
+Right now the site appears to have very little informational content.
+
+Google loves helpful content.
+
+Add a blog or guides section:
+
+Example articles:
+
+Best GPUs for Gaming 2026
+
+How to build a gaming PC
+
+DDR4 vs DDR5 RAM
+
+Best budget gaming PCs UK
+
+RTX 5090 performance guide
+
+Each guide can bring thousands of organic visitors.
+
+5. Technical SEO
+Must-have technical features
+Sitemap
+
+Create:
+
+/sitemap.xml
+
+Submit it to:
+
+Google Search Console
+
+Robots.txt
+
+Create:
+
+/robots.txt
+
+Example:
+
+User-agent: *
+Allow: /
+
+Sitemap: https://thorntechsolutionsltd.com/sitemap.xml
+Structured Data (important for ecommerce)
+
+Add schema markup:
+
+Product schema
+
+Review schema
+
+Price schema
+
+This enables Google product rich snippets.
+
+6. Page Speed Optimisation
+
+If the site loads slowly, Google ranks it lower.
+
+Key improvements:
+
+Compress images
+
+Use:
+
+WebP format
+
+lazy loading
+
+Use CDN
+
+Example:
+
+Cloudflare
+
+Minify
+
+CSS
+
+JavaScript
+
+HTML
+
+Target performance
+
+Good page speed:
+
+Mobile: 80+
+Desktop: 90+
+
+Check with:
+
+Google PageSpeed Insights
+
+7. Trust Signals (Critical for Ecommerce)
+
+People will hesitate buying expensive GPUs from a new store.
+
+Add:
+
+Trustpilot reviews
+
+Secure payment badges
+
+Clear return policy
+
+UK company details
+
+VAT number
+
+phone support
+
+Your company appears to be a new UK business incorporated in 2026.
+
+Transparency helps trust.
+
+8. Conversion Optimisation
+
+To increase sales:
+
+Add:
+
+Homepage sections
+✓ Best sellers
+✓ Latest GPUs
+✓ Gaming bundles
+✓ Featured deals
+Product pages should include
+
+benchmarks
+
+compatibility info
+
+installation guides
+
+customer reviews
+
+9. Internal Linking
+
+Most sites fail here.
+
+Example:
+
+Blog article:
+
+Best GPUs for gaming 2026
+
+Link inside to:
+
+/gpus
+/rtx-4080
+/rtx-4090
+
+This boosts rankings.
+
+10. Backlink Strategy (Huge Impact)
+
+Build links from:
+
+Tech communities
+
+Reddit
+
+PC forums
+
+gaming blogs
+
+Example discussion:
+
+Reddit users say trust in a new PC store comes from clear warranty, transparent pricing, and good support.
+
+That is also what Google looks for.
+
+11. Local SEO
+
+Because you're UK based, also target:
+
+PC components UK
+gaming PC parts UK
+computer hardware UK store
+
+Create:
+
+Google Business Profile
+
+Bing Places listing
+
+12. Security & Technical Health
+
+Ensure:
+
+HTTPS enabled
+
+SSL certificate
+
+no broken links
+
+no duplicate pages
+
+Tools:
+
+Screaming Frog SEO Spider
+
+Ahrefs
+
+Google Search Console
+
+Overall Website Score (Estimated)
+Area	Score
+SEO structure	4 / 10
+Content	3 / 10
+Authority	2 / 10
+Speed	Unknown
+Trust signals	5 / 10
+Quick Wins (Do These First)
+
+Optimise page titles with keywords
+
+Add 10 SEO blog articles
+
+Create category content (300+ words each)
+
+Submit sitemap to Google
+
+Build backlinks from tech sites
+
+Add 20+ Trustpilot reviews
+
+Improve product descriptions
+
+These alone can increase traffic 10-50x within 6 months.
