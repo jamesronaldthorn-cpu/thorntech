@@ -38,6 +38,18 @@ const categoryGroups: { label: string; slugs: string[] }[] = [
     slugs: ["pre-built-pcs", "laptops"],
   },
   {
+    label: "PRINT & SCAN",
+    slugs: ["printers", "ink-toner", "scanners-multifunction", "paper-supplies"],
+  },
+  {
+    label: "SERVERS & POWER",
+    slugs: ["servers-workstations", "ups-power-protection"],
+  },
+  {
+    label: "SECURITY & SMART",
+    slugs: ["security-cctv", "smart-home", "webcams-cameras"],
+  },
+  {
     label: "OTHER",
     slugs: ["cables-adapters", "software", "accessories"],
   },
