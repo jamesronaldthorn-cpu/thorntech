@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ShieldCheck, Truck, Headset, Zap, Cpu, MousePointer2, HelpCircle, CheckCircle2, Monitor, CircuitBoard, MemoryStick, HardDrive, Fan, Box, Keyboard, Mouse, Wifi, Speaker, Cable, Server, Gamepad2, Laptop, Disc3, Settings } from "lucide-react";
+import { ShieldCheck, Truck, Headset, Zap, Cpu, MousePointer2, HelpCircle, CheckCircle2, Monitor, CircuitBoard, MemoryStick, HardDrive, Fan, Box, Keyboard, Mouse, Wifi, Speaker, Cable, Server, Gamepad2, Laptop, Disc3, Settings, Printer, Droplets, ScanLine, Shield, Home as HomeIcon, Camera, BatteryCharging, FileText } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,15 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   "optical-drives": <Disc3 className="w-8 h-8 text-primary" />,
   software: <Settings className="w-8 h-8 text-primary" />,
   accessories: <Settings className="w-8 h-8 text-primary" />,
+  printers: <Printer className="w-8 h-8 text-primary" />,
+  "ink-toner": <Droplets className="w-8 h-8 text-primary" />,
+  "scanners-multifunction": <ScanLine className="w-8 h-8 text-primary" />,
+  "servers-workstations": <Server className="w-8 h-8 text-primary" />,
+  "security-cctv": <Shield className="w-8 h-8 text-primary" />,
+  "smart-home": <HomeIcon className="w-8 h-8 text-primary" />,
+  "webcams-cameras": <Camera className="w-8 h-8 text-primary" />,
+  "ups-power-protection": <BatteryCharging className="w-8 h-8 text-primary" />,
+  "paper-supplies": <FileText className="w-8 h-8 text-primary" />,
 };
 
 export default function Home() {
@@ -185,29 +194,35 @@ export default function Home() {
         </section>
       )}
 
-      {/* Popular Categories Grid */}
-      <section className="py-20 bg-muted/30">
+      {/* All Categories Grid */}
+      <section className="py-20 bg-muted/30" data-testid="section-categories">
         <div className="container px-4 mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-display font-bold mb-4">POPULAR <span className="text-primary">CATEGORIES</span></h2>
+            <h2 className="text-3xl font-display font-bold mb-4">SHOP BY <span className="text-primary">CATEGORY</span></h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Find the perfect components for your next build. We stock a wide range of high-performance hardware from leading brands, ensuring reliability and performance for every PC enthusiast in the UK.
+              From PC components and peripherals to printers, networking, and smart home — everything you need for your tech setup, sourced at the best UK prices.
             </p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {categories.slice(0, 8).map((cat) => (
-              <Link key={cat.id} href={`/category/${cat.slug}`}>
-                <Card className="hover:border-primary/50 transition-all cursor-pointer group overflow-hidden h-full">
-                  <CardContent className="p-6 flex flex-col items-center text-center">
-                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                      {CATEGORY_ICONS[cat.slug] || <Cpu className="w-8 h-8 text-primary" />}
-                    </div>
-                    <h3 className="font-display font-bold text-lg mb-1 group-hover:text-primary transition-colors">{cat.name}</h3>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Browse Selection</p>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            {categories.filter(cat => {
+              const count = products.filter(p => p.categoryId === cat.id).length;
+              return count > 0;
+            }).map((cat) => {
+              const count = products.filter(p => p.categoryId === cat.id).length;
+              return (
+                <Link key={cat.id} href={`/category/${cat.slug}`}>
+                  <Card className="hover:border-primary/50 transition-all cursor-pointer group overflow-hidden h-full bg-background/50 backdrop-blur-sm">
+                    <CardContent className="p-5 flex flex-col items-center text-center">
+                      <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-primary/20 transition-all">
+                        {CATEGORY_ICONS[cat.slug] || <Cpu className="w-7 h-7 text-primary" />}
+                      </div>
+                      <h3 className="font-display font-bold text-sm mb-1 group-hover:text-primary transition-colors leading-tight">{cat.name}</h3>
+                      <p className="text-[11px] text-muted-foreground">{count} {count === 1 ? 'product' : 'products'}</p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
