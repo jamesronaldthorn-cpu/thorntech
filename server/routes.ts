@@ -336,7 +336,7 @@ export async function registerRoutes(
         paymentId: null,
         items: JSON.stringify(items.map((item: { productId: number; quantity: number }) => {
           const product = productMap.get(item.productId);
-          return { productId: item.productId, name: product?.name, price: product?.price, quantity: item.quantity };
+          return { productId: item.productId, name: product?.name, price: product?.price, quantity: item.quantity, source: product?.source || "Unknown" };
         })),
       });
 
@@ -446,7 +446,7 @@ export async function registerRoutes(
         paymentId: null,
         items: JSON.stringify(items.map((item: { productId: number; quantity: number }) => {
           const product = productMap.get(item.productId);
-          return { productId: item.productId, name: product?.name, price: product?.price, quantity: item.quantity };
+          return { productId: item.productId, name: product?.name, price: product?.price, quantity: item.quantity, source: product?.source || "Unknown" };
         })),
       });
 

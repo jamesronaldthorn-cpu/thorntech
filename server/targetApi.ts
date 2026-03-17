@@ -257,13 +257,15 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
           }
         }
 
-        const costChanged = !existing.costPrice || Math.abs(existing.costPrice - costPriceExVat) > 0.01;
-        if (costChanged) {
+        const existingCost = existing.costPrice || Infinity;
+        if (costPriceExVat < existingCost) {
           updates.costPrice = costPriceExVat;
-          const newSell = Math.ceil(costPriceExVat * 1.2 * 1.02 * 100) / 100;
-          if (Math.abs(existing.price - newSell) > 0.50) {
-            updates.price = newSell;
+          updates.source = "Target Components";
+          const newMinSell = Math.ceil(costPriceExVat * 1.2 * 1.02 * 100) / 100;
+          if (existing.price > newMinSell + 0.50 || existing.price < newMinSell - 0.50) {
+            updates.price = newMinSell;
           }
+          console.log(`[Target] ${name}: Target cheaper (£${costPriceExVat.toFixed(2)} vs £${existingCost === Infinity ? "none" : existingCost.toFixed(2)}) — switching source to Target`);
         }
 
         if (tp.manufacturer && tp.manufacturer !== existing.vendor) updates.vendor = tp.manufacturer;

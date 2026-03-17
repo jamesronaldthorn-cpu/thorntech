@@ -1680,7 +1680,14 @@ export default function AdminPage() {
                         <h4 className="text-xs text-gray-500 mb-1">Items:</h4>
                         {orderItems.map((item: any, i: number) => (
                           <div key={i} className="flex justify-between text-sm py-1 border-b border-white/5 last:border-0">
-                            <span className="text-gray-300">{item.name} x{item.quantity}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-300">{item.name} x{item.quantity}</span>
+                              {item.source && (
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${item.source === "VIP Computers" ? "bg-blue-500/20 text-blue-400" : item.source === "Target Components" ? "bg-orange-500/20 text-orange-400" : "bg-gray-500/20 text-gray-400"}`}>
+                                  {item.source === "VIP Computers" ? "VIP" : item.source === "Target Components" ? "TARGET" : item.source}
+                                </span>
+                              )}
+                            </div>
                             <span className="text-gray-400">£{((item.price || 0) * item.quantity).toFixed(2)}</span>
                           </div>
                         ))}
