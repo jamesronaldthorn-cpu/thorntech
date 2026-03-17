@@ -22,7 +22,10 @@ export function serveStatic(app: Express) {
     }
   }));
 
-  app.use("/{*path}", async (req, res) => {
+  app.use("/{*path}", async (req, res, next) => {
+    if (req.path.startsWith("/api/") || req.path.startsWith("/feeds/") || req.path === "/sitemap.xml" || req.path === "/robots.txt") {
+      return next();
+    }
     try {
       const indexPath = path.resolve(distPath, "index.html");
       let html = await fs.promises.readFile(indexPath, "utf-8");
