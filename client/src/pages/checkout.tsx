@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { ChevronRight, CreditCard, ShieldCheck, Truck, Loader2 } from "lucide-react";
+import { ChevronRight, CreditCard, ShieldCheck, Truck, Loader2, ShoppingBasket, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import NavBar from "@/components/NavBar";
@@ -8,6 +8,7 @@ import Footer from "@/components/Footer";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { usePageTitle } from "@/components/SEO";
+import { proxyImageUrl } from "@/lib/utils";
 
 function formatPrice(price: number) {
   return `£${price.toFixed(2)}`;
@@ -262,7 +263,7 @@ export default function CheckoutPage() {
             </div>
 
             <div className="bg-card border border-white/10 rounded-xl p-6">
-              <h2 className="font-display font-bold text-lg mb-4">PAYMENT METHOD</h2>
+              <h2 className="font-display font-bold text-lg mb-4 flex items-center gap-2"><Lock className="w-4 h-4 text-primary" /> SECURE PAYMENT</h2>
               {error && (
                 <div className="mb-4 p-3 rounded-lg bg-red-600/20 border border-red-600/30 text-red-400 text-sm">{error}</div>
               )}
@@ -302,16 +303,23 @@ export default function CheckoutPage() {
           </div>
 
           <div>
-            <div className="bg-card border border-white/10 rounded-xl p-6 sticky top-24">
+            <div className="bg-card border border-white/10 rounded-xl p-6 sticky top-20">
               <h2 className="font-display font-bold text-lg mb-4">ORDER SUMMARY</h2>
               <div className="space-y-4 mb-6">
                 {items.map(item => (
-                  <div key={item.product.id} className="flex justify-between items-start text-sm">
-                    <div className="flex-1">
-                      <p className="font-medium">{item.product.name}</p>
-                      <p className="text-muted-foreground">Qty: {item.quantity}</p>
+                  <div key={item.product.id} className="flex gap-3 items-start text-sm">
+                    <div className="w-14 h-14 rounded-lg border border-white/10 overflow-hidden flex-shrink-0 bg-white">
+                      {item.product.image ? (
+                        <img src={proxyImageUrl(item.product.image)} alt={item.product.name} className="w-full h-full object-contain p-1" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-muted/30"><ShoppingBasket className="w-5 h-5 text-muted-foreground/30" /></div>
+                      )}
                     </div>
-                    <span className="font-display font-bold">{formatPrice(item.product.price * item.quantity)}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium line-clamp-2 leading-tight">{item.product.name}</p>
+                      <p className="text-muted-foreground text-xs mt-0.5">Qty: {item.quantity}</p>
+                    </div>
+                    <span className="font-display font-bold shrink-0">{formatPrice(item.product.price * item.quantity)}</span>
                   </div>
                 ))}
               </div>

@@ -76,9 +76,9 @@ export default function Home() {
         </div>
       </div>
 
-      <section className="relative h-[80vh] flex items-center justify-center overflow-hidden">
+      <section className="relative h-[70vh] min-h-[500px] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <img src={heroBgImg} alt="PC Background" className="w-full h-full object-cover opacity-40" />
+          <img src={heroBgImg} alt="PC Background" className="w-full h-full object-cover opacity-30" />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
           <div className="absolute inset-0 bg-gradient-to-r from-background via-background/50 to-transparent"></div>
         </div>
@@ -105,6 +105,29 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <div className="border-y border-white/5 bg-white/[0.01]">
+        <div className="container mx-auto px-4 py-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Truck className="w-4 h-4 text-primary shrink-0" />
+              <span>Free Delivery Over £200</span>
+            </div>
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
+              <span>Full UK Warranty</span>
+            </div>
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Zap className="w-4 h-4 text-primary shrink-0" />
+              <span>1-3 Day Dispatch</span>
+            </div>
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Headset className="w-4 h-4 text-primary shrink-0" />
+              <span>UK-Based Support</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {latestProducts.length > 0 && (
         <section id="products" className="py-20">
@@ -319,28 +342,6 @@ export default function Home() {
             <Link href="/contact">
               <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 font-display tracking-widest px-10 h-14 rounded-none">TALK TO AN EXPERT</Button>
             </Link>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-16 border-t border-b border-white/5 bg-white/[0.02]">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div className="flex flex-col items-center">
-              <ShieldCheck className="w-10 h-10 text-primary mb-4" />
-              <h4 className="font-display font-bold text-lg mb-2">UK Warranty</h4>
-              <p className="text-sm text-muted-foreground max-w-xs">All components come with full UK manufacturer warranties.</p>
-            </div>
-            <div className="flex flex-col items-center">
-              <Truck className="w-10 h-10 text-primary mb-4" />
-              <h4 className="font-display font-bold text-lg mb-2">1-3 Day Delivery</h4>
-              <p className="text-sm text-muted-foreground max-w-xs">Free delivery on orders over £200. Securely packaged.</p>
-            </div>
-            <div className="flex flex-col items-center">
-              <Headset className="w-10 h-10 text-primary mb-4" />
-              <h4 className="font-display font-bold text-lg mb-2">UK Based Support</h4>
-              <p className="text-sm text-muted-foreground max-w-xs">Friendly help from our team, Monday to Friday.</p>
-            </div>
           </div>
         </div>
       </section>

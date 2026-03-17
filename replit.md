@@ -136,3 +136,12 @@ A fully functional e-commerce store for Thorn Tech Solutions Ltd (Company Reg: 1
 - Purple primary accent (#8b5cf6)
 - UK market formatting (£ prices, VAT included, DPD delivery)
 - White background for product images, dark gradient placeholder when no image
+- Top info bar showing delivery, phone, email
+- Trust bar below hero with 4 value propositions (delivery, warranty, dispatch, support)
+- Cart sidebar shows product thumbnails, delivery breakdown, item count
+- Product cards show stock status, brand-coloured add-to-basket buttons
+- Category cards use per-category icons (GPU, CPU, motherboard, etc.)
+- Product page buy section in a contained card with price, stock, and CTA
+- Checkout shows product images in order summary, "Secure Payment" header with lock icon
+- Payment method badges (Visa, Mastercard, PayPal) in footer and product page
+- Custom purple scrollbar styling, smooth image rendering, fadeIn animation utility

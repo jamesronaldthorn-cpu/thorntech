@@ -361,19 +361,45 @@ export default function ProductPage() {
               </p>
             )}
 
-            <div className="flex items-center gap-3 mb-2">
-              {product.compareAtPrice && (
-                <span className="text-xl text-muted-foreground line-through">{formatPrice(product.compareAtPrice)}</span>
-              )}
-              <span className="text-3xl font-display font-bold text-primary" data-testid="text-product-price">{formatPrice(product.price)}</span>
-            </div>
-            <p className="text-xs text-muted-foreground mb-4">inc. VAT</p>
-
-            {product.compareAtPrice && (
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/20 text-red-400 text-sm font-medium mb-4 w-fit">
-                Save {formatPrice(product.compareAtPrice - product.price)}
+            <div className="p-5 rounded-xl bg-white/[0.02] border border-white/5 mb-6">
+              <div className="flex items-end gap-3 mb-1">
+                {product.compareAtPrice && (
+                  <span className="text-lg text-muted-foreground line-through">{formatPrice(product.compareAtPrice)}</span>
+                )}
+                <span className="text-4xl font-display font-bold text-primary" data-testid="text-product-price">{formatPrice(product.price)}</span>
               </div>
-            )}
+              <p className="text-xs text-muted-foreground mb-3">inc. VAT</p>
+
+              {product.compareAtPrice && (
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/20 text-red-400 text-sm font-medium mb-3 w-fit">
+                  Save {formatPrice(product.compareAtPrice - product.price)}
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 mb-4">
+                {product.inStock ? (
+                  <div className="flex items-center gap-2 text-green-400">
+                    <CheckCircle className="w-5 h-5" />
+                    <span className="font-medium text-sm">In Stock — Ready to Ship</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-red-400">
+                    <XCircle className="w-5 h-5" />
+                    <span className="font-medium text-sm">Currently Out of Stock</span>
+                  </div>
+                )}
+              </div>
+
+              <Button
+                size="lg"
+                className="w-full bg-primary hover:bg-primary/80 font-display tracking-widest h-14 text-lg"
+                onClick={() => addItem(product)}
+                disabled={!product.inStock}
+                data-testid="button-add-to-basket"
+              >
+                {product.inStock ? "ADD TO BASKET" : "OUT OF STOCK"}
+              </Button>
+            </div>
 
             {allFeatures.length > 0 && allFeatures.length <= 4 && vipFeatures.length === 0 && (
               <div className="mb-6 p-4 rounded-lg bg-primary/5 border border-primary/10">
@@ -401,48 +427,29 @@ export default function ProductPage() {
               </div>
             )}
 
-            <div className="flex items-center gap-2 mb-6">
-              {product.inStock ? (
-                <div className="flex items-center gap-2 text-green-400">
-                  <CheckCircle className="w-5 h-5" />
-                  <span className="font-medium">In Stock</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-red-400">
-                  <XCircle className="w-5 h-5" />
-                  <span className="font-medium">Out of Stock</span>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2.5 mb-6 p-4 rounded-lg bg-white/[0.03] border border-white/5">
-              <div className="flex items-center gap-3 text-sm">
+            <div className="space-y-2 mb-6">
+              <div className="flex items-center gap-3 text-sm p-3 rounded-lg bg-white/[0.02] border border-white/5">
                 <Truck className="w-4 h-4 text-primary shrink-0" />
-                <span>{product.price >= 200 || product.slug === "test-product-do-not-buy" ? "Free Delivery (1-3 Working Days)" : "£7.99 Delivery (1-3 Working Days) — Free over £200"}</span>
+                <span>{product.price >= 200 || product.slug === "test-product-do-not-buy" ? <><span className="text-green-400 font-medium">Free Delivery</span> — 1-3 Working Days</> : "£7.99 Delivery (1-3 Working Days) — Free over £200"}</span>
               </div>
-              <div className="flex items-center gap-3 text-sm">
+              <div className="flex items-center gap-3 text-sm p-3 rounded-lg bg-white/[0.02] border border-white/5">
                 <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
                 <span>Full UK Manufacturer Warranty</span>
               </div>
-              <div className="flex items-center gap-3 text-sm">
+              <div className="flex items-center gap-3 text-sm p-3 rounded-lg bg-white/[0.02] border border-white/5">
                 <Package className="w-4 h-4 text-primary shrink-0" />
                 <span>Secure Packaging & Tracked Shipping</span>
               </div>
             </div>
 
-            <Button
-              size="lg"
-              className="w-full bg-primary hover:bg-primary/80 font-display tracking-widest h-14 text-lg mb-6"
-              onClick={() => addItem(product)}
-              disabled={!product.inStock}
-              data-testid="button-add-to-basket"
-            >
-              {product.inStock ? "ADD TO BASKET" : "OUT OF STOCK"}
-            </Button>
-
             <div className="p-4 rounded-lg border border-white/10 bg-white/[0.02]">
               <h4 className="font-display font-bold text-sm mb-2">PAYMENT METHODS</h4>
-              <p className="text-xs text-muted-foreground">We accept Visa, Mastercard, American Express via Stripe, and PayPal. All payments are secured with industry-standard encryption.</p>
+              <div className="flex items-center gap-3 text-muted-foreground/60 text-xs">
+                <span className="px-2 py-1 border border-white/10 rounded">Visa</span>
+                <span className="px-2 py-1 border border-white/10 rounded">Mastercard</span>
+                <span className="px-2 py-1 border border-white/10 rounded">Amex</span>
+                <span className="px-2 py-1 border border-white/10 rounded">PayPal</span>
+              </div>
             </div>
           </div>
         </div>
