@@ -1152,21 +1152,103 @@ async function fetchProductImageByName(name: string, vendor?: string): Promise<s
   return [];
 }
 
+function extractModelIdentifiers(productName: string): string[] {
+  const identifiers: string[] = [];
+  const nameLower = productName.toLowerCase();
+
+  const modelPatterns = [
+    /\b([a-z]{1,4}\d{3,5}[a-z]{0,3})\b/gi,
+    /\b(\d{3,5}[a-z]{1,4})\b/gi,
+    /\b([a-z]+-?\d{3,5}[a-z]*)\b/gi,
+    /\b(\d{4,6})\b/g,
+    /\b(i[3579]-\d{4,5}[a-z]*)\b/gi,
+    /\b(ryzen\s*\d\s*\d{4}[a-z]*)\b/gi,
+    /\b(rtx\s*\d{4}[a-z]*)\b/gi,
+    /\b(gtx\s*\d{4}[a-z]*)\b/gi,
+    /\b(rx\s*\d{4}[a-z]*)\b/gi,
+    /\b(ddr[45]-?\d{4})\b/gi,
+    /\b(\d+[gt]b)\b/gi,
+    /\b(\d+w)\b/gi,
+  ];
+
+  for (const pattern of modelPatterns) {
+    const matches = nameLower.match(pattern);
+    if (matches) {
+      for (const m of matches) {
+        const clean = m.replace(/\s+/g, "").toLowerCase();
+        if (clean.length >= 3 && !["the", "and", "for", "with", "pro", "max", "mini", "new", "usb", "rgb"].includes(clean)) {
+          identifiers.push(clean);
+        }
+      }
+    }
+  }
+
+  return [...new Set(identifiers)];
+}
+
+function validateImageAgainstPage(productName: string, vendor: string | undefined, imageUrl: string, pageUrl?: string): boolean {
+  if (!pageUrl) return true;
+  const pageLower = pageUrl.toLowerCase();
+  const nameLower = productName.toLowerCase();
+
+  const modelIds = extractModelIdentifiers(productName);
+  if (modelIds.length === 0) return true;
+
+  const keyModels = modelIds.filter(id => /\d{3,}/.test(id));
+  if (keyModels.length === 0) return true;
+
+  const pageHasModel = keyModels.some(id => {
+    const variants = [id, id.replace(/-/g, ""), id.replace(/-/g, " ")];
+    return variants.some(v => pageLower.includes(v));
+  });
+
+  if (!pageHasModel) {
+    const imgLower = imageUrl.toLowerCase();
+    const imgHasModel = keyModels.some(id => {
+      const variants = [id, id.replace(/-/g, ""), id.replace(/-/g, "_")];
+      return variants.some(v => imgLower.includes(v));
+    });
+    return imgHasModel;
+  }
+
+  return true;
+}
+
 function validateImageRelevance(productName: string, vendor: string | undefined, imageUrl: string): boolean {
   const imgLower = imageUrl.toLowerCase();
   const nameLower = productName.toLowerCase();
-  const nameWords = nameLower.split(/[\s\-_\/,]+/).filter(w => w.length > 2);
   const vendorLower = vendor?.toLowerCase() || "";
 
   const genericBadPatterns = [
     "no-image", "placeholder", "default", "coming-soon", "noimage",
     "not-available", "image-not", "unavailable", "broken",
     "logo", "icon", "sprite", "pixel", "1x1", "tracking", "avatar",
-    "banner", "promo", "advertisement", "newsletter", "social-media"
+    "banner", "promo", "advertisement", "newsletter", "social-media",
+    "warranty", "delivery", "shipping", "payment", "trustpilot",
+    "review", "rating", "badge", "certified", "accreditation"
   ];
   if (genericBadPatterns.some(p => imgLower.includes(p))) return false;
 
-  if (imgLower.includes("media-amazon.com") || imgLower.includes("vip-computers.com")) return true;
+  if (imgLower.includes("vip-computers.com") || imgLower.includes("targetcomponents")) return true;
+
+  const modelIds = extractModelIdentifiers(productName);
+  const keyModels = modelIds.filter(id => /\d{3,}/.test(id));
+
+  if (imgLower.includes("media-amazon.com")) {
+    if (keyModels.length > 0) {
+      const imgPath = imgLower.split("/").pop() || "";
+      const hasConflictingModel = keyModels.some(id => {
+        const numMatch = id.match(/\d{3,}/);
+        if (!numMatch) return false;
+        const num = numMatch[0];
+        const imgNums = imgPath.match(/\d{3,}/g) || [];
+        return imgNums.length > 0 && !imgNums.includes(num) && imgNums.some(n => Math.abs(parseInt(n) - parseInt(num)) < 200 && n !== num);
+      });
+      if (hasConflictingModel) return false;
+    }
+    return true;
+  }
+
   if (vendorLower && imgLower.includes(vendorLower.replace(/\s+/g, ""))) return true;
 
   const productCategory = detectProductCategory(nameLower);
@@ -1177,6 +1259,9 @@ function validateImageRelevance(productName: string, vendor: string | undefined,
     monitor: ["keyboard", "mouse-pad", "headset", "headphone", "earphone"],
     gpu: ["keyboard", "mouse-pad", "headset", "headphone", "monitor-arm"],
     cpu: ["keyboard", "mouse", "headset", "monitor", "gpu", "graphics-card"],
+    psu: ["keyboard", "mouse", "headset", "monitor", "gpu", "cpu"],
+    memory: ["keyboard", "mouse", "headset", "monitor", "case", "psu"],
+    storage: ["keyboard", "mouse", "headset", "monitor", "gpu", "psu"],
   };
   const conflicts = categoryConflicts[productCategory] || [];
   if (conflicts.some(c => imgLower.includes(c))) return false;
@@ -1238,6 +1323,9 @@ async function enrichProduct(name: string, vendor?: string, mpn?: string, catego
     { name: "Lambda-tek", fn: enrichFromLambdatek },
   ];
 
+  const modelIds = extractModelIdentifiers(name);
+  const keyModels = modelIds.filter(id => /\d{3,}/.test(id));
+
   for (const term of searchTerms) {
     for (const source of retailerSources) {
       const hasEnoughSpecs = data.specs && Object.keys(data.specs).length >= 8;
@@ -1248,13 +1336,34 @@ async function enrichProduct(name: string, vendor?: string, mpn?: string, catego
       try {
         const result = await source.fn(term);
         if (result) {
-          if (result.specs && Object.keys(result.specs).length > 0) data.specs = { ...data.specs, ...result.specs };
-          if (result.features && result.features.length > 0) data.features = [...new Set([...(data.features || []), ...result.features])].slice(0, 20);
-          if (result.description && !data.description) data.description = result.description;
-          if (result.images && result.images.length > 0) {
+          if (result.images && result.images.length > 0 && keyModels.length > 0) {
+            const validatedImages = result.images.filter(img => {
+              const imgLower = img.toLowerCase();
+              const hasWrongModel = keyModels.some(id => {
+                const numMatch = id.match(/\d{3,}/);
+                if (!numMatch) return false;
+                const num = numMatch[0];
+                const imgNums = (imgLower.split("/").pop() || "").match(/\d{3,}/g) || [];
+                return imgNums.length > 0 && !imgNums.includes(num) && imgNums.some(n => {
+                  const diff = Math.abs(parseInt(n) - parseInt(num));
+                  return diff > 0 && diff < 500;
+                });
+              });
+              return !hasWrongModel;
+            });
+            if (validatedImages.length > 0) {
+              data.images = [...new Set([...(data.images || []), ...validatedImages])].slice(0, 15);
+              if (!data.image) data.image = data.images[0];
+            } else {
+              console.log(`[Enricher]   ${source.name}: ${result.images.length} images rejected (wrong model numbers)`);
+            }
+          } else if (result.images && result.images.length > 0) {
             data.images = [...new Set([...(data.images || []), ...result.images])].slice(0, 15);
             if (!data.image) data.image = data.images[0];
           }
+          if (result.specs && Object.keys(result.specs).length > 0) data.specs = { ...data.specs, ...result.specs };
+          if (result.features && result.features.length > 0) data.features = [...new Set([...(data.features || []), ...result.features])].slice(0, 20);
+          if (result.description && !data.description) data.description = result.description;
           console.log(`[Enricher]   ${source.name} found: ${Object.keys(result.specs || {}).length} specs, ${(result.features || []).length} features, ${(result.images || []).length} images (total images: ${(data.images || []).length})`);
         }
       } catch (e: any) {
