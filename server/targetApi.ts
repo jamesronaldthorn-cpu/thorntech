@@ -535,9 +535,14 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
         if (images.length > 0) {
           let existingImages: string[] = [];
           try { if (existing.images) existingImages = typeof existing.images === "string" ? JSON.parse(existing.images) : existing.images; } catch {}
-          const goodExisting = existingImages.filter((img: string) => img && !img.includes("placeholder") && !img.includes("no-image"));
-          if (goodExisting.length === 0 && images.length > 0) {
-            updates.images = JSON.stringify(images);
+          const merged = [...existingImages];
+          for (const img of images) {
+            if (img && !merged.some(e => e === img || e.replace(/-lg\./i, '.').replace(/\.JPG$/i, '.jpg') === img.replace(/-lg\./i, '.').replace(/\.JPG$/i, '.jpg'))) {
+              merged.push(img);
+            }
+          }
+          if (merged.length > existingImages.length) {
+            updates.images = JSON.stringify(merged);
           }
         }
 

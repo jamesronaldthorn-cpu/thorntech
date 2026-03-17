@@ -45,17 +45,33 @@ function formatPrice(price: number) {
   return `£${price.toFixed(2)}`;
 }
 
+function normalizeImageKey(url: string): string {
+  return url.toLowerCase().replace(/-lg\./i, '.').replace(/-th\./i, '.').replace(/\.jpeg$/i, '.jpg');
+}
+
 function ImageGallery({ product, imgError, setImgError }: { product: Product; imgError: boolean; setImgError: (v: boolean) => void }) {
-  const allImages: string[] = [];
-  if (product.image && !imgError) allImages.push(product.image);
+  const rawImages: string[] = [];
+  if (product.image && !imgError) rawImages.push(product.image);
   try {
     const extra = product.images ? JSON.parse(product.images as string) : [];
     if (Array.isArray(extra)) {
       extra.forEach((img: string) => {
-        if (img && !allImages.includes(img)) allImages.push(img);
+        if (img && !rawImages.includes(img)) rawImages.push(img);
       });
     }
   } catch {}
+
+  const seenKeys = new Set<string>();
+  const allImages: string[] = [];
+  for (const img of rawImages) {
+    const preferLarge = img.includes('pictureserver') && !img.includes('-lg.')
+      ? img.replace(/(\.[a-zA-Z]+)$/, '-lg$1')
+      : null;
+    const key = normalizeImageKey(img);
+    if (seenKeys.has(key)) continue;
+    seenKeys.add(key);
+    allImages.push(preferLarge || img);
+  }
 
   const [selected, setSelected] = useState(0);
   const [thumbErrors, setThumbErrors] = useState<Set<number>>(new Set());
