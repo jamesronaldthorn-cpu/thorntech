@@ -485,12 +485,12 @@ export default function AdminPage() {
         adminFetch("/api/admin/reviews"),
       ]);
       if (pRes.status === 401) { localStorage.removeItem("admin_token"); setAuthed(false); return; }
-      setProducts(await pRes.json());
-      setCategories(await cRes.json());
-      setOrders(await oRes.json());
-      setCustomFeeds(await fRes.json());
-      setFeedSources(await sRes.json());
-      setUsersList(await uRes.json());
+      if (pRes.ok) setProducts(await pRes.json());
+      if (cRes.ok) setCategories(await cRes.json());
+      if (oRes.ok) setOrders(await oRes.json());
+      if (fRes.ok) setCustomFeeds(await fRes.json());
+      if (sRes.ok) setFeedSources(await sRes.json());
+      if (uRes.ok) setUsersList(await uRes.json());
       if (stRes.ok) setStats(await stRes.json());
       if (bRes.ok) setBlogPosts(await bRes.json());
       if (rvRes.ok) setAdminReviews(await rvRes.json());
