@@ -1,11 +1,12 @@
 import { Link, useLocation } from "wouter";
-import { ShoppingBasket, Search, Menu, X, Minus, Plus, User, Truck, Phone, Mail, Trash2 } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { ShoppingBasket, Search, Menu, X, Minus, Plus, User, Truck, Phone, Mail, Trash2, ChevronDown } from "lucide-react";
+import { useState, useRef, useEffect, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
+import { useQuery } from "@tanstack/react-query";
 import { proxyImageUrl } from "@/lib/utils";
 import logoImg from "@/assets/images/logo.png";
 
@@ -35,13 +36,37 @@ function CartItemImage({ product }: { product: any }) {
   );
 }
 
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
+}
+
 export default function NavBar() {
   const { items, isOpen, setOpen, updateQuantity, removeItem, getTotal, getCount } = useCart();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
+  const [catOpen, setCatOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const catRef = useRef<HTMLDivElement>(null);
   const cartCount = getCount();
   const cartTotal = getTotal();
+
+  const { data: categories = [] } = useQuery<Category[]>({
+    queryKey: ["/api/categories"],
+    queryFn: () => fetch("/api/categories").then(r => r.json()),
+  });
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (catRef.current && !catRef.current.contains(e.target as Node)) {
+        setCatOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
@@ -82,6 +107,45 @@ export default function NavBar() {
                 <span className="text-[10px] text-primary uppercase tracking-[0.2em]">Solutions Ltd</span>
               </div>
             </Link>
+
+            <div ref={catRef} className="relative hidden md:block">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex items-center gap-1.5 text-sm hover:text-primary transition-colors font-display tracking-wider"
+                onClick={() => setCatOpen(!catOpen)}
+                data-testid="button-categories-dropdown"
+              >
+                <Menu className="w-4 h-4" />
+                CATEGORIES
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${catOpen ? "rotate-180" : ""}`} />
+              </Button>
+              {catOpen && (
+                <div className="absolute top-full left-0 mt-2 w-64 max-h-[70vh] overflow-y-auto bg-background/95 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl z-50 py-2">
+                  {categories.map(cat => (
+                    <Link
+                      key={cat.id}
+                      href={`/category/${cat.slug}`}
+                      onClick={() => setCatOpen(false)}
+                    >
+                      <div className="px-4 py-2.5 text-sm hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer" data-testid={`link-category-${cat.slug}`}>
+                        {cat.name}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              data-testid="button-mobile-menu"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </Button>
           </div>
 
           <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-lg mx-8 relative">
@@ -198,6 +262,42 @@ export default function NavBar() {
           </div>
         </div>
       </nav>
+
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-x-0 top-[64px] z-40 bg-background/95 backdrop-blur-xl border-b border-white/10 max-h-[70vh] overflow-y-auto">
+          <div className="container mx-auto px-4 py-3">
+            <form onSubmit={(e) => { handleSearch(e); setMobileMenuOpen(false); }} className="mb-3">
+              <div className="relative">
+                <Input
+                  type="text"
+                  placeholder="Search for components..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full bg-black/50 border-white/20 focus-visible:ring-primary pl-4 pr-10 h-10"
+                  data-testid="input-search-mobile-menu"
+                />
+                <button type="submit" className="absolute right-0 top-0 bottom-0 w-10 flex items-center justify-center bg-primary/20 hover:bg-primary/40 rounded-r-md transition-colors">
+                  <Search className="w-4 h-4 text-primary" />
+                </button>
+              </div>
+            </form>
+            <p className="text-xs text-muted-foreground font-display tracking-wider mb-2 px-1">CATEGORIES</p>
+            <div className="grid grid-cols-2 gap-1">
+              {categories.map(cat => (
+                <Link
+                  key={cat.id}
+                  href={`/category/${cat.slug}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <div className="px-3 py-2.5 text-sm hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer rounded-md" data-testid={`link-mobile-category-${cat.slug}`}>
+                    {cat.name}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
