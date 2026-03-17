@@ -1,0 +1,57 @@
+
+60 updates can be applied immediately.
+7 of these updates are standard security updates.
+To see these additional updates run: apt list --upgradable
+
+3 additional security updates can be applied with ESM Apps.
+Learn more about enabling ESM Apps service at https://ubuntu.com/esm
+
+
+*** System restart required ***
+You have new mail.
+Last login: Sat Mar 14 08:15:52 2026 from 51.179.155.148
+
+This server is powered by Plesk.
+
+Run the 'plesk login' command and log in by browsing either of the links received in the output.
+Use the 'plesk' command to manage the server. Run 'plesk help' for more info.
+
+root@bold-golick:~# git pull && npm install && npx drizzle-kit push && npm run build && pm2 restart thorntech
+fatal: not a git repository (or any of the parent directories): .git
+root@bold-golick:~# git pull && npm install && npx drizzle-kit push && npm run build && pm2 restart thorntech
+fatal: not a git repository (or any of the parent directories): .git
+root@bold-golick:~# ^C
+root@bold-golick:~# d /root/thorntech && git pull && npm install && npx drizzle-kit push && npm run build && pm2 restart thorntech
+d: command not found
+root@bold-golick:~# cd /root/thorntech && git pull && npm install && npx drizzle-kit push && npm run build && pm2 restart thorntech
+-bash: cd: /root/thorntech: No such file or directory
+root@bold-golick:~# ^C
+root@bold-golick:~# cd /root && git clone https://github.com/jamesronaldthorn-cpu/thorntech.git && cd thorntech && npm install && npx drizzle-kit push && npm run build && pm2 start "npm start" --name thorntech
+Cloning into 'thorntech'...
+remote: Enumerating objects: 1485, done.
+remote: Counting objects: 100% (1059/1059), done.
+remote: Compressing objects: 100% (426/426), done.
+remote: Total 1485 (delta 773), reused 875 (delta 613), pack-reused 426 (from 1)
+Receiving objects: 100% (1485/1485), 38.53 MiB | 25.70 MiB/s, done.
+Resolving deltas: 100% (1039/1039), done.
+npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+
+added 446 packages, and audited 447 packages in 6s
+
+59 packages are looking for funding
+  run `npm fund` for details
+
+7 vulnerabilities (1 low, 5 moderate, 1 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/root/thorntech/drizzle.config.ts'
+DATABASE_URL, ensure the database is provisioned
+root@bold-golick:~/thorntech#
