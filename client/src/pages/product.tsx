@@ -255,18 +255,89 @@ export default function ProductPage() {
     );
   }
 
-  const descLines = product.description?.split("\n").filter(l => l.trim()) || [];
+  type DescSection = { heading?: string; content: string[] };
+  const descSections: DescSection[] = [];
   const descSpecs: { label: string; value: string }[] = [];
   const descParagraphs: string[] = [];
+  const descFeatureBullets: string[] = [];
 
-  descLines.forEach(line => {
-    const colonMatch = line.match(/^([^:]{2,40}):\s*(.+)$/);
-    if (colonMatch) {
-      descSpecs.push({ label: colonMatch[1].trim(), value: colonMatch[2].trim() });
-    } else {
-      descParagraphs.push(line.trim());
+  if (product.description) {
+    const lines = product.description.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+    let currentSection: DescSection = { content: [] };
+    let inSpecsSection = false;
+    let specLabel: string | null = null;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const isBold = line.startsWith("**") && line.endsWith("**");
+      const boldText = isBold ? line.replace(/^\*\*|\*\*$/g, "") : null;
+
+      if (boldText?.toLowerCase() === "specifications" || boldText?.toLowerCase() === "specification") {
+        inSpecsSection = true;
+        if (currentSection.content.length > 0 || currentSection.heading) {
+          descSections.push(currentSection);
+        }
+        currentSection = { heading: "Specifications", content: [] };
+        continue;
+      }
+
+      if (boldText?.toLowerCase() === "features" || boldText?.toLowerCase() === "key features") {
+        inSpecsSection = false;
+        if (currentSection.content.length > 0 || currentSection.heading) {
+          descSections.push(currentSection);
+        }
+        currentSection = { heading: boldText, content: [] };
+        continue;
+      }
+
+      if (inSpecsSection && isBold && boldText) {
+        if (specLabel) {
+          descSpecs.push({ label: specLabel, value: "(see description)" });
+        }
+        specLabel = boldText;
+        continue;
+      }
+
+      if (inSpecsSection && specLabel) {
+        descSpecs.push({ label: specLabel, value: line.replace(/^\*\*|\*\*$/g, "") });
+        specLabel = null;
+        continue;
+      }
+
+      if (isBold && boldText) {
+        if (currentSection.content.length > 0 || currentSection.heading) {
+          descSections.push(currentSection);
+        }
+        currentSection = { heading: boldText, content: [] };
+        continue;
+      }
+
+      if (currentSection.heading?.toLowerCase() === "features" || currentSection.heading?.toLowerCase() === "key features") {
+        descFeatureBullets.push(line);
+      } else {
+        currentSection.content.push(line);
+        if (!currentSection.heading) {
+          descParagraphs.push(line);
+        }
+      }
     }
-  });
+    if (currentSection.content.length > 0 || currentSection.heading) {
+      descSections.push(currentSection);
+    }
+    if (specLabel) {
+      descSpecs.push({ label: specLabel, value: "" });
+    }
+  }
+
+  if (descSpecs.length === 0 && product.description) {
+    const singleLineSpecs = product.description.split("\n").filter(l => l.trim());
+    singleLineSpecs.forEach(line => {
+      const colonMatch = line.match(/^([^:]{2,40}):\s*(.+)$/);
+      if (colonMatch && !line.startsWith("**")) {
+        descSpecs.push({ label: colonMatch[1].trim(), value: colonMatch[2].trim() });
+      }
+    });
+  }
 
   let webSpecs: Record<string, string> = {};
   try {
@@ -284,8 +355,8 @@ export default function ProductPage() {
   } catch {}
 
   const allSpecs = [
-    ...descSpecs.map(s => ({ label: s.label, value: s.value })),
     ...Object.entries(webSpecs).map(([k, v]) => ({ label: k, value: v })),
+    ...descSpecs.filter(s => !Object.keys(webSpecs).some(k => k.toLowerCase() === s.label.toLowerCase()) && s.value !== "(see description)"),
   ];
   const seenLabels = new Set<string>();
   const uniqueSpecs = allSpecs.filter(s => {
@@ -296,7 +367,8 @@ export default function ProductPage() {
   });
 
   const allFeatures = features.length > 0 ? features : vipFeatures;
-  const hasRichContent = allFeatures.length > 0 || uniqueSpecs.length > 0 || descParagraphs.length > 0 || product.description;
+  const richDescSections = descSections.filter(s => s.heading && s.heading.toLowerCase() !== "specifications" && s.heading.toLowerCase() !== "features" && s.heading.toLowerCase() !== "key features" && s.content.length > 0);
+  const hasRichContent = allFeatures.length > 0 || uniqueSpecs.length > 0 || descParagraphs.length > 0 || richDescSections.length > 0 || descFeatureBullets.length > 0 || product.description;
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
@@ -519,28 +591,63 @@ export default function ProductPage() {
       {hasRichContent && (
         <section className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div>
-              {(descParagraphs.length > 0 || (product.description && descSpecs.length === 0 && descParagraphs.length === 0)) && (
-                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6 mb-6">
-                  <h2 className="text-xl font-display font-bold mb-4">DESCRIPTION</h2>
+            <div className="space-y-6">
+              {descParagraphs.length > 0 && (
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6">
+                  <h2 className="text-xl font-display font-bold mb-4">OVERVIEW</h2>
                   <div className="space-y-3 text-muted-foreground leading-relaxed text-sm">
-                    {descParagraphs.length > 0 ? descParagraphs.map((p, i) => (
+                    {descParagraphs.map((p, i) => (
                       <p key={i}>{p}</p>
-                    )) : (
-                      <p>{product.description}</p>
-                    )}
+                    ))}
                   </div>
+                </div>
+              )}
+
+              {richDescSections.length > 0 && (
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6">
+                  <h2 className="text-xl font-display font-bold mb-6">PRODUCT DETAILS</h2>
+                  <div className="space-y-6">
+                    {richDescSections.map((section, i) => (
+                      <div key={i}>
+                        <h3 className="text-sm font-bold text-foreground mb-1.5">{section.heading}</h3>
+                        {section.content.map((line, j) => (
+                          <p key={j} className="text-sm text-muted-foreground leading-relaxed">{line}</p>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {descFeatureBullets.length > 0 && (
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6">
+                  <h2 className="text-xl font-display font-bold mb-4">FEATURES</h2>
+                  <ul className="space-y-2">
+                    {descFeatureBullets.map((f, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                        <CheckCircle className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {descParagraphs.length === 0 && richDescSections.length === 0 && product.description && (
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6">
+                  <h2 className="text-xl font-display font-bold mb-4">DESCRIPTION</h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{product.description}</p>
                 </div>
               )}
             </div>
 
             {uniqueSpecs.length > 0 && (
-              <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6">
-                <h2 className="text-xl font-display font-bold mb-4">FULL SPECIFICATIONS</h2>
+              <div className="bg-white/[0.02] border border-white/5 rounded-xl p-6 h-fit">
+                <h2 className="text-xl font-display font-bold mb-4">SPECIFICATIONS</h2>
                 <div className="divide-y divide-white/5">
                   {uniqueSpecs.map((spec, i) => (
-                    <div key={i} className="flex py-2.5 text-sm">
-                      <span className="w-2/5 text-muted-foreground font-medium shrink-0">{spec.label}</span>
+                    <div key={i} className="flex py-3 text-sm">
+                      <span className="w-2/5 text-muted-foreground font-bold shrink-0">{spec.label}</span>
                       <span className="text-foreground">{spec.value}</span>
                     </div>
                   ))}

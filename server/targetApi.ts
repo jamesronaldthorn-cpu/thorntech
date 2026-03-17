@@ -555,6 +555,52 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
         if (mpn && existing.mpn !== mpn) updates.mpn = mpn;
         if (tp.ean && !existing.ean) updates.ean = tp.ean;
 
+        const existingDesc = existing.description || "";
+        const needsDescRefresh = existingDesc && !existingDesc.includes("**") && tp.extendeddescription;
+        if (needsDescRefresh) {
+          let html = tp.extendeddescription!;
+          html = html.replace(/<br\s*\/?>/gi, "\n");
+          html = html.replace(/<\/?(p|div|tr|li)\s*[^>]*>/gi, "\n");
+          html = html.replace(/<\/?(h[1-6]|strong|b)\s*[^>]*>/gi, (m: string) => {
+            if (m.match(/^<\//)) return "\n";
+            return "\n**";
+          });
+          html = html.replace(/\*\*([^*\n]+)\n/g, "**$1**\n");
+          html = html.replace(/<\/?(td|th)\s*[^>]*>/gi, " | ");
+          html = html.replace(/<[^>]+>/g, "");
+          html = html.replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&nbsp;/gi, " ").replace(/&quot;/gi, '"').replace(/&#\d+;/gi, " ").replace(/&[a-z]+;/gi, " ");
+          html = html.replace(/\n{3,}/g, "\n\n").replace(/[ \t]+/g, " ").trim();
+          const dLines = html.split("\n").map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+          const newDesc = dLines.join("\n");
+          if (newDesc.length > 50) {
+            updates.description = newDesc;
+            const newSpecs: Record<string, string> = {};
+            const specSection = newDesc.split(/\*\*Specifications\*\*/i);
+            if (specSection.length > 1) {
+              const specLines = specSection[1].split("\n").map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+              for (let si = 0; si < specLines.length; si++) {
+                const line = specLines[si].replace(/^\*\*|\*\*$/g, "");
+                if (si + 1 < specLines.length && !specLines[si + 1].startsWith("**")) {
+                  const value = specLines[si + 1].replace(/^\*\*|\*\*$/g, "");
+                  if (line.length < 50 && value.length < 100) {
+                    newSpecs[line] = value;
+                    si++;
+                  }
+                }
+              }
+            }
+            if (Object.keys(newSpecs).length > 0) {
+              updates.specs = JSON.stringify(newSpecs);
+            }
+          }
+        }
+
+        if (!existing.features && tp.overview) {
+          const cleaned = tp.overview.replace(/<[^>]+>/g, " ").replace(/&[a-z]+;/gi, " ");
+          const parts = cleaned.split(/[,;|]/).map((s: string) => s.trim()).filter((s: string) => s.length > 3 && s.length < 150);
+          if (parts.length > 0) updates.features = JSON.stringify(parts);
+        }
+
         if (Object.keys(updates).length > 0) {
           try {
             await storage.updateProduct(existing.id, updates);
@@ -580,7 +626,20 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
 
       let description = tp.description;
       if (tp.extendeddescription) {
-        const cleaned = tp.extendeddescription.replace(/<[^>]+>/g, " ").replace(/&[a-z]+;/gi, " ").replace(/\s{2,}/g, " ").trim();
+        let html = tp.extendeddescription;
+        html = html.replace(/<br\s*\/?>/gi, "\n");
+        html = html.replace(/<\/?(p|div|tr|li)\s*[^>]*>/gi, "\n");
+        html = html.replace(/<\/?(h[1-6]|strong|b)\s*[^>]*>/gi, (m: string) => {
+          if (m.match(/^<\//)) return "\n";
+          return "\n**";
+        });
+        html = html.replace(/\*\*([^*\n]+)\n/g, "**$1**\n");
+        html = html.replace(/<\/?(td|th)\s*[^>]*>/gi, " | ");
+        html = html.replace(/<[^>]+>/g, "");
+        html = html.replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&nbsp;/gi, " ").replace(/&quot;/gi, '"').replace(/&#\d+;/gi, " ").replace(/&[a-z]+;/gi, " ");
+        html = html.replace(/\n{3,}/g, "\n\n").replace(/[ \t]+/g, " ").trim();
+        const lines = html.split("\n").map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+        const cleaned = lines.join("\n");
         if (cleaned.length > 50) description = cleaned;
       }
 
@@ -589,6 +648,24 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
         const cleaned = tp.overview.replace(/<[^>]+>/g, " ").replace(/&[a-z]+;/gi, " ");
         const parts = cleaned.split(/[,;|]/).map((s: string) => s.trim()).filter((s: string) => s.length > 3 && s.length < 150);
         features.push(...parts);
+      }
+
+      const specs: Record<string, string> = {};
+      if (description) {
+        const specSection = description.split(/\*\*Specifications\*\*/i);
+        if (specSection.length > 1) {
+          const specLines = specSection[1].split("\n").map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+          for (let si = 0; si < specLines.length; si++) {
+            const line = specLines[si].replace(/^\*\*|\*\*$/g, "");
+            if (si + 1 < specLines.length && !specLines[si + 1].startsWith("**")) {
+              const value = specLines[si + 1].replace(/^\*\*|\*\*$/g, "");
+              if (line.length < 50 && value.length < 100) {
+                specs[line] = value;
+                si++;
+              }
+            }
+          }
+        }
       }
 
       const productData = {
@@ -601,7 +678,7 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
         categoryId,
         image: mainImage,
         images: images.length > 0 ? JSON.stringify(images) : null,
-        specs: null as string | null,
+        specs: Object.keys(specs).length > 0 ? JSON.stringify(specs) : null,
         features: features.length > 0 ? JSON.stringify(features) : null,
         vipFeatures: null as string | null,
         badge: null as string | null,
