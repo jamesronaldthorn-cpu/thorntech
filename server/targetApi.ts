@@ -1,6 +1,7 @@
 import { XMLParser, XMLBuilder } from "fast-xml-parser";
 import { storage } from "./storage";
 
+
 const TARGET_XML_URL = "https://xml.targetcomponents.co.uk/tcxmlv3.asp";
 const TARGET_ACCOUNT = process.env.TARGET_ACCOUNT || "THO00014";
 const TARGET_SECURITY_CODE = process.env.TARGET_SECURITY_CODE || "KiMNHcZF";
@@ -157,9 +158,9 @@ function slugify(text: string): string {
 }
 
 const targetCategoryMap: Record<string, string> = {
-  PR: "processors",
   PRIN: "processors",
   PRAM: "processors",
+  PR: "processors",
   MB: "motherboards",
   GC: "graphics-cards",
   ME: "memory",
@@ -175,7 +176,9 @@ const targetCategoryMap: Record<string, string> = {
   AC: "accessories",
   CA: "cables-adapters",
   AU: "audio",
-  PR: "peripherals",
+  PE: "peripherals",
+  HE: "headsets-audio",
+  GA: "controllers-gaming",
 };
 
 export async function syncTargetProducts(): Promise<{ imported: number; updated: number; skipped: number; outOfStock: number; errors: number; total: number }> {
@@ -190,7 +193,8 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
   }
 
   result.total = targetProducts.length;
-  console.log(`[Target] Processing ${targetProducts.length} products...`);
+  const inStockCount = targetProducts.filter(tp => tp.stock > 0).length;
+  console.log(`[Target] Processing ${targetProducts.length} products (${inStockCount} in stock, ${targetProducts.length - inStockCount} out of stock)...`);
 
   const existingProducts = await storage.getProducts();
   const existingByMpn = new Map<string, any>();
@@ -236,7 +240,9 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
       const mpn = tp.manupartcode?.trim() || null;
       const mpnKey = mpn && mpn.length > 3 ? mpn.toLowerCase().trim() : null;
 
-      const existing = (mpnKey && existingByMpn.get(mpnKey)) || existingBySlug.get(slug);
+      const existingByMpnMatch = mpnKey ? existingByMpn.get(mpnKey) : null;
+      const existingBySlugMatch = existingBySlug.get(slug);
+      const existing = existingByMpnMatch || existingBySlugMatch;
 
       if (existing) {
         const updates: Record<string, any> = {};
@@ -335,6 +341,9 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
         existingBySlug.set(uniqueSlug, created);
         if (mpnKey) existingByMpn.set(mpnKey, created);
         result.imported++;
+        if (result.imported <= 20) {
+          console.log(`[Target] NEW: "${name}" (MPN: ${mpn || "none"}, £${costPriceExVat.toFixed(2)}, cat: ${categoryId || "none"})`);
+        }
       } catch (createErr: any) {
         const msg = String(createErr?.message || "");
         if (msg.includes("duplicate") || msg.includes("unique")) {
@@ -350,7 +359,7 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
     }
   }
 
-  console.log(`[Target] Sync complete: ${result.imported} imported, ${result.updated} updated, ${result.skipped} skipped, ${result.outOfStock} out of stock, ${result.errors} errors`);
+  console.log(`[Target] Sync complete: ${result.imported} new imported, ${result.updated} updated (better price/data), ${result.skipped} already matched, ${result.outOfStock} out of stock, ${result.errors} errors`);
   return result;
 }
 
