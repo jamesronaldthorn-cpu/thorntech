@@ -126,8 +126,61 @@ app.use((req, res, next) => {
   next();
 });
 
+async function ensureCategories() {
+  const { storage } = await import("./storage");
+  const required = [
+    { name: "Processors (CPUs)", slug: "processors" },
+    { name: "Graphics Cards (GPUs)", slug: "graphics-cards" },
+    { name: "Motherboards", slug: "motherboards" },
+    { name: "Memory (RAM)", slug: "memory" },
+    { name: "Storage", slug: "storage" },
+    { name: "Power Supplies (PSUs)", slug: "power-supplies" },
+    { name: "Cases", slug: "cases" },
+    { name: "Cooling", slug: "cooling" },
+    { name: "Monitors", slug: "monitors" },
+    { name: "Keyboards", slug: "keyboards" },
+    { name: "Mice", slug: "mice" },
+    { name: "Headsets & Audio", slug: "headsets-audio" },
+    { name: "Networking", slug: "networking" },
+    { name: "Controllers & Gaming", slug: "controllers-gaming" },
+    { name: "Cables & Adapters", slug: "cables-adapters" },
+    { name: "Optical Drives", slug: "optical-drives" },
+    { name: "Pre-Built PCs", slug: "pre-built-pcs" },
+    { name: "Laptops", slug: "laptops" },
+    { name: "Software", slug: "software" },
+    { name: "Accessories", slug: "accessories" },
+    { name: "Printers", slug: "printers" },
+    { name: "Ink & Toner", slug: "ink-toner" },
+    { name: "Scanners & Multifunction", slug: "scanners-multifunction" },
+    { name: "Servers & Workstations", slug: "servers-workstations" },
+    { name: "Security & CCTV", slug: "security-cctv" },
+    { name: "Smart Home", slug: "smart-home" },
+    { name: "Webcams & Cameras", slug: "webcams-cameras" },
+    { name: "UPS & Power Protection", slug: "ups-power-protection" },
+    { name: "Paper & Office Supplies", slug: "paper-supplies" },
+  ];
+
+  try {
+    const existing = await storage.getCategories();
+    const existingSlugs = new Set(existing.map(c => c.slug));
+    let created = 0;
+    for (const cat of required) {
+      if (!existingSlugs.has(cat.slug)) {
+        await storage.createCategory(cat);
+        created++;
+      }
+    }
+    if (created > 0) {
+      console.log(`[Categories] Created ${created} missing categories`);
+    }
+  } catch (e: any) {
+    console.error("[Categories] Error seeding:", e.message);
+  }
+}
+
 (async () => {
   await initStripe();
+  await ensureCategories();
   await registerRoutes(httpServer, app);
 
   const { startFeedScheduler } = await import("./feedImporter");
