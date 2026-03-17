@@ -11,7 +11,16 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  app.use(express.static(distPath, {
+    maxAge: '7d',
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      }
+    }
+  }));
 
   app.use("/{*path}", async (req, res) => {
     const indexPath = path.resolve(distPath, "index.html");
@@ -22,6 +31,10 @@ export function serveStatic(app: Express) {
       html = injectSeoIntoHtml(html, seo);
     }
 
-    res.set("Content-Type", "text/html").send(html);
+    res.set("Content-Type", "text/html");
+    res.set("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
+    res.send(html);
   });
 }
