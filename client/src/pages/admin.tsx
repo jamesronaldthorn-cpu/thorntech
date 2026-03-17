@@ -1693,7 +1693,7 @@ export default function AdminPage() {
                         ))}
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <Label className="text-gray-500 text-xs">Update Status:</Label>
+                        <Label className="text-gray-500 text-xs">Status:</Label>
                         <select
                           value={o.status}
                           onChange={e => updateOrderStatus(o.id, e.target.value)}
@@ -1709,63 +1709,130 @@ export default function AdminPage() {
                           <option value="refunded">Refunded</option>
                           <option value="partial_refund">Partial Refund</option>
                         </select>
-                        {(o.status === "paid" || o.status === "shipped" || o.status === "delivered") && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => { setRefundingOrder(refundingOrder === o.id ? null : o.id); setRefundAmount(o.total.toFixed(2)); }}
-                            className="border-red-500/30 text-red-400 hover:bg-red-500/10 ml-2"
-                            data-testid={`button-refund-${o.id}`}
-                          >
-                            <RotateCcw className="w-3 h-3 mr-1" /> Refund
-                          </Button>
-                        )}
+                        <span className={`text-[10px] px-2 py-1 rounded font-medium ${o.paymentMethod === "stripe" ? "bg-indigo-500/20 text-indigo-400" : "bg-yellow-500/20 text-yellow-400"}`}>
+                          {o.paymentMethod === "stripe" ? "💳 Stripe" : "🅿️ PayPal"}
+                        </span>
                         {o.status === "refunded" && (
-                          <span className="text-xs text-red-400 ml-2">Fully refunded</span>
+                          <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded">Fully Refunded</span>
                         )}
                         {o.status === "partial_refund" && (
-                          <span className="text-xs text-yellow-400 ml-2">Partially refunded</span>
+                          <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded">Partially Refunded</span>
                         )}
                       </div>
-                      {refundingOrder === o.id && (
+
+                      {(o.status === "paid" || o.status === "shipped" || o.status === "delivered" || o.status === "partial_refund") && (
                         <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-4 space-y-3 mt-2">
-                          <h4 className="text-sm font-medium text-red-400">Process Refund — Order TTS-{String(o.id).padStart(5, "0")}</h4>
-                          <p className="text-xs text-gray-400">This will refund the customer via {o.paymentMethod === "stripe" ? "Stripe" : "PayPal"} and create a credit note in Xero (if connected).</p>
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-2">
-                              <Label className="text-gray-400 text-xs whitespace-nowrap">Refund Amount (£):</Label>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                min="0.01"
-                                max={o.total}
-                                value={refundAmount}
-                                onChange={e => setRefundAmount(e.target.value)}
-                                className="w-32 bg-white/5 border-white/10 text-white"
-                                data-testid={`input-refund-amount-${o.id}`}
-                              />
-                              <span className="text-xs text-gray-500">of £{o.total.toFixed(2)}</span>
-                            </div>
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-medium text-red-400 flex items-center gap-2">
+                              <RotateCcw className="w-4 h-4" />
+                              Refund — TTS-{String(o.id).padStart(5, "0")}
+                            </h4>
+                            <span className={`text-[10px] px-2 py-1 rounded font-medium ${o.paymentMethod === "stripe" ? "bg-indigo-500/20 text-indigo-400" : "bg-yellow-500/20 text-yellow-400"}`}>
+                              Refund via {o.paymentMethod === "stripe" ? "Stripe" : "PayPal"}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <Button
                               size="sm"
-                              onClick={() => processRefund(o.id, o.total)}
-                              disabled={refundLoading}
-                              className="bg-red-600 hover:bg-red-700 text-white"
-                              data-testid={`button-confirm-refund-${o.id}`}
+                              onClick={() => { setRefundAmount(o.total.toFixed(2)); setRefundingOrder(o.id); }}
+                              className="bg-red-600 hover:bg-red-700 text-white justify-start"
+                              data-testid={`button-full-refund-${o.id}`}
                             >
-                              {refundLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
-                              Confirm Refund
+                              <RotateCcw className="w-3 h-3 mr-2" />
+                              Full Refund — £{o.total.toFixed(2)}
                             </Button>
                             <Button
                               size="sm"
-                              variant="ghost"
-                              onClick={() => { setRefundingOrder(null); setRefundAmount(""); }}
-                              className="text-gray-400"
-                              data-testid={`button-cancel-refund-${o.id}`}
+                              variant="outline"
+                              onClick={() => { setRefundAmount(""); setRefundingOrder(o.id); }}
+                              className="border-orange-500/30 text-orange-400 hover:bg-orange-500/10 justify-start"
+                              data-testid={`button-partial-refund-${o.id}`}
                             >
-                              Cancel
+                              <RotateCcw className="w-3 h-3 mr-2" />
+                              Partial Refund...
                             </Button>
                           </div>
+
+                          <div className="space-y-1">
+                            <p className="text-[10px] text-gray-500 uppercase tracking-wider">Quick refund by item:</p>
+                            {orderItems.map((item: any, i: number) => {
+                              const itemTotal = ((item.price || 0) * (item.quantity || 1));
+                              return (
+                                <div key={i} className="flex items-center justify-between py-1.5 px-2 rounded bg-white/3 hover:bg-white/5 transition">
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <span className="text-gray-300">{item.name}</span>
+                                    <span className="text-gray-500">x{item.quantity}</span>
+                                    {item.source && (
+                                      <span className={`text-[9px] px-1 py-0.5 rounded ${item.source === "VIP Computers" ? "bg-blue-500/20 text-blue-400" : item.source === "Target Components" ? "bg-orange-500/20 text-orange-400" : "bg-gray-500/20 text-gray-400"}`}>
+                                        {item.source === "VIP Computers" ? "VIP" : item.source === "Target Components" ? "TARGET" : item.source}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => { setRefundAmount(itemTotal.toFixed(2)); setRefundingOrder(o.id); }}
+                                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-7 text-xs px-2"
+                                    data-testid={`button-refund-item-${o.id}-${i}`}
+                                  >
+                                    Refund £{itemTotal.toFixed(2)}
+                                  </Button>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {refundingOrder === o.id && (
+                            <div className="border-t border-red-500/20 pt-3 mt-2">
+                              <div className="flex items-center gap-3 flex-wrap">
+                                <div className="flex items-center gap-2">
+                                  <Label className="text-gray-400 text-xs whitespace-nowrap">Refund Amount:</Label>
+                                  <div className="relative">
+                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">£</span>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      min="0.01"
+                                      max={o.total}
+                                      value={refundAmount}
+                                      onChange={e => setRefundAmount(e.target.value)}
+                                      className="w-32 bg-white/5 border-white/10 text-white pl-7"
+                                      data-testid={`input-refund-amount-${o.id}`}
+                                      autoFocus
+                                    />
+                                  </div>
+                                  <span className="text-xs text-gray-500">of £{o.total.toFixed(2)}</span>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  onClick={() => processRefund(o.id, o.total)}
+                                  disabled={refundLoading || !refundAmount || parseFloat(refundAmount) <= 0}
+                                  className="bg-red-600 hover:bg-red-700 text-white"
+                                  data-testid={`button-confirm-refund-${o.id}`}
+                                >
+                                  {refundLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <RotateCcw className="w-3 h-3 mr-1" />}
+                                  {parseFloat(refundAmount || "0") >= o.total ? "Process Full Refund" : `Process £${parseFloat(refundAmount || "0").toFixed(2)} Refund`}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => { setRefundingOrder(null); setRefundAmount(""); }}
+                                  className="text-gray-400"
+                                  data-testid={`button-cancel-refund-${o.id}`}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                              <p className="text-[10px] text-gray-500 mt-2">
+                                {parseFloat(refundAmount || "0") >= o.total
+                                  ? "This will fully refund the customer and mark the order as refunded."
+                                  : "This will partially refund the customer. The order will be marked as partially refunded."
+                                }
+                                {" "}Refund goes back via {o.paymentMethod === "stripe" ? "Stripe to their card" : "PayPal to their account"}.
+                              </p>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
