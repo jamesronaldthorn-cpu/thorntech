@@ -84,6 +84,7 @@ export async function getTargetProductsByCategory(categoryCode: string): Promise
   const xml = buildRequest("STOCKCAT", { category: categoryCode });
   const result = await postTargetXml(xml);
   const response = result.response || result;
+  if (response.result === "NO RESULTS") return [];
   if (response.result !== "OK") throw new Error(`Target STOCKCAT failed: ${response.result}`);
 
   const products = response.product;
@@ -158,43 +159,187 @@ function slugify(text: string): string {
 }
 
 const targetCategoryMap: Record<string, string> = {
-  PRIN: "processors",
-  PRAM: "processors",
-  PR: "processors",
-  MB: "motherboards",
-  GC: "graphics-cards",
-  ME: "memory",
-  HD: "storage",
-  SS: "storage",
-  CS: "cases",
-  PS: "power-supplies",
-  CP: "cooling",
+  GRNV: "graphics-cards",
+  GRRA: "graphics-cards",
+  GRAC: "graphics-cards",
+  IN51: "processors",
+  IN50: "processors",
+  IN55: "processors",
+  AM03: "processors",
+  FM2P: "processors",
+  MOAM: "motherboards",
+  MOAT: "motherboards",
+  MOGI: "motherboards",
+  MOIN: "motherboards",
+  MOMS: "motherboards",
+  MOTF: "motherboards",
+  MEDR: "memory",
+  MEDS: "memory",
+  MEFL: "memory",
+  MELA: "memory",
+  SSDI: "storage",
+  INSD: "storage",
+  HDSA: "storage",
+  HDM2: "storage",
+  HDWD: "storage",
+  HDEN: "storage",
+  HDEU: "storage",
+  HDNA: "storage",
+  SSHD: "storage",
+  CA2B: "cases",
+  CA6B: "cases",
+  CAAK: "cases",
+  CACM: "cases",
+  CACN: "cases",
+  CAEV: "cases",
+  CAFD: "cases",
+  CAGM: "cases",
+  CAIN: "cases",
+  CALI: "cases",
+  CANZ: "cases",
+  CAPH: "cases",
+  CATA: "cases",
+  PSEV: "power-supplies",
+  PSGM: "power-supplies",
+  PSSE: "power-supplies",
+  FAAM: "cooling",
+  FACA: "cooling",
+  FACM: "cooling",
+  FAIN: "cooling",
+  FALQ: "cooling",
+  FAMU: "cooling",
+  FAUN: "cooling",
+  CPUP: "cooling",
+  THEP: "cooling",
+  MOBA: "monitors",
+  MOBW: "monitors",
+  MOEL: "monitors",
+  MOLA: "monitors",
+  MOLT: "monitors",
+  MOTO: "monitors",
+  A49C: "monitors",
+  A4A6: "monitors",
+  KBGE: "keyboards-mice",
+  KBLO: "keyboards-mice",
+  KBST: "keyboards-mice",
+  MSGE: "keyboards-mice",
+  MSLO: "keyboards-mice",
+  MSST: "keyboards-mice",
+  MSXT: "keyboards-mice",
+  NWMB: "networking",
+  NWRT: "networking",
+  NWSW: "networking",
+  NWUS: "networking",
+  NWWI: "networking",
+  UBAC: "networking",
+  UBAF: "networking",
+  UBAM: "networking",
+  UBRO: "networking",
+  UBSW: "networking",
+  UBWI: "networking",
+  HSGM: "headsets-audio",
+  SPDE: "headsets-audio",
+  SPHS: "headsets-audio",
+  SPBT: "headsets-audio",
+  SPGM: "headsets-audio",
+  SPMI: "headsets-audio",
+  AUDA: "headsets-audio",
+  CLAO: "cables-adapters",
+  CLAR: "cables-adapters",
+  CLDO: "cables-adapters",
+  CLDR: "cables-adapters",
+  CLHO: "cables-adapters",
+  CLHR: "cables-adapters",
+  CLIO: "cables-adapters",
+  CLIR: "cables-adapters",
+  CLMO: "cables-adapters",
+  CLMR: "cables-adapters",
+  CLNO: "cables-adapters",
+  CLNR: "cables-adapters",
+  CLPO: "cables-adapters",
+  CLPR: "cables-adapters",
+  CLPS: "cables-adapters",
+  CLTO: "cables-adapters",
+  CLTR: "cables-adapters",
+  DOCK: "accessories",
+  CMWE: "accessories",
+  CACA: "accessories",
+  CACR: "accessories",
+  CREX: "accessories",
+  BRRE: "accessories",
+  GACH: "accessories",
+  GMAC: "accessories",
+  COUS: "accessories",
+  ACPB: "accessories",
+  BATT: "accessories",
+  C828: "accessories",
+  SWOS: "software",
+  SWOF: "software",
+  SWAV: "software",
+  SWBA: "software",
+  SWGR: "software",
+  SWUT: "software",
+};
+
+const targetCategoryFallback: Record<string, string> = {
+  GR: "graphics-cards",
+  IN: "processors",
+  AM: "processors",
+  FM: "processors",
   MO: "monitors",
+  ME: "memory",
+  SS: "storage",
+  HD: "storage",
+  CA: "cases",
+  PS: "power-supplies",
+  FA: "cooling",
   KB: "keyboards-mice",
-  NE: "networking",
-  SO: "software",
+  MS: "keyboards-mice",
+  NW: "networking",
+  UB: "networking",
+  HS: "headsets-audio",
+  SP: "headsets-audio",
+  CL: "cables-adapters",
+  SW: "software",
+  GA: "accessories",
+  GM: "accessories",
   AC: "accessories",
-  CA: "cables-adapters",
-  AU: "audio",
-  PE: "peripherals",
-  HE: "headsets-audio",
-  GA: "controllers-gaming",
 };
 
 export async function syncTargetProducts(): Promise<{ imported: number; updated: number; skipped: number; outOfStock: number; errors: number; total: number }> {
   const result = { imported: 0, updated: 0, skipped: 0, outOfStock: 0, errors: 0, total: 0 };
 
-  let targetProducts: TargetProduct[];
-  try {
-    targetProducts = await getTargetAllProducts();
-  } catch (e: any) {
-    console.error("[Target] Failed to fetch products:", e.message);
-    throw e;
+  const targetCategoryCodes = [...new Set(Object.keys(targetCategoryMap))];
+  console.log(`[Target] Fetching products from ${targetCategoryCodes.length} categories via STOCKCAT...`);
+
+  let targetProducts: TargetProduct[] = [];
+  const seenStockcodes = new Set<string>();
+  let catsFetched = 0;
+  let catsWithProducts = 0;
+
+  for (const catCode of targetCategoryCodes) {
+    try {
+      const products = await getTargetProductsByCategory(catCode);
+      catsFetched++;
+      if (products.length > 0) {
+        catsWithProducts++;
+        for (const p of products) {
+          if (!seenStockcodes.has(p.stockcode)) {
+            seenStockcodes.add(p.stockcode);
+            targetProducts.push(p);
+          }
+        }
+      }
+    } catch (e: any) {
+      if (!e.message?.includes("NO RESULTS")) {
+        console.error(`[Target] Error fetching category ${catCode}: ${e.message}`);
+      }
+    }
   }
 
-  result.total = targetProducts.length;
   const inStockCount = targetProducts.filter(tp => tp.stock > 0).length;
-  console.log(`[Target] Processing ${targetProducts.length} products (${inStockCount} in stock, ${targetProducts.length - inStockCount} out of stock)...`);
+  result.total = targetProducts.length;
+  console.log(`[Target] Fetched ${targetProducts.length} unique products (${inStockCount} in stock) from ${catsWithProducts}/${catsFetched} categories`);
 
   const existingProducts = await storage.getProducts();
   const existingByMpn = new Map<string, any>();
@@ -203,11 +348,13 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
     if (p.mpn && p.mpn.length > 3) existingByMpn.set(p.mpn.toLowerCase().trim(), p);
     existingBySlug.set(p.slug, p);
   }
+  console.log(`[Target] DB has ${existingProducts.length} products, ${existingByMpn.size} MPNs, ${existingBySlug.size} slugs`);
 
   const categories = await storage.getCategories();
   const catBySlug = new Map<string, number>();
   for (const c of categories) catBySlug.set(c.slug, c.id);
 
+  let matchedByMpn = 0, matchedBySlug = 0, newCount = 0;
   for (const tp of targetProducts) {
     try {
       if (tp.stock <= 0) {
@@ -233,7 +380,7 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
       let categoryId: number | null = null;
       if (tp.category) {
         const areaCode = tp.category.substring(0, 2);
-        const catSlug = targetCategoryMap[tp.category] || targetCategoryMap[areaCode];
+        const catSlug = targetCategoryMap[tp.category] || targetCategoryFallback[areaCode];
         if (catSlug) categoryId = catBySlug.get(catSlug) || null;
       }
 
@@ -245,6 +392,8 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
       const existing = existingByMpnMatch || existingBySlugMatch;
 
       if (existing) {
+        if (existingByMpnMatch) matchedByMpn++;
+        else matchedBySlug++;
         const updates: Record<string, any> = {};
         if (existing.inStock !== true) updates.inStock = true;
 
@@ -271,7 +420,6 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
           if (existing.price > newMinSell + 0.50 || existing.price < newMinSell - 0.50) {
             updates.price = newMinSell;
           }
-          console.log(`[Target] ${name}: Target cheaper (£${costPriceExVat.toFixed(2)} vs £${existingCost === Infinity ? "none" : existingCost.toFixed(2)}) — switching source to Target`);
         }
 
         if (tp.manufacturer && tp.manufacturer !== existing.vendor) updates.vendor = tp.manufacturer;
@@ -309,7 +457,8 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
 
       const features: string[] = [];
       if (tp.overview) {
-        const parts = tp.overview.split(/[,;|]/).map((s: string) => s.trim()).filter((s: string) => s.length > 3 && s.length < 150);
+        const cleaned = tp.overview.replace(/<[^>]+>/g, " ").replace(/&[a-z]+;/gi, " ");
+        const parts = cleaned.split(/[,;|]/).map((s: string) => s.trim()).filter((s: string) => s.length > 3 && s.length < 150);
         features.push(...parts);
       }
 
@@ -336,16 +485,14 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
         stripePriceId: null,
       };
 
+      newCount++;
       try {
         const created = await storage.createProduct(productData);
         existingBySlug.set(uniqueSlug, created);
         if (mpnKey) existingByMpn.set(mpnKey, created);
         result.imported++;
-        if (result.imported <= 20) {
-          console.log(`[Target] NEW: "${name}" (MPN: ${mpn || "none"}, £${costPriceExVat.toFixed(2)}, cat: ${categoryId || "none"})`);
-        }
       } catch (createErr: any) {
-        const msg = String(createErr?.message || "");
+        const msg = String(createErr?.message || "") + String(createErr?.detail || "");
         if (msg.includes("duplicate") || msg.includes("unique")) {
           result.skipped++;
         } else {
@@ -359,7 +506,9 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
     }
   }
 
-  console.log(`[Target] Sync complete: ${result.imported} new imported, ${result.updated} updated (better price/data), ${result.skipped} already matched, ${result.outOfStock} out of stock, ${result.errors} errors`);
+  console.log(`[Target] Match breakdown: ${matchedByMpn} by MPN, ${matchedBySlug} by slug, ${newCount} new unique products`);
+  const accounted = result.imported + result.updated + result.skipped + result.outOfStock + result.errors;
+  console.log(`[Target] Sync complete: ${result.imported} new imported, ${result.updated} updated, ${result.skipped} matched/skipped, ${result.outOfStock} out of stock, ${result.errors} errors (${accounted}/${result.total})`);
   return result;
 }
 
