@@ -687,6 +687,10 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
           }
         }
 
+        if (categoryId && existing.categoryId !== categoryId) {
+          updates.categoryId = categoryId;
+        }
+
         if (tp.manufacturer && tp.manufacturer !== existing.vendor) updates.vendor = tp.manufacturer;
         if (mpn && existing.mpn !== mpn) updates.mpn = mpn;
         if (tp.ean && !existing.ean) updates.ean = tp.ean;
