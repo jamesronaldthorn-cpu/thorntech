@@ -221,7 +221,7 @@ export async function registerRoutes(
     const cat = await storage.getCategoryBySlug(req.params.slug);
     if (!cat) return res.status(404).json({ error: "Category not found" });
     const prods = await storage.getProductsByCategory(cat.id);
-    res.json(prods.map((p: any) => { const { costPrice, ...pub } = p; return pub; }));
+    res.json(prods.filter((p: any) => p.inStock).map((p: any) => { const { costPrice, ...pub } = p; return pub; }));
   });
 
   function stripCostPrice(product: any) {
@@ -231,14 +231,14 @@ export async function registerRoutes(
 
   app.get("/api/products", async (_req, res) => {
     const prods = await storage.getProducts();
-    res.json(prods.map(stripCostPrice));
+    res.json(prods.filter(p => p.inStock).map(stripCostPrice));
   });
 
   app.get("/api/products/search", async (req, res) => {
     const q = (req.query.q as string || "").trim();
     if (!q || q.length < 2) return res.json([]);
     const results = await storage.searchProducts(q);
-    res.json(results.map(stripCostPrice));
+    res.json(results.filter(p => p.inStock).map(stripCostPrice));
   });
 
   app.get("/api/products/:slug", async (req, res) => {
