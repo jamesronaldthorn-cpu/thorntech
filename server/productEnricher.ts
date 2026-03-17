@@ -1453,8 +1453,16 @@ export async function enrichProducts(batchSize = 500): Promise<EnrichResult> {
         const isBadImage = !product.image || product.image.includes("placeholder") || product.image.includes("no-image") || product.image.includes("default");
         if (isBadImage) {
           updates.image = webData.images[0];
-          console.log(`[Enricher]   Replaced bad main image with: ${webData.images[0]}`);
+          console.log(`[Enricher]   Set main image from enrichment: ${webData.images[0]}`);
         }
+      } else if (!product.image && product.images) {
+        try {
+          const existingArr = typeof product.images === "string" ? JSON.parse(product.images) : product.images;
+          if (Array.isArray(existingArr) && existingArr.length > 0) {
+            updates.image = existingArr[0];
+            console.log(`[Enricher]   Set main image from images array: ${existingArr[0]}`);
+          }
+        } catch {}
       } else if (product.image) {
         console.log(`[Enricher]   Keeping existing image: ${product.image}`);
       }

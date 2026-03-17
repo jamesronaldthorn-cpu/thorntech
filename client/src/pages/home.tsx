@@ -31,7 +31,7 @@ export default function Home() {
   const safeProducts = Array.isArray(products) ? products : [];
   const latestProducts = [...safeProducts].reverse().slice(0, 10);
   const bestSellers = [...safeProducts]
-    .filter(p => p.inStock && p.price > 0 && p.image && p.slug !== "test-product-do-not-buy")
+    .filter(p => p.inStock && p.price > 0 && (p.image || p.images) && p.slug !== "test-product-do-not-buy")
     .sort((a, b) => (b.compareAtPrice ? 1 : 0) - (a.compareAtPrice ? 1 : 0))
     .slice(0, 10);
   const deals = safeProducts.filter(p => p.inStock && p.compareAtPrice && p.compareAtPrice > p.price && p.slug !== "test-product-do-not-buy").slice(0, 10);

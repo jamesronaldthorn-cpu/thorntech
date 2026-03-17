@@ -45,8 +45,22 @@ function PlaceholderImage({ product, category }: { product: Product; category?: 
 
 export default function ProductCard({ product, category }: { product: Product; category?: Category }) {
   const { addItem } = useCart();
-  const [imgError, setImgError] = useState(false);
-  const hasImage = product.image && !imgError;
+  const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
+
+  let allImages: string[] = [];
+  if (product.image) allImages.push(product.image);
+  if (product.images) {
+    try {
+      const parsed = typeof product.images === "string" ? JSON.parse(product.images) : product.images;
+      if (Array.isArray(parsed)) {
+        for (const img of parsed) {
+          if (img && !allImages.includes(img)) allImages.push(img);
+        }
+      }
+    } catch {}
+  }
+  const displayImage = allImages.find(url => !failedUrls.has(url)) || null;
+  const hasImage = !!displayImage;
 
   return (
     <div className="group flex flex-col bg-card border border-white/5 rounded-lg overflow-hidden hover:border-primary/40 transition-colors" data-testid={`card-product-${product.id}`}>
@@ -60,11 +74,11 @@ export default function ProductCard({ product, category }: { product: Product; c
           )}
           {hasImage ? (
             <img
-              src={proxyImageUrl(product.image!)}
+              src={proxyImageUrl(displayImage!)}
               alt={product.name}
               className="w-full h-full object-contain p-3"
               style={{ imageRendering: "auto" }}
-              onError={() => setImgError(true)}
+              onError={() => setFailedUrls(prev => new Set(prev).add(displayImage!))}
               loading="lazy"
             />
           ) : (
