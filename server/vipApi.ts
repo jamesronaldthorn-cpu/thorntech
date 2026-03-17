@@ -688,16 +688,12 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         if (mpn && existing.mpn !== mpn) updates.mpn = mpn;
 
         const existingCost = existing.costPrice || Infinity;
-        if (costPriceExVat < existingCost || existing.source === "VIP Computers") {
-          if (costPriceExVat < existingCost) {
-            updates.costPrice = costPriceExVat;
-            updates.source = "VIP Computers";
-            console.log(`[VIP] ${existing.name}: VIP cheaper (£${costPriceExVat.toFixed(2)} vs £${existingCost === Infinity ? "none" : existingCost.toFixed(2)}) — source set to VIP`);
-          }
+        if (costPriceExVat < existingCost) {
+          updates.costPrice = costPriceExVat;
+          updates.source = "VIP Computers";
           const newMinSell = Math.ceil(costPriceExVat * 1.2 * 1.02 * 100) / 100;
           if (Math.abs(existing.price - newMinSell) > 0.50) {
             updates.price = newMinSell;
-            console.log(`[VIP] Price updated: ${existing.name} — cost £${costPriceExVat.toFixed(2)} → sell £${newMinSell.toFixed(2)} (was £${existing.price.toFixed(2)})`);
           }
         }
 
