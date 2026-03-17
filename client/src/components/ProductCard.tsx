@@ -93,21 +93,30 @@ export default function ProductCard({ product, category }: { product: Product; c
         <Link href={`/product/${product.slug}`}>
           <h3 className="font-medium text-xs mb-1.5 leading-tight flex-1 hover:text-primary cursor-pointer transition-colors line-clamp-2" data-testid={`text-product-name-${product.id}`}>{product.name}</h3>
         </Link>
-        <div className="flex items-baseline gap-1.5 mb-0.5">
-          {product.compareAtPrice && <span className="text-muted-foreground line-through text-[10px]">{formatPrice(product.compareAtPrice)}</span>}
-          <span className="font-display font-bold text-base text-primary">{formatPrice(product.price)}</span>
+        <div className="mt-auto">
+          <div className="flex items-baseline gap-1.5 mb-0.5">
+            {product.compareAtPrice && <span className="text-muted-foreground line-through text-[10px]">{formatPrice(product.compareAtPrice)}</span>}
+            <span className="font-display font-bold text-base text-primary">{formatPrice(product.price)}</span>
+          </div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[9px] text-muted-foreground">inc. VAT</p>
+            {product.inStock ? (
+              <p className="text-[9px] text-green-400 font-medium">In Stock</p>
+            ) : (
+              <p className="text-[9px] text-red-400 font-medium">Out of Stock</p>
+            )}
+          </div>
+          <Button
+            onClick={() => addItem(product)}
+            disabled={!product.inStock}
+            size="sm"
+            className="w-full font-display tracking-widest text-[10px] h-8 bg-primary/20 hover:bg-primary text-white border border-primary/30 hover:border-primary transition-all"
+            data-testid={`button-add-cart-${product.id}`}
+          >
+            <ShoppingBasket className="w-3 h-3 mr-1" />
+            {product.inStock ? "ADD TO BASKET" : "OUT OF STOCK"}
+          </Button>
         </div>
-        <p className="text-[9px] text-muted-foreground mb-2">inc. VAT</p>
-        <Button
-          onClick={() => addItem(product)}
-          disabled={!product.inStock}
-          size="sm"
-          className="w-full font-display tracking-widest text-[10px] h-8 bg-white/10 hover:bg-primary/80 hover:text-white text-white border border-white/10 transition-all"
-          data-testid={`button-add-cart-${product.id}`}
-        >
-          <ShoppingBasket className="w-3 h-3 mr-1" />
-          {product.inStock ? "ADD TO BASKET" : "OUT OF STOCK"}
-        </Button>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ShieldCheck, Truck, Headset, Zap, Cpu, MousePointer2, HelpCircle, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, Truck, Headset, Zap, Cpu, MousePointer2, HelpCircle, CheckCircle2, Monitor, CircuitBoard, MemoryStick, HardDrive, Fan, Box, Keyboard, Mouse, Wifi, Speaker, Cable, Server, Gamepad2, Laptop, Disc3, Settings } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,29 @@ import CategoryDropdown from "@/components/CategoryDropdown";
 import { usePageTitle, ItemListJsonLd, FAQJsonLd } from "@/components/SEO";
 import type { Product, Category } from "@shared/schema";
 import heroBgImg from "@/assets/images/hero-bg.png";
+
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  processors: <Cpu className="w-8 h-8 text-primary" />,
+  "graphics-cards": <Monitor className="w-8 h-8 text-primary" />,
+  motherboards: <CircuitBoard className="w-8 h-8 text-primary" />,
+  memory: <MemoryStick className="w-8 h-8 text-primary" />,
+  storage: <HardDrive className="w-8 h-8 text-primary" />,
+  "power-supplies": <Zap className="w-8 h-8 text-primary" />,
+  cooling: <Fan className="w-8 h-8 text-primary" />,
+  cases: <Box className="w-8 h-8 text-primary" />,
+  keyboards: <Keyboard className="w-8 h-8 text-primary" />,
+  mice: <Mouse className="w-8 h-8 text-primary" />,
+  networking: <Wifi className="w-8 h-8 text-primary" />,
+  "headsets-audio": <Speaker className="w-8 h-8 text-primary" />,
+  "cables-adapters": <Cable className="w-8 h-8 text-primary" />,
+  monitors: <Monitor className="w-8 h-8 text-primary" />,
+  "controllers-gaming": <Gamepad2 className="w-8 h-8 text-primary" />,
+  laptops: <Laptop className="w-8 h-8 text-primary" />,
+  "pre-built-pcs": <Server className="w-8 h-8 text-primary" />,
+  "optical-drives": <Disc3 className="w-8 h-8 text-primary" />,
+  software: <Settings className="w-8 h-8 text-primary" />,
+  accessories: <Settings className="w-8 h-8 text-primary" />,
+};
 
 export default function Home() {
   const { data: categories = [] } = useQuery<Category[]>({
@@ -41,7 +64,7 @@ export default function Home() {
       <NavBar />
       <ItemListJsonLd products={latestProducts} />
 
-      <div className="sticky top-20 z-40 border-b border-white/10 bg-background/95 backdrop-blur-md">
+      <div className="sticky top-16 z-40 border-b border-white/10 bg-background/95 backdrop-blur-md">
         <div className="container mx-auto px-4">
           <div className="flex items-center h-12 gap-4">
             <CategoryDropdown />
@@ -154,7 +177,7 @@ export default function Home() {
                 <Card className="hover:border-primary/50 transition-all cursor-pointer group overflow-hidden h-full">
                   <CardContent className="p-6 flex flex-col items-center text-center">
                     <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                      <Cpu className="w-8 h-8 text-primary" />
+                      {CATEGORY_ICONS[cat.slug] || <Cpu className="w-8 h-8 text-primary" />}
                     </div>
                     <h3 className="font-display font-bold text-lg mb-1 group-hover:text-primary transition-colors">{cat.name}</h3>
                     <p className="text-xs text-muted-foreground uppercase tracking-wider">Browse Selection</p>

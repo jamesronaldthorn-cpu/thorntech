@@ -19,8 +19,13 @@ export default function Footer() {
             <img src={logoImg} alt="Thorn Tech Solutions" className="w-8 h-8 object-contain" />
             <h3 className="font-display font-bold tracking-wider">THORN TECH</h3>
           </div>
-          <p className="text-sm text-muted-foreground mb-4">The UK's ultimate destination for premium PC components and bespoke enthusiast builds.</p>
+          <p className="text-sm text-muted-foreground mb-4">UK-based retailer of premium PC components. Genuine hardware from authorised distributors with full manufacturer warranties.</p>
           <p className="text-xs text-muted-foreground/60">Company Reg: 17058756 (England & Wales)</p>
+          <div className="flex items-center gap-3 mt-4 text-muted-foreground/40 text-xs">
+            <span className="px-2 py-1 border border-white/10 rounded">Visa</span>
+            <span className="px-2 py-1 border border-white/10 rounded">Mastercard</span>
+            <span className="px-2 py-1 border border-white/10 rounded">PayPal</span>
+          </div>
         </div>
         <div>
           <h4 className="font-display font-bold mb-4">Shop</h4>
