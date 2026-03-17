@@ -1,5 +1,6 @@
 import { XMLParser, XMLBuilder } from "fast-xml-parser";
 import { storage } from "./storage";
+import { matchInternetPrices } from "./priceMatcher";
 
 
 const TARGET_XML_URL = "https://xml.targetcomponents.co.uk/tcxmlv3.asp";
@@ -803,6 +804,10 @@ export function startTargetScheduler(intervalHours = 6) {
       console.log("[Target Scheduler] Running scheduled sync...");
       const result = await syncTargetProducts();
       console.log(`[Target Scheduler] Done: ${result.imported} new, ${result.updated} updated, ${result.outOfStock} out of stock`);
+
+      console.log("[Target Scheduler] Starting internet price matching...");
+      const priceResult = await matchInternetPrices(500);
+      console.log(`[Target Scheduler] Price match done: ${priceResult.priceUpdated} updated, ${priceResult.noResultsFound} no results`);
     } catch (e: any) {
       console.error("[Target Scheduler] Error:", e.message);
     }
