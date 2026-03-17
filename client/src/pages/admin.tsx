@@ -460,6 +460,8 @@ export default function AdminPage() {
   const [xeroLoading, setXeroLoading] = useState(false);
   const [vipSyncing, setVipSyncing] = useState(false);
   const [vipResult, setVipResult] = useState<any>(null);
+  const [targetSyncing, setTargetSyncing] = useState(false);
+  const [targetResult, setTargetResult] = useState<any>(null);
   const [priceMatching, setPriceMatching] = useState(false);
   const [priceMatchResult, setPriceMatchResult] = useState<any>(null);
   const [priceMatchBatch, setPriceMatchBatch] = useState("500");
@@ -707,6 +709,43 @@ export default function AdminPage() {
     } catch (e: any) {
       setVipResult({ error: e.message });
       setVipSyncing(false);
+    }
+  };
+
+  const syncTarget = async () => {
+    setTargetSyncing(true);
+    setTargetResult(null);
+    try {
+      const res = await adminFetch("/api/admin/target/sync", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setTargetResult({ error: data.error || "Sync failed" });
+        setTargetSyncing(false);
+        return;
+      }
+      setTargetResult({ message: "Sync started — checking progress..." });
+      const poll = setInterval(async () => {
+        try {
+          const sr = await adminFetch("/api/admin/target/sync/status");
+          const st = await sr.json();
+          if (!st.running) {
+            clearInterval(poll);
+            if (st.error) {
+              setTargetResult({ error: st.error });
+            } else {
+              setTargetResult(st.result);
+              loadData();
+            }
+            setTargetSyncing(false);
+          }
+        } catch {}
+      }, 5000);
+    } catch (e: any) {
+      setTargetResult({ error: e.message });
+      setTargetSyncing(false);
     }
   };
 
@@ -1139,6 +1178,51 @@ export default function AdminPage() {
                         <p className="text-gray-400 text-xs ml-6">{vipResult.outOfStock} currently out of stock</p>
                         {vipResult.errors?.length > 0 && (
                           <p className="text-red-400 text-xs ml-6">{vipResult.errors.length} errors</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 rounded-lg p-5">
+              <h3 className="text-sm font-display text-gray-400 mb-4">TARGET COMPONENTS — XML SYNC</h3>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 flex-wrap">
+                  <Button
+                    onClick={syncTarget}
+                    disabled={targetSyncing}
+                    className="bg-orange-600 hover:bg-orange-700 text-white"
+                    data-testid="button-target-sync"
+                  >
+                    {targetSyncing ? <><Loader2 className="w-4 h-4 animate-spin mr-1" /> Syncing...</> : <><Download className="w-4 h-4 mr-1" /> Sync Target Products</>}
+                  </Button>
+                  <p className="text-xs text-gray-500">Pulls products from Target Components (Account: THO00014). Merges by MPN to avoid duplicates. Auto-syncs every 6 hours.</p>
+                </div>
+                {targetResult && (
+                  <div className={`p-3 rounded-lg text-sm ${targetResult.error ? "bg-red-500/10 border border-red-500/20" : targetResult.message ? "bg-blue-500/10 border border-blue-500/20" : "bg-green-500/10 border border-green-500/20"}`}>
+                    {targetResult.error ? (
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+                        <span className="text-red-400">{targetResult.error}</span>
+                      </div>
+                    ) : targetResult.message ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                        <span className="text-blue-400">{targetResult.message}</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-400" />
+                          <span className="text-green-400 font-medium">Target sync complete — {targetResult.total} products found</span>
+                        </div>
+                        <p className="text-gray-400 text-xs ml-6">{targetResult.imported} new products imported</p>
+                        <p className="text-gray-400 text-xs ml-6">{targetResult.updated} existing products updated</p>
+                        <p className="text-gray-400 text-xs ml-6">{targetResult.outOfStock} out of stock (skipped)</p>
+                        {targetResult.errors > 0 && (
+                          <p className="text-red-400 text-xs ml-6">{targetResult.errors} errors</p>
                         )}
                       </div>
                     )}

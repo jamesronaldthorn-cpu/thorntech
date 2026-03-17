@@ -47,6 +47,18 @@ A fully functional e-commerce store for Thorn Tech Solutions Ltd (Company Reg: 1
 - costPrice stored but NEVER exposed in public API responses
 - Pricing: internet-matched price if above cost+VAT+5%; otherwise cost×1.2×1.05 minimum
 
+## Target Components Integration
+- XML API v3.04 at xml.targetcomponents.co.uk (Account THO00014)
+- `server/targetApi.ts` — Full API module with all actions: STOCKCHECKALL, CATEGORIES, STOCKCAT, STOCKSEARCH, ORDER, ORDERSTATUS
+- Syncs all in-stock products every 6 hours via `startTargetScheduler()`
+- Merges products by MPN (manufacturer part number) first, then by slug — avoids duplicates with VIP
+- Pricing: cost × 1.2 (VAT) × 1.02 (2% margin) rounded up
+- Images: uses largeimageurl (400px) as primary, imageurl (200px) as secondary
+- Only imports products with stock > 0 and cost > 0
+- Admin UI: orange "Sync Target Products" button with progress/results display
+- Admin API: POST /api/admin/target/sync, GET /api/admin/target/sync/status, GET /api/admin/target/test, GET /api/admin/target/search?q=
+- Order submission support: CREATE then SUBMIT workflow with delivery address
+
 ## Product Enrichment
 - `server/productEnricher.ts` — Scrapes 7 UK retailer sites + 3 image search engines for specs, features, images, descriptions
 - **Retailer sources**: Scan.co.uk, CCL Online, eBuyer, Overclockers UK, Box.co.uk, Novatech, Lambda-tek

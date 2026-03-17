@@ -1188,6 +1188,52 @@ export async function registerRoutes(
     res.json({ success: true, message: "Price match progress reset. Next batch will start from the beginning." });
   });
 
+  let targetSyncStatus: { running: boolean; result: any; error: string | null } = { running: false, result: null, error: null };
+
+  app.post("/api/admin/target/sync", adminAuth, async (_req, res) => {
+    if (targetSyncStatus.running) {
+      return res.json({ status: "running", message: "Target sync is already in progress." });
+    }
+    targetSyncStatus = { running: true, result: null, error: null };
+    res.json({ status: "started", message: "Target Components sync started in background." });
+
+    try {
+      const { syncTargetProducts } = await import("./targetApi");
+      const result = await syncTargetProducts();
+      targetSyncStatus = { running: false, result, error: null };
+      console.log(`[Target] Sync complete: ${result.imported} new, ${result.updated} updated`);
+    } catch (e: any) {
+      console.error("[Target] Sync error:", e);
+      targetSyncStatus = { running: false, result: null, error: e.message };
+    }
+  });
+
+  app.get("/api/admin/target/sync/status", adminAuth, async (_req, res) => {
+    res.json(targetSyncStatus);
+  });
+
+  app.get("/api/admin/target/test", adminAuth, async (_req, res) => {
+    try {
+      const { getTargetCategories } = await import("./targetApi");
+      const categories = await getTargetCategories();
+      res.json({ success: true, categories: categories.length, sample: categories.slice(0, 10) });
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  app.get("/api/admin/target/search", adminAuth, async (req, res) => {
+    try {
+      const term = req.query.q as string;
+      if (!term) return res.status(400).json({ error: "Search term required (?q=...)" });
+      const { searchTargetProducts } = await import("./targetApi");
+      const products = await searchTargetProducts(term);
+      res.json({ total: products.length, products: products.slice(0, 20) });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.post("/api/admin/fix-images", adminAuth, async (_req, res) => {
     res.json({ status: "started", message: "Checking and fixing broken images in background..." });
 
