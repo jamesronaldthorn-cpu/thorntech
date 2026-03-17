@@ -1,0 +1,463 @@
+G] Tailing last 10 lines for [thorntech] process (change the value with --lines option)
+/root/.pm2/logs/thorntech-error.log last 10 lines:
+0|thorntec |   where: undefined,
+0|thorntec |   schema: undefined,
+0|thorntec |   table: undefined,
+0|thorntec |   column: undefined,
+0|thorntec |   dataType: undefined,
+0|thorntec |   constraint: undefined,
+0|thorntec |   file: 'auth.c',
+0|thorntec |   line: '331',
+0|thorntec |   routine: 'auth_failed'
+0|thorntec | }
+
+/root/.pm2/logs/thorntech-out.log last 10 lines:
+0|thorntec |
+0|thorntec | Initializing Stripe schema...
+0|thorntec | [Feed Scheduler] Started — checking every 5 minutes for feeds due for import
+0|thorntec | [VIP] No credentials configured, scheduler not started
+0|thorntec | [Midnight Enricher] Scheduler started
+0|thorntec | [Midnight Enricher] Scheduled to run in 12.2 hours (midnight UK time)
+0|thorntec | [Target Scheduler] Started — syncing every 6 hours
+0|thorntec | 11:49:55 AM [express] serving on port 5000
+0|thorntec | [Seed] Test product check: password authentication failed for user "username"
+0|thorntec | [Cleanup] Category consolidation: password authentication failed for user "username"
+
+0|thorntech  | [SEO] Error generating SEO data for / error: password authentication failed for user "username"
+0|thorntech  |     at /root/thorntech/dist/index.cjs:59:14231
+0|thorntech  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:65:37946
+0|thorntech  |     at async Promise.all (index 0)
+0|thorntech  |     at async aN (/root/thorntech/dist/index.cjs:168:16193)
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:171:760 {
+0|thorntech  |   length: 104,
+0|thorntech  |   severity: 'FATAL',
+0|thorntech  |   code: '28P01',
+0|thorntech  |   detail: undefined,
+0|thorntech  |   hint: undefined,
+0|thorntech  |   position: undefined,
+0|thorntech  |   internalPosition: undefined,
+0|thorntech  |   internalQuery: undefined,
+0|thorntech  |   where: undefined,
+0|thorntech  |   schema: undefined,
+0|thorntech  |   table: undefined,
+0|thorntech  |   column: undefined,
+0|thorntech  |   dataType: undefined,
+0|thorntech  |   constraint: undefined,
+0|thorntech  |   file: 'auth.c',
+0|thorntech  |   line: '331',
+0|thorntech  |   routine: 'auth_failed'
+0|thorntech  | }
+0|thorntech  | Internal Server Error: error: password authentication failed for user "username"
+0|thorntech  |     at /root/thorntech/dist/index.cjs:59:14231
+0|thorntech  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:65:37946
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:128:14847 {
+0|thorntech  |   length: 104,
+0|thorntech  |   severity: 'FATAL',
+0|thorntech  |   code: '28P01',
+0|thorntech  |   detail: undefined,
+0|thorntech  |   hint: undefined,
+0|thorntech  |   position: undefined,
+0|thorntech  |   internalPosition: undefined,
+0|thorntech  |   internalQuery: undefined,
+0|thorntech  |   where: undefined,
+0|thorntech  |   schema: undefined,
+0|thorntech  |   table: undefined,
+0|thorntech  |   column: undefined,
+0|thorntech  |   dataType: undefined,
+0|thorntech  |   constraint: undefined,
+0|thorntech  |   file: 'auth.c',
+0|thorntech  |   line: '331',
+0|thorntech  |   routine: 'auth_failed'
+0|thorntech  | }
+0|thorntech  | 11:49:59 AM [express] GET /api/admin/products 500 in 8ms :: {"message":"password authentication failed for user \"username\""}
+0|thorntech  | Internal Server Error: error: password authentication failed for user "username"
+0|thorntech  |     at /root/thorntech/dist/index.cjs:59:14231
+0|thorntech  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:65:37946
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:128:15535 {
+0|thorntech  |   length: 104,
+0|thorntech  |   severity: 'FATAL',
+0|thorntech  |   code: '28P01',
+0|thorntech  |   detail: undefined,
+0|thorntech  |   hint: undefined,
+0|thorntech  |   position: undefined,
+0|thorntech  |   internalPosition: undefined,
+0|thorntech  |   internalQuery: undefined,
+0|thorntech  |   where: undefined,
+0|thorntech  |   schema: undefined,
+0|thorntech  |   table: undefined,
+0|thorntech  |   column: undefined,
+0|thorntech  |   dataType: undefined,
+0|thorntech  |   constraint: undefined,
+0|thorntech  |   file: 'auth.c',
+0|thorntech  |   line: '331',
+0|thorntech  |   routine: 'auth_failed'
+0|thorntech  | }
+0|thorntech  | 11:49:59 AM [express] GET /api/admin/categories 500 in 11ms :: {"message":"password authentication failed for user \"username\""}
+0|thorntech  | Internal Server Error: error: password authentication failed for user "username"
+0|thorntech  |     at /root/thorntech/dist/index.cjs:59:14231
+0|thorntech  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:65:37946
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:128:16232 {
+0|thorntech  |   length: 104,
+0|thorntech  |   severity: 'FATAL',
+0|thorntech  |   code: '28P01',
+0|thorntech  |   detail: undefined,
+0|thorntech  |   hint: undefined,
+0|thorntech  |   position: undefined,
+0|thorntech  |   internalPosition: undefined,
+0|thorntech  |   internalQuery: undefined,
+0|thorntech  |   where: undefined,
+0|thorntech  |   schema: undefined,
+0|thorntech  |   table: undefined,
+0|thorntech  |   column: undefined,
+0|thorntech  |   dataType: undefined,
+0|thorntech  |   constraint: undefined,
+0|thorntech  |   file: 'auth.c',
+0|thorntech  |   line: '331',
+0|thorntech  |   routine: 'auth_failed'
+0|thorntech  | }
+0|thorntech  | 11:49:59 AM [express] GET /api/admin/orders 500 in 5ms :: {"message":"password authentication failed for user \"username\""}
+0|thorntech  | Internal Server Error: error: password authentication failed for user "username"
+0|thorntech  |     at /root/thorntech/dist/index.cjs:59:14231
+0|thorntech  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:65:37946
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:128:19358 {
+0|thorntech  |   length: 104,
+0|thorntech  |   severity: 'FATAL',
+0|thorntech  |   code: '28P01',
+0|thorntech  |   detail: undefined,
+0|thorntech  |   hint: undefined,
+0|thorntech  |   position: undefined,
+0|thorntech  |   internalPosition: undefined,
+0|thorntech  |   internalQuery: undefined,
+0|thorntech  |   where: undefined,
+0|thorntech  |   schema: undefined,
+0|thorntech  |   table: undefined,
+0|thorntech  |   column: undefined,
+0|thorntech  |   dataType: undefined,
+0|thorntech  |   constraint: undefined,
+0|thorntech  |   file: 'auth.c',
+0|thorntech  |   line: '331',
+0|thorntech  |   routine: 'auth_failed'
+0|thorntech  | }
+0|thorntech  | 11:49:59 AM [express] GET /api/admin/feeds 500 in 7ms :: {"message":"password authentication failed for user \"username\""}
+0|thorntech  | 11:49:59 AM [express] GET /api/admin/stats 500 in 7ms :: {"error":"password authentication failed for user \"username\""}
+0|thorntech  | Internal Server Error: error: password authentication failed for user "username"
+0|thorntech  |     at /root/thorntech/dist/index.cjs:59:14231
+0|thorntech  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:65:37946
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:128:20434 {
+0|thorntech  |   length: 104,
+0|thorntech  |   severity: 'FATAL',
+0|thorntech  |   code: '28P01',
+0|thorntech  |   detail: undefined,
+0|thorntech  |   hint: undefined,
+0|thorntech  |   position: undefined,
+0|thorntech  |   internalPosition: undefined,
+0|thorntech  |   internalQuery: undefined,
+0|thorntech  |   where: undefined,
+0|thorntech  |   schema: undefined,
+0|thorntech  |   table: undefined,
+0|thorntech  |   column: undefined,
+0|thorntech  |   dataType: undefined,
+0|thorntech  |   constraint: undefined,
+0|thorntech  |   file: 'auth.c',
+0|thorntech  |   line: '331',
+0|thorntech  |   routine: 'auth_failed'
+0|thorntech  | }
+0|thorntech  | 11:49:59 AM [express] GET /api/admin/feed-sources 500 in 14ms :: {"message":"password authentication failed for user \"username\""}
+0|thorntech  | Internal Server Error: error: password authentication failed for user "username"
+0|thorntech  |     at /root/thorntech/dist/index.cjs:59:14231
+0|thorntech  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:65:37946
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:128:12966 {
+0|thorntech  |   length: 104,
+0|thorntech  |   severity: 'FATAL',
+0|thorntech  |   code: '28P01',
+0|thorntech  |   detail: undefined,
+0|thorntech  |   hint: undefined,
+0|thorntech  |   position: undefined,
+0|thorntech  |   internalPosition: undefined,
+0|thorntech  |   internalQuery: undefined,
+0|thorntech  |   where: undefined,
+0|thorntech  |   schema: undefined,
+0|thorntech  |   table: undefined,
+0|thorntech  |   column: undefined,
+0|thorntech  |   dataType: undefined,
+0|thorntech  |   constraint: undefined,
+0|thorntech  |   file: 'auth.c',
+0|thorntech  |   line: '331',
+0|thorntech  |   routine: 'auth_failed'
+0|thorntech  | }
+0|thorntech  | 11:49:59 AM [express] GET /api/admin/users 500 in 16ms :: {"message":"password authentication failed for user \"username\""}
+0|thorntech  | Internal Server Error: error: password authentication failed for user "username"
+0|thorntech  |     at /root/thorntech/dist/index.cjs:59:14231
+0|thorntech  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:65:37946
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:128:21754 {
+0|thorntech  |   length: 104,
+0|thorntech  |   severity: 'FATAL',
+0|thorntech  |   code: '28P01',
+0|thorntech  |   detail: undefined,
+0|thorntech  |   hint: undefined,
+0|thorntech  |   position: undefined,
+0|thorntech  |   internalPosition: undefined,
+0|thorntech  |   internalQuery: undefined,
+0|thorntech  |   where: undefined,
+0|thorntech  |   schema: undefined,
+0|thorntech  |   table: undefined,
+0|thorntech  |   column: undefined,
+0|thorntech  |   dataType: undefined,
+0|thorntech  |   constraint: undefined,
+0|thorntech  |   file: 'auth.c',
+0|thorntech  |   line: '331',
+0|thorntech  |   routine: 'auth_failed'
+0|thorntech  | }
+0|thorntech  | 11:49:59 AM [express] GET /api/admin/blog 500 in 17ms :: {"message":"password authentication failed for user \"username\""}
+0|thorntech  | Internal Server Error: error: password authentication failed for user "username"
+0|thorntech  |     at /root/thorntech/dist/index.cjs:59:14231
+0|thorntech  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:65:37946
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:128:23256 {
+0|thorntech  |   length: 104,
+0|thorntech  |   severity: 'FATAL',
+0|thorntech  |   code: '28P01',
+0|thorntech  |   detail: undefined,
+0|thorntech  |   hint: undefined,
+0|thorntech  |   position: undefined,
+0|thorntech  |   internalPosition: undefined,
+0|thorntech  |   internalQuery: undefined,
+0|thorntech  |   where: undefined,
+0|thorntech  |   schema: undefined,
+0|thorntech  |   table: undefined,
+0|thorntech  |   column: undefined,
+0|thorntech  |   dataType: undefined,
+0|thorntech  |   constraint: undefined,
+0|thorntech  |   file: 'auth.c',
+0|thorntech  |   line: '331',
+0|thorntech  |   routine: 'auth_failed'
+0|thorntech  | }
+0|thorntech  | 11:49:59 AM [express] GET /api/admin/reviews 500 in 14ms :: {"message":"password authentication failed for user \"username\""}
+0|thorntech  | 11:49:59 AM [express] GET /api/xero/status 304 in 6ms :: {"connected":false}
+0|thorntech  | [SEO] Error generating SEO data for / error: password authentication failed for user "username"
+0|thorntech  |     at /root/thorntech/dist/index.cjs:59:14231
+0|thorntech  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:65:37946
+0|thorntech  |     at async Promise.all (index 0)
+0|thorntech  |     at async aN (/root/thorntech/dist/index.cjs:168:16193)
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:171:760 {
+0|thorntech  |   length: 104,
+0|thorntech  |   severity: 'FATAL',
+0|thorntech  |   code: '28P01',
+0|thorntech  |   detail: undefined,
+0|thorntech  |   hint: undefined,
+0|thorntech  |   position: undefined,
+0|thorntech  |   internalPosition: undefined,
+0|thorntech  |   internalQuery: undefined,
+0|thorntech  |   where: undefined,
+0|thorntech  |   schema: undefined,
+0|thorntech  |   table: undefined,
+0|thorntech  |   column: undefined,
+0|thorntech  |   dataType: undefined,
+0|thorntech  |   constraint: undefined,
+0|thorntech  |   file: 'auth.c',
+0|thorntech  |   line: '331',
+0|thorntech  |   routine: 'auth_failed'
+0|thorntech  | }
+0|thorntech  | Internal Server Error: error: password authentication failed for user "username"
+0|thorntech  |     at /root/thorntech/dist/index.cjs:59:14231
+0|thorntech  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:65:37946
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:128:19358 {
+0|thorntech  |   length: 104,
+0|thorntech  |   severity: 'FATAL',
+0|thorntech  |   code: '28P01',
+0|thorntech  |   detail: undefined,
+0|thorntech  |   hint: undefined,
+0|thorntech  |   position: undefined,
+0|thorntech  |   internalPosition: undefined,
+0|thorntech  |   internalQuery: undefined,
+0|thorntech  |   where: undefined,
+0|thorntech  |   schema: undefined,
+0|thorntech  |   table: undefined,
+0|thorntech  |   column: undefined,
+0|thorntech  |   dataType: undefined,
+0|thorntech  |   constraint: undefined,
+0|thorntech  |   file: 'auth.c',
+0|thorntech  |   line: '331',
+0|thorntech  |   routine: 'auth_failed'
+0|thorntech  | }
+0|thorntech  | 11:50:05 AM [express] GET /api/admin/feeds 500 in 12ms :: {"message":"password authentication failed for user \"username\""}
+0|thorntech  | Internal Server Error: error: password authentication failed for user "username"
+0|thorntech  |     at /root/thorntech/dist/index.cjs:59:14231
+0|thorntech  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:65:37946
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:128:14847 {
+0|thorntech  |   length: 104,
+0|thorntech  |   severity: 'FATAL',
+0|thorntech  |   code: '28P01',
+0|thorntech  |   detail: undefined,
+0|thorntech  |   hint: undefined,
+0|thorntech  |   position: undefined,
+0|thorntech  |   internalPosition: undefined,
+0|thorntech  |   internalQuery: undefined,
+0|thorntech  |   where: undefined,
+0|thorntech  |   schema: undefined,
+0|thorntech  |   table: undefined,
+0|thorntech  |   column: undefined,
+0|thorntech  |   dataType: undefined,
+0|thorntech  |   constraint: undefined,
+0|thorntech  |   file: 'auth.c',
+0|thorntech  |   line: '331',
+0|thorntech  |   routine: 'auth_failed'
+0|thorntech  | }
+0|thorntech  | 11:50:05 AM [express] GET /api/admin/products 500 in 14ms :: {"message":"password authentication failed for user \"username\""}
+0|thorntech  | Internal Server Error: error: password authentication failed for user "username"
+0|thorntech  |     at /root/thorntech/dist/index.cjs:59:14231
+0|thorntech  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:65:37946
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:128:15535 {
+0|thorntech  |   length: 104,
+0|thorntech  |   severity: 'FATAL',
+0|thorntech  |   code: '28P01',
+0|thorntech  |   detail: undefined,
+0|thorntech  |   hint: undefined,
+0|thorntech  |   position: undefined,
+0|thorntech  |   internalPosition: undefined,
+0|thorntech  |   internalQuery: undefined,
+0|thorntech  |   where: undefined,
+0|thorntech  |   schema: undefined,
+0|thorntech  |   table: undefined,
+0|thorntech  |   column: undefined,
+0|thorntech  |   dataType: undefined,
+0|thorntech  |   constraint: undefined,
+0|thorntech  |   file: 'auth.c',
+0|thorntech  |   line: '331',
+0|thorntech  |   routine: 'auth_failed'
+0|thorntech  | }
+0|thorntech  | 11:50:05 AM [express] GET /api/admin/categories 500 in 14ms :: {"message":"password authentication failed for user \"username\""}
+0|thorntech  | Internal Server Error: error: password authentication failed for user "username"
+0|thorntech  |     at /root/thorntech/dist/index.cjs:59:14231
+0|thorntech  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:65:37946
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:128:20434 {
+0|thorntech  |   length: 104,
+0|thorntech  |   severity: 'FATAL',
+0|thorntech  |   code: '28P01',
+0|thorntech  |   detail: undefined,
+0|thorntech  |   hint: undefined,
+0|thorntech  |   position: undefined,
+0|thorntech  |   internalPosition: undefined,
+0|thorntech  |   internalQuery: undefined,
+0|thorntech  |   where: undefined,
+0|thorntech  |   schema: undefined,
+0|thorntech  |   table: undefined,
+0|thorntech  |   column: undefined,
+0|thorntech  |   dataType: undefined,
+0|thorntech  |   constraint: undefined,
+0|thorntech  |   file: 'auth.c',
+0|thorntech  |   line: '331',
+0|thorntech  |   routine: 'auth_failed'
+0|thorntech  | }
+0|thorntech  | 11:50:05 AM [express] GET /api/admin/feed-sources 500 in 16ms :: {"message":"password authentication failed for user \"username\""}
+0|thorntech  | Internal Server Error: error: password authentication failed for user "username"
+0|thorntech  |     at /root/thorntech/dist/index.cjs:59:14231
+0|thorntech  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:65:37946
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:128:16232 {
+0|thorntech  |   length: 104,
+0|thorntech  |   severity: 'FATAL',
+0|thorntech  |   code: '28P01',
+0|thorntech  |   detail: undefined,
+0|thorntech  |   hint: undefined,
+0|thorntech  |   position: undefined,
+0|thorntech  |   internalPosition: undefined,
+0|thorntech  |   internalQuery: undefined,
+0|thorntech  |   where: undefined,
+0|thorntech  |   schema: undefined,
+0|thorntech  |   table: undefined,
+0|thorntech  |   column: undefined,
+0|thorntech  |   dataType: undefined,
+0|thorntech  |   constraint: undefined,
+0|thorntech  |   file: 'auth.c',
+0|thorntech  |   line: '331',
+0|thorntech  |   routine: 'auth_failed'
+0|thorntech  | }
+0|thorntech  | 11:50:05 AM [express] GET /api/admin/orders 500 in 19ms :: {"message":"password authentication failed for user \"username\""}
+0|thorntech  | Internal Server Error: error: password authentication failed for user "username"
+0|thorntech  |     at /root/thorntech/dist/index.cjs:59:14231
+0|thorntech  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:65:37946
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:128:12966 {
+0|thorntech  |   length: 104,
+0|thorntech  |   severity: 'FATAL',
+0|thorntech  |   code: '28P01',
+0|thorntech  |   detail: undefined,
+0|thorntech  |   hint: undefined,
+0|thorntech  |   position: undefined,
+0|thorntech  |   internalPosition: undefined,
+0|thorntech  |   internalQuery: undefined,
+0|thorntech  |   where: undefined,
+0|thorntech  |   schema: undefined,
+0|thorntech  |   table: undefined,
+0|thorntech  |   column: undefined,
+0|thorntech  |   dataType: undefined,
+0|thorntech  |   constraint: undefined,
+0|thorntech  |   file: 'auth.c',
+0|thorntech  |   line: '331',
+0|thorntech  |   routine: 'auth_failed'
+0|thorntech  | }
+0|thorntech  | 11:50:05 AM [express] GET /api/admin/users 500 in 18ms :: {"message":"password authentication failed for user \"username\""}
+0|thorntech  | 11:50:05 AM [express] GET /api/admin/stats 500 in 8ms :: {"error":"password authentication failed for user \"username\""}
+0|thorntech  | Internal Server Error: error: password authentication failed for user "username"
+0|thorntech  |     at /root/thorntech/dist/index.cjs:59:14231
+0|thorntech  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:65:37946
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:128:21754 {
+0|thorntech  |   length: 104,
+0|thorntech  |   severity: 'FATAL',
+0|thorntech  |   code: '28P01',
+0|thorntech  |   detail: undefined,
+0|thorntech  |   hint: undefined,
+0|thorntech  |   position: undefined,
+0|thorntech  |   internalPosition: undefined,
+0|thorntech  |   internalQuery: undefined,
+0|thorntech  |   where: undefined,
+0|thorntech  |   schema: undefined,
+0|thorntech  |   table: undefined,
+0|thorntech  |   column: undefined,
+0|thorntech  |   dataType: undefined,
+0|thorntech  |   constraint: undefined,
+0|thorntech  |   file: 'auth.c',
+0|thorntech  |   line: '331',
+0|thorntech  |   routine: 'auth_failed'
+0|thorntech  | }
+0|thorntech  | 11:50:05 AM [express] GET /api/admin/blog 500 in 8ms :: {"message":"password authentication failed for user \"username\""}
+0|thorntech  | Internal Server Error: error: password authentication failed for user "username"
+0|thorntech  |     at /root/thorntech/dist/index.cjs:59:14231
+0|thorntech  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:65:37946
+0|thorntech  |     at async /root/thorntech/dist/index.cjs:128:23256 {
+0|thorntech  |   length: 104,
+0|thorntech  |   severity: 'FATAL',
+0|thorntech  |   code: '28P01',
+0|thorntech  |   detail: undefined,
+0|thorntech  |   hint: undefined,
+0|thorntech  |   position: undefined,
+0|thorntech  |   internalPosition: undefined,
+0|thorntech  |   internalQuery: undefined,
+0|thorntech  |   where: undefined,
+0|thorntech  |   schema: undefined,
+0|thorntech  |   table: undefined,
+0|thorntech  |   column: undefined,
+0|thorntech  |   dataType: undefined,
+0|thorntech  |   constraint: undefined,
+0|thorntech  |   file: 'auth.c',
+0|thorntech  |   line: '331',
+0|thorntech  |   routine: 'auth_failed'
+0|thorntech  | }
+0|thorntech  | 11:50:05 AM [express] GET /api/admin/reviews 500 in 9ms :: {"message":"password authentication failed for user \"username\""}
+0|thorntech  | 11:50:05 AM [express] GET /api/xero/status 304 in 3ms :: {"connected":false}
