@@ -470,6 +470,7 @@ export default function AdminPage() {
   const [enrichBatch, setEnrichBatch] = useState("500");
   const [pullingImages, setPullingImages] = useState(false);
   const [pullImageResult, setPullImageResult] = useState<any>(null);
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
 
   const loadData = async () => {
     try {
@@ -831,11 +832,16 @@ export default function AdminPage() {
 
   const catMap = new Map(categories.map(c => [c.id, c.name]));
 
-  const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.slug.toLowerCase().includes(search.toLowerCase()) ||
-    (p.vendor || "").toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.slug.toLowerCase().includes(search.toLowerCase()) ||
+      (p.vendor || "").toLowerCase().includes(search.toLowerCase());
+    const productSource = (p as any).source || "VIP Computers";
+    const matchesSource = sourceFilter === "all" ||
+      (sourceFilter === "vip" && productSource === "VIP Computers") ||
+      (sourceFilter === "target" && productSource === "Target Components");
+    return matchesSearch && matchesSource;
+  });
 
   const filteredOrders = orders
     .filter(o =>
@@ -1542,9 +1548,21 @@ export default function AdminPage() {
                 onCancel={() => { setShowProductForm(false); setEditingProduct(null); }}
               />
             ) : (
+              <div className="flex items-center gap-3 flex-wrap">
               <Button onClick={() => setShowProductForm(true)} className="bg-purple-600 hover:bg-purple-700" data-testid="button-add-product">
                 <Plus className="w-4 h-4 mr-1" /> Add Product
               </Button>
+              <select
+                value={sourceFilter}
+                onChange={e => setSourceFilter(e.target.value)}
+                className="bg-white/5 border border-white/10 text-white text-sm rounded px-3 py-2"
+                data-testid="select-source-filter"
+              >
+                <option value="all">All Sources ({products.length})</option>
+                <option value="vip">VIP Computers ({products.filter(p => !(p as any).source || (p as any).source === "VIP Computers").length})</option>
+                <option value="target">Target Components ({products.filter(p => (p as any).source === "Target Components").length})</option>
+              </select>
+            </div>
             )}
 
             <div className="overflow-x-auto">
@@ -1555,8 +1573,8 @@ export default function AdminPage() {
                     <th className="py-3 px-3">Name</th>
                     <th className="py-3 px-3">Price</th>
                     <th className="py-3 px-3 hidden md:table-cell">Category</th>
+                    <th className="py-3 px-3 hidden md:table-cell">Source</th>
                     <th className="py-3 px-3 hidden md:table-cell">Stock</th>
-                    <th className="py-3 px-3 hidden lg:table-cell">Badge</th>
                     <th className="py-3 px-3">Actions</th>
                   </tr>
                 </thead>
@@ -1570,9 +1588,6 @@ export default function AdminPage() {
                         </a>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-xs text-gray-500">{p.slug}</span>
-                          {(p as any).source && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400">{(p as any).source}</span>
-                          )}
                         </div>
                       </td>
                       <td className="py-3 px-3">
@@ -1581,11 +1596,17 @@ export default function AdminPage() {
                       </td>
                       <td className="py-3 px-3 hidden md:table-cell text-gray-400">{catMap.get(p.categoryId ?? 0) || "—"}</td>
                       <td className="py-3 px-3 hidden md:table-cell">
+                        {((p as any).source === "Target Components") ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-orange-500/20 text-orange-400">TARGET</span>
+                        ) : (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-400">VIP</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-3 hidden md:table-cell">
                         <span className={`text-xs px-2 py-0.5 rounded ${p.inStock ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
                           {p.inStock ? "In Stock" : "Out"}
                         </span>
                       </td>
-                      <td className="py-3 px-3 hidden lg:table-cell text-gray-400">{p.badge || "—"}</td>
                       <td className="py-3 px-3">
                         <div className="flex gap-1">
                           <a href={`/product/${p.slug}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center text-gray-400 hover:text-blue-400 h-8 w-8 p-0" data-testid={`button-view-product-${p.id}`}><ExternalLink className="w-3.5 h-3.5" /></a>
@@ -1596,7 +1617,7 @@ export default function AdminPage() {
                     </tr>
                   ))}
                   {filteredProducts.length === 0 && (
-                    <tr><td colSpan={7} className="py-12 text-center text-gray-500">No products found</td></tr>
+                    <tr><td colSpan={8} className="py-12 text-center text-gray-500">No products found</td></tr>
                   )}
                 </tbody>
               </table>
