@@ -1513,6 +1513,69 @@ Sitemap: ${siteUrl}/sitemap.xml
     res.send(sitemap);
   });
 
+  const googleTaxonomyMap: Record<string, string> = {
+    "processors": "Electronics > Computers > Computer Components > Computer Processors",
+    "graphics-cards": "Electronics > Computers > Computer Components > Computer Graphics Cards",
+    "motherboards": "Electronics > Computers > Computer Components > Computer Motherboards",
+    "memory": "Electronics > Computers > Computer Components > Computer Memory",
+    "storage": "Electronics > Computers > Computer Components > Storage Devices",
+    "power-supplies": "Electronics > Computers > Computer Components > Computer Power Supplies",
+    "cases": "Electronics > Computers > Computer Components > Computer Cases",
+    "cooling": "Electronics > Computers > Computer Components > Computer Cooling Components",
+    "monitors": "Electronics > Computers > Computer Monitors",
+    "keyboards": "Electronics > Computers > Computer Accessories > Computer Keyboards",
+    "mice": "Electronics > Computers > Computer Accessories > Computer Mice",
+    "headsets-audio": "Electronics > Audio > Headphones & Headsets",
+    "networking": "Electronics > Networking > Network Cards & Adapters",
+    "controllers-gaming": "Electronics > Video Game Accessories > Controllers",
+    "cables-adapters": "Electronics > Electronics Accessories > Cables",
+    "optical-drives": "Electronics > Computers > Computer Components > Storage Devices > Optical Drives",
+    "pre-built-pcs": "Electronics > Computers > Desktop Computers",
+    "laptops": "Electronics > Computers > Laptops",
+    "software": "Software > Computer Software",
+    "accessories": "Electronics > Computers > Computer Accessories",
+    "printers": "Electronics > Print, Copy, Scan & Fax > Printers",
+    "ink-toner": "Electronics > Print, Copy, Scan & Fax > Printer Ink & Toner",
+    "scanners-multifunction": "Electronics > Print, Copy, Scan & Fax > Scanners",
+    "servers-workstations": "Electronics > Computers > Desktop Computers",
+    "security-cctv": "Electronics > Security & Surveillance > Security Cameras",
+    "smart-home": "Electronics > Smart Home",
+    "webcams-cameras": "Electronics > Computers > Computer Accessories > Webcams",
+    "ups-power-protection": "Electronics > Electronics Accessories > Power > UPS",
+    "paper-supplies": "Office Supplies > Paper",
+  };
+
+  function getProductImages(p: any, siteUrl: string): string[] {
+    const urls: string[] = [];
+    if (p.image) {
+      urls.push(p.image.startsWith("http") ? p.image : `${siteUrl}${p.image}`);
+    }
+    if (p.images) {
+      try {
+        const parsed = JSON.parse(p.images);
+        const arr = Array.isArray(parsed) ? parsed : [];
+        for (const img of arr) {
+          const url = typeof img === "string" ? img : img?.url || img?.src;
+          if (url) {
+            const full = url.startsWith("http") ? url : `${siteUrl}${url}`;
+            if (!urls.includes(full)) urls.push(full);
+          }
+        }
+      } catch {}
+    }
+    return urls;
+  }
+
+  function cleanDescription(desc: string): string {
+    let text = desc
+      .replace(/\*\*[^*]+\*\*/g, "")
+      .replace(/<[^>]+>/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (text.length > 5000) text = text.substring(0, 4997) + "...";
+    return text;
+  }
+
   app.get("/feeds/google-merchant.xml", async (req, res) => {
     const [products, categories] = await Promise.all([storage.getProducts(), storage.getCategories()]);
     const siteUrl = buildSiteUrl(req);
@@ -1533,26 +1596,31 @@ Sitemap: ${siteUrl}/sitemap.xml
     for (const p of activeProducts) {
       const cat = p.categoryId ? catMap.get(p.categoryId) : null;
       const productUrl = `${siteUrl}/product/${p.slug}`;
-      const imageUrl = p.image ? (p.image.startsWith("http") ? p.image : `${siteUrl}${p.image}`) : "";
+      const allImages = getProductImages(p, siteUrl);
+      const mainImage = allImages[0] || "";
+      const additionalImages = allImages.slice(1, 11);
       const priceGbp = p.price.toFixed(2);
       const availability = p.inStock ? "in_stock" : "out_of_stock";
-      const condition = "new";
       const shipping = p.price >= 200 ? "0.00" : "7.99";
+      const googleCategory = cat?.slug ? googleTaxonomyMap[cat.slug] || "" : "";
+      const desc = cleanDescription(p.description || p.name);
 
       xml += `<item>
-<g:id>${p.id}</g:id>
-<g:title>${escXml(p.name)}</g:title>
-<g:description>${escXml(p.description || p.name)}</g:description>
+<g:id>${escXml(String(p.id))}</g:id>
+<g:title>${escXml(p.name.substring(0, 150))}</g:title>
+<g:description>${escXml(desc)}</g:description>
 <g:link>${escXml(productUrl)}</g:link>
-${imageUrl ? `<g:image_link>${escXml(imageUrl)}</g:image_link>` : ""}
+${mainImage ? `<g:image_link>${escXml(mainImage)}</g:image_link>` : ""}
+${additionalImages.map(img => `<g:additional_image_link>${escXml(img)}</g:additional_image_link>`).join("\n")}
 <g:price>${priceGbp} GBP</g:price>
-${p.compareAtPrice && p.compareAtPrice > p.price ? `<g:sale_price>${priceGbp} GBP</g:sale_price>\n<g:sale_price_effective_date>${new Date().toISOString()}/${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()}</g:sale_price_effective_date>` : ""}
+${p.compareAtPrice && p.compareAtPrice > p.price ? `<g:sale_price>${priceGbp} GBP</g:sale_price>` : ""}
 <g:availability>${availability}</g:availability>
-<g:condition>${condition}</g:condition>
+<g:condition>new</g:condition>
 ${p.vendor ? `<g:brand>${escXml(p.vendor)}</g:brand>` : ""}
 ${p.mpn ? `<g:mpn>${escXml(p.mpn)}</g:mpn>` : ""}
 ${p.ean ? `<g:gtin>${escXml(p.ean)}</g:gtin>` : ""}
 ${cat ? `<g:product_type>${escXml(cat.name)}</g:product_type>` : ""}
+${googleCategory ? `<g:google_product_category>${escXml(googleCategory)}</g:google_product_category>` : ""}
 <g:shipping>
 <g:country>GB</g:country>
 <g:service>Standard</g:service>
@@ -1580,20 +1648,25 @@ ${cat ? `<g:product_type>${escXml(cat.name)}</g:product_type>` : ""}
 
     const items = activeProducts.map(p => {
       const cat = p.categoryId ? catMap.get(p.categoryId) : null;
-      const imageUrl = p.image ? (p.image.startsWith("http") ? p.image : `${siteUrl}${p.image}`) : undefined;
+      const allImages = getProductImages(p, siteUrl);
+      const googleCategory = cat?.slug ? googleTaxonomyMap[cat.slug] || undefined : undefined;
+      const desc = cleanDescription(p.description || p.name);
       return {
         id: String(p.id),
-        title: p.name,
-        description: p.description || p.name,
+        title: p.name.substring(0, 150),
+        description: desc,
         link: `${siteUrl}/product/${p.slug}`,
-        image_link: imageUrl,
+        image_link: allImages[0] || undefined,
+        additional_image_link: allImages.slice(1, 11),
         price: `${p.price.toFixed(2)} GBP`,
+        sale_price: p.compareAtPrice && p.compareAtPrice > p.price ? `${p.price.toFixed(2)} GBP` : undefined,
         availability: p.inStock ? "in_stock" : "out_of_stock",
         condition: "new",
         brand: p.vendor || undefined,
         mpn: p.mpn || undefined,
         gtin: p.ean || undefined,
         product_type: cat?.name || undefined,
+        google_product_category: googleCategory,
         shipping: { country: "GB", service: "Standard", price: p.price >= 200 ? "0.00 GBP" : "7.99 GBP" },
         identifier_exists: !!(p.mpn || p.ean),
       };
