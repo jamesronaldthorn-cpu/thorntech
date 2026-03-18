@@ -886,7 +886,7 @@ async function fetchDuckDuckGoImages(searchTerm: string): Promise<string[]> {
     let match;
     while ((match = resultRegex.exec(html)) !== null && images.length < 4) {
       const src = match[1];
-      if (!src.includes("duckduckgo") && !src.includes("logo") && !src.includes("icon") && !src.includes("avatar") && !src.includes("pixel")) {
+      if (!src.includes("duckduckgo") && !src.includes("logo") && !src.includes("icon") && !src.includes("avatar") && !src.includes("pixel") && !isPhoneImage(src)) {
         images.push(src);
       }
     }
@@ -908,7 +908,7 @@ async function fetchGoogleShoppingImage(searchTerm: string): Promise<string[]> {
     let match;
     while ((match = imgRegex.exec(html)) !== null && images.length < 3) {
       const src = match[1].replace(/\\u0026/g, "&");
-      if (src.length > 50 && !src.includes("gstatic") && !src.includes("google") && !src.includes("logo") && !src.includes("icon")) {
+      if (src.length > 50 && !src.includes("gstatic") && !src.includes("google") && !src.includes("logo") && !src.includes("icon") && !isPhoneImage(src)) {
         images.push(src);
       }
     }
@@ -967,6 +967,10 @@ async function fetchGoogleCachedProductPage(searchTerm: string, site?: string): 
     }
 
     for (const link of productLinks.slice(0, 2)) {
+      if (isPhonePage(link)) {
+        console.log(`[Enricher]   Skipping phone page: ${link.substring(0, 80)}`);
+        continue;
+      }
       await delay(1500);
       const page = await fetchPage(link);
       if (!page || page.length < 5000) continue;
@@ -1214,10 +1218,45 @@ function validateImageAgainstPage(productName: string, vendor: string | undefine
   return true;
 }
 
+const BLOCKED_IMAGE_DOMAINS = [
+  "gsmarena.com", "phonearena.com", "techradar.com/phones", "91mobiles.com",
+  "smartprix.com", "kimovil.com", "notebookcheck.net/Mobile-Phones",
+  "versus.com/en/phone", "gadgets360.com/mobiles", "trustedreviews.com/phones",
+  "expertreviews.co.uk/phones", "carphonewarehouse.com", "mobiles.co.uk",
+  "fonehouse.co.uk", "fonebuzz.co.uk", "clove.co.uk",
+];
+
+const BLOCKED_IMAGE_URL_KEYWORDS = [
+  "smartphone", "mobile-phone", "iphone", "galaxy-s", "galaxy-a", "galaxy-m",
+  "pixel-phone", "android-phone", "/phones/", "/mobile/", "phone-case",
+  "screen-protector", "handset", "cellphone", "gsmarena", "phonearena",
+];
+
+const BLOCKED_PAGE_URL_KEYWORDS = [
+  "gsmarena", "phonearena", "/phones/", "smartphone", "mobile-phone",
+  "carphonewarehouse", "mobiles.co.uk", "/iphone-", "/galaxy-s", "/galaxy-a",
+  "91mobiles", "fonehouse", "clove.co.uk", "unlocked-phones",
+];
+
+function isPhoneImage(imageUrl: string): boolean {
+  const lower = imageUrl.toLowerCase();
+  if (BLOCKED_IMAGE_DOMAINS.some(d => lower.includes(d))) return true;
+  if (BLOCKED_IMAGE_URL_KEYWORDS.some(k => lower.includes(k))) return true;
+  return false;
+}
+
+function isPhonePage(pageUrl: string): boolean {
+  const lower = pageUrl.toLowerCase();
+  if (BLOCKED_PAGE_URL_KEYWORDS.some(k => lower.includes(k))) return true;
+  return false;
+}
+
 function validateImageRelevance(productName: string, vendor: string | undefined, imageUrl: string): boolean {
   const imgLower = imageUrl.toLowerCase();
   const nameLower = productName.toLowerCase();
   const vendorLower = vendor?.toLowerCase() || "";
+
+  if (isPhoneImage(imageUrl)) return false;
 
   const genericBadPatterns = [
     "no-image", "placeholder", "default", "coming-soon", "noimage",
@@ -1229,7 +1268,7 @@ function validateImageRelevance(productName: string, vendor: string | undefined,
   ];
   if (genericBadPatterns.some(p => imgLower.includes(p))) return false;
 
-  if (imgLower.includes("vip-computers.com") || imgLower.includes("targetcomponents")) return true;
+  if (imgLower.includes("vip-computers.com") || imgLower.includes("targetcomponents") || imgLower.includes("pictureserver.co.uk")) return true;
 
   const modelIds = extractModelIdentifiers(productName);
   const keyModels = modelIds.filter(id => /\d{3,}/.test(id));

@@ -178,6 +178,22 @@ async function ensureCategories() {
   }
 }
 
+const PHONE_IMAGE_DOMAINS = [
+  "gsmarena.com", "phonearena.com", "91mobiles.com", "smartprix.com",
+  "kimovil.com", "carphonewarehouse.com", "mobiles.co.uk", "fonehouse.co.uk",
+];
+const PHONE_IMAGE_KEYWORDS = [
+  "smartphone", "mobile-phone", "iphone", "galaxy-s", "galaxy-a", "galaxy-m",
+  "pixel-phone", "android-phone", "/phones/", "phone-case", "screen-protector",
+  "handset", "cellphone", "gsmarena", "phonearena",
+];
+
+function isPhoneImageUrl(url: string): boolean {
+  const lower = url.toLowerCase();
+  return PHONE_IMAGE_DOMAINS.some(d => lower.includes(d)) ||
+    PHONE_IMAGE_KEYWORDS.some(k => lower.includes(k));
+}
+
 async function autoFixCategories() {
   try {
     const { storage } = await import("./storage");
@@ -187,21 +203,42 @@ async function autoFixCategories() {
     const catBySlug = new Map(categories.map((c: any) => [c.slug, c.id]));
     const catById = new Map(categories.map((c: any) => [c.id, c.slug]));
     let fixed = 0;
+    let phonesCleared = 0;
+
     for (const p of allProducts) {
+      // Fix wrong categories
       const override = nameBasedCategoryOverride(p.name, catBySlug);
       if (override && override !== p.categoryId) {
         await storage.updateProduct(p.id, { categoryId: override });
         fixed++;
         console.log(`[AutoFix] Moved "${p.name.substring(0, 60)}" → ${catById.get(override)}`);
       }
+
+      // Clear phone images
+      const hasPhoneImage = (p.image && isPhoneImageUrl(p.image));
+      let cleanedImages: string[] | null = null;
+      if (p.images) {
+        try {
+          const arr: string[] = JSON.parse(p.images as string);
+          const filtered = arr.filter(img => !isPhoneImageUrl(img));
+          if (filtered.length !== arr.length) cleanedImages = filtered;
+        } catch {}
+      }
+      if (hasPhoneImage || cleanedImages) {
+        const updates: any = {};
+        if (hasPhoneImage) updates.image = null;
+        if (cleanedImages !== null) updates.images = JSON.stringify(cleanedImages);
+        await storage.updateProduct(p.id, updates);
+        phonesCleared++;
+        if (hasPhoneImage) console.log(`[AutoFix] Cleared phone image from "${p.name.substring(0, 60)}"`);
+      }
     }
-    if (fixed > 0) {
-      console.log(`[AutoFix] Re-categorised ${fixed} misplaced products`);
-    } else {
-      console.log(`[AutoFix] All ${allProducts.length} products are in correct categories`);
-    }
+
+    if (fixed > 0) console.log(`[AutoFix] Re-categorised ${fixed} misplaced products`);
+    if (phonesCleared > 0) console.log(`[AutoFix] Cleared phone images from ${phonesCleared} products`);
+    if (fixed === 0 && phonesCleared === 0) console.log(`[AutoFix] All ${allProducts.length} products OK`);
   } catch (e: any) {
-    console.error("[AutoFix] Error fixing categories:", e.message);
+    console.error("[AutoFix] Error:", e.message);
   }
 }
 
