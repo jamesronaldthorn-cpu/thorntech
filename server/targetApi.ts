@@ -466,15 +466,40 @@ const targetCategoryMap: Record<string, string> = {
   PACM: "accessories",
   WIST: "accessories",
   ACTR: "accessories",
-  SDD2: "memory",
-  SDD3: "memory",
-  SDD4: "memory",
-  SDDE: "memory",
-  SDFM: "memory",
-  SDSO: "memory",
-  SDUS: "memory",
-  SD13: "memory",
+  SDD2: "storage",
+  SDD3: "storage",
+  SDD4: "storage",
+  SDDE: "storage",
+  SDFM: "storage",
+  SDSO: "storage",
+  SDUS: "storage",
+  SD13: "storage",
+  SDXC: "storage",
+  SDHC: "storage",
+  SDMM: "storage",
+  SDCF: "storage",
+  SDMS: "storage",
   SAM2: "storage",
+  USBF: "storage",
+  USBD: "storage",
+  USBS: "storage",
+  FLDR: "storage",
+  FLUS: "storage",
+  RZWC: "webcams-cameras",
+  CMRZ: "webcams-cameras",
+  CMLO: "webcams-cameras",
+  CMLE: "webcams-cameras",
+  CMJ5: "webcams-cameras",
+  CMLG: "webcams-cameras",
+  CMMI: "webcams-cameras",
+  CM4K: "webcams-cameras",
+  CMHD: "webcams-cameras",
+  EPUP: "ups-power-protection",
+  PSUU: "ups-power-protection",
+  APCB: "ups-power-protection",
+  UPSA: "ups-power-protection",
+  UPSB: "ups-power-protection",
+  UPSC: "ups-power-protection",
   PRIN: "processors",
   PRAM: "processors",
   PR20: "processors",
@@ -503,7 +528,9 @@ const targetCategoryFallback: Record<string, string> = {
   HD: "storage",
   KI: "storage",
   SA: "storage",
-  SD: "memory",
+  SD: "storage",
+  US: "storage",
+  FL: "storage",
   CA: "cases",
   PS: "power-supplies",
   FA: "cooling",
@@ -565,6 +592,21 @@ const targetCategoryFallback: Record<string, string> = {
   "10": "accessories",
   RE: "accessories",
 };
+
+export function nameBasedCategoryOverride(name: string, catBySlug: Map<string, number>): number | null {
+  const n = name.toLowerCase();
+  if (/webcam|web cam/.test(n)) return catBySlug.get("webcams-cameras") || null;
+  if (/\bups\b|uninterruptible power|battery backup unit/.test(n)) return catBySlug.get("ups-power-protection") || null;
+  if (/usb.*flash.*drive|flash.*drive|thumb.*drive|pen.*drive|usb.*stick/.test(n)) return catBySlug.get("storage") || null;
+  if (/micro\s?sd|microsd|sd\s?card|sdhc|sdxc|compactflash|cf\s?card|memory\s?card/.test(n)) return catBySlug.get("storage") || null;
+  if (/\bprinter\b/.test(n) && !/3d printer/i.test(n)) return catBySlug.get("printers") || null;
+  if (/ink\s?cartridge|toner\s?cartridge|inkjet\s?cartridge/.test(n)) return catBySlug.get("ink-toner") || null;
+  if (/\bscanner\b|multifunction.*printer|all.in.one.*printer/.test(n)) return catBySlug.get("scanners-multifunction") || null;
+  if (/\bnas\b.*drive|\bnas\b.*server|network.*attached.*storage/.test(n)) return catBySlug.get("storage") || null;
+  if (/cctv|ip\s?camera|security\s?camera|dashcam|dash\s?cam/.test(n)) return catBySlug.get("security-cctv") || null;
+  if (/smart\s?(plug|bulb|switch|speaker|display|home|strip)|echo\s|alexa\s|google\s*home\b/.test(n)) return catBySlug.get("smart-home") || null;
+  return null;
+}
 
 export async function syncTargetProducts(): Promise<{ imported: number; updated: number; skipped: number; outOfStock: number; errors: number; total: number }> {
   const result = { imported: 0, updated: 0, skipped: 0, outOfStock: 0, errors: 0, total: 0 };
@@ -643,6 +685,8 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
         const catSlug = targetCategoryMap[tp.category] || targetCategoryFallback[areaCode];
         if (catSlug) categoryId = catBySlug.get(catSlug) || null;
       }
+      const nameOverride = nameBasedCategoryOverride(name, catBySlug);
+      if (nameOverride) categoryId = nameOverride;
 
       const mpn = tp.manupartcode?.trim() || null;
       const mpnKey = mpn && mpn.length > 3 ? mpn.toLowerCase().trim() : null;

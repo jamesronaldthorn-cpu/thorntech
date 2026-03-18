@@ -1234,6 +1234,29 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/admin/fix-categories", adminAuth, async (_req, res) => {
+    res.json({ status: "started", message: "Re-categorising misplaced products in background..." });
+    try {
+      const { nameBasedCategoryOverride: nameCatOverride } = await import("./targetApi");
+      const allProducts = await storage.getProducts();
+      const categories = await storage.getCategories();
+      const catBySlug = new Map(categories.map(c => [c.slug, c.id]));
+      const catById = new Map(categories.map(c => [c.id, c.slug]));
+      let fixed = 0;
+      for (const p of allProducts) {
+        const override = nameCatOverride(p.name, catBySlug);
+        if (override && override !== p.categoryId) {
+          await storage.updateProduct(p.id, { categoryId: override });
+          fixed++;
+          console.log(`[FixCats] Moved "${p.name.substring(0, 60)}" → ${catById.get(override)}`);
+        }
+      }
+      console.log(`[FixCats] Re-categorised ${fixed} products`);
+    } catch (e: any) {
+      console.error("[FixCats] Error:", e.message);
+    }
+  });
+
   app.post("/api/admin/fix-images", adminAuth, async (_req, res) => {
     res.json({ status: "started", message: "Checking and fixing broken images in background..." });
 
