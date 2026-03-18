@@ -597,11 +597,20 @@ export function nameBasedCategoryOverride(name: string, catBySlug: Map<string, n
   const n = name.toLowerCase();
   if (/webcam|web cam/.test(n)) return catBySlug.get("webcams-cameras") || null;
   if (/\bups\b|uninterruptible power|battery backup unit/.test(n)) return catBySlug.get("ups-power-protection") || null;
-  if (/usb.*flash.*drive|flash.*drive|thumb.*drive|pen.*drive|usb.*stick/.test(n)) return catBySlug.get("storage") || null;
-  if (/micro\s?sd|microsd|sd\s?card|sdhc|sdxc|compactflash|cf\s?card|memory\s?card/.test(n)) return catBySlug.get("storage") || null;
+
+  // USB flash drives / thumb drives — broad patterns to catch all variants
+  if (/usb.*flash|flash.*drive|thumb.*drive|pen.*drive|usb.*stick|datatraveler|flash\s?voyager|cruzer|ultra\s?fit|ultra\s?flair|ultra\s?dual|swivel.*usb|usb.*swivel/.test(n)) return catBySlug.get("storage") || null;
+  if (/\busb\b.{1,30}\b(drive|drives|64gb|128gb|256gb|512gb|16gb|32gb|8gb)\b/.test(n) && !/hub|charger|cable|adapter|card reader/i.test(n)) return catBySlug.get("storage") || null;
+
+  // SD / memory cards
+  if (/micro\s?sd|microsd|sd\s?card|sdhc|sdxc|compactflash|cf\s?card|memory\s?card|xqd\s?card|cfe\s?card/.test(n)) return catBySlug.get("storage") || null;
+
+  // Printers, ink, scanners
   if (/\bprinter\b/.test(n) && !/3d printer/i.test(n)) return catBySlug.get("printers") || null;
-  if (/ink\s?cartridge|toner\s?cartridge|inkjet\s?cartridge/.test(n)) return catBySlug.get("ink-toner") || null;
+  if (/ink\s?cartridge|toner\s?cartridge|inkjet\s?cartridge|toner\s?unit/.test(n)) return catBySlug.get("ink-toner") || null;
   if (/\bscanner\b|multifunction.*printer|all.in.one.*printer/.test(n)) return catBySlug.get("scanners-multifunction") || null;
+
+  // NAS / CCTV / Smart home
   if (/\bnas\b.*drive|\bnas\b.*server|network.*attached.*storage/.test(n)) return catBySlug.get("storage") || null;
   if (/cctv|ip\s?camera|security\s?camera|dashcam|dash\s?cam/.test(n)) return catBySlug.get("security-cctv") || null;
   if (/smart\s?(plug|bulb|switch|speaker|display|home|strip)|echo\s|alexa\s|google\s*home\b/.test(n)) return catBySlug.get("smart-home") || null;

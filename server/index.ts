@@ -178,9 +178,37 @@ async function ensureCategories() {
   }
 }
 
+async function autoFixCategories() {
+  try {
+    const { storage } = await import("./storage");
+    const { nameBasedCategoryOverride } = await import("./targetApi");
+    const allProducts = await storage.getProducts();
+    const categories = await storage.getCategories();
+    const catBySlug = new Map(categories.map((c: any) => [c.slug, c.id]));
+    const catById = new Map(categories.map((c: any) => [c.id, c.slug]));
+    let fixed = 0;
+    for (const p of allProducts) {
+      const override = nameBasedCategoryOverride(p.name, catBySlug);
+      if (override && override !== p.categoryId) {
+        await storage.updateProduct(p.id, { categoryId: override });
+        fixed++;
+        console.log(`[AutoFix] Moved "${p.name.substring(0, 60)}" → ${catById.get(override)}`);
+      }
+    }
+    if (fixed > 0) {
+      console.log(`[AutoFix] Re-categorised ${fixed} misplaced products`);
+    } else {
+      console.log(`[AutoFix] All ${allProducts.length} products are in correct categories`);
+    }
+  } catch (e: any) {
+    console.error("[AutoFix] Error fixing categories:", e.message);
+  }
+}
+
 (async () => {
   await initStripe();
   await ensureCategories();
+  await autoFixCategories();
   await registerRoutes(httpServer, app);
 
   const { startFeedScheduler } = await import("./feedImporter");
