@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { ShoppingBasket, Search, Menu, X, Minus, Plus, User, Truck, Phone, Mail, Trash2, ChevronDown } from "lucide-react";
+import { ShoppingBasket, Search, Menu, X, Minus, Plus, User, Truck, Phone, Mail, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { useState, useRef, useEffect, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,20 @@ import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { proxyImageUrl } from "@/lib/utils";
 import logoImg from "@/assets/images/logo.png";
+
+const CATEGORY_GROUPS: { label: string; slugs: string[] }[] = [
+  { label: "Core Components", slugs: ["processors", "graphics-cards", "motherboards", "memory", "power-supplies", "cases"] },
+  { label: "Storage", slugs: ["storage", "optical-drives"] },
+  { label: "Cooling", slugs: ["cooling"] },
+  { label: "Displays", slugs: ["monitors"] },
+  { label: "Peripherals", slugs: ["keyboards", "mice", "headsets-audio", "controllers-gaming"] },
+  { label: "Networking", slugs: ["networking", "cables-adapters"] },
+  { label: "Systems", slugs: ["pre-built-pcs", "laptops"] },
+  { label: "Print & Scan", slugs: ["printers", "ink-toner", "scanners-multifunction", "paper-supplies"] },
+  { label: "Servers & Power", slugs: ["servers-workstations", "ups-power-protection"] },
+  { label: "Security & Smart", slugs: ["security-cctv", "smart-home", "webcams-cameras"] },
+  { label: "Other", slugs: ["software", "accessories"] },
+];
 
 function formatPrice(price: number) {
   return `£${price.toFixed(2)}`;
@@ -121,19 +135,39 @@ export default function NavBar() {
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform ${catOpen ? "rotate-180" : ""}`} />
               </Button>
               {catOpen && (
-                <div className="absolute top-full left-0 mt-2 w-64 max-h-[70vh] overflow-y-auto bg-background/95 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl z-50 py-2">
-                  {categories.map(cat => (
-                    <Link
-                      key={cat.id}
-                      href={`/category/${cat.slug}`}
-                      onClick={() => setCatOpen(false)}
-                    >
-                      <div className="px-4 py-2.5 text-sm hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer" data-testid={`link-category-${cat.slug}`}>
-                        {cat.name}
-                      </div>
-                    </Link>
-                  ))}
-                </div>
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setCatOpen(false)} />
+                  <div className="absolute top-full left-0 mt-2 z-50 bg-[#0f0f14] border border-white/10 rounded-xl shadow-2xl shadow-black/60 overflow-hidden" style={{ width: 560 }}>
+                    <div className="grid grid-cols-2 gap-0 p-4">
+                      {CATEGORY_GROUPS.map(group => {
+                        const groupCats = group.slugs
+                          .map(s => categories.find(c => c.slug === s))
+                          .filter(Boolean) as Category[];
+                        if (groupCats.length === 0) return null;
+                        return (
+                          <div key={group.label} className="mb-4">
+                            <div className="text-[10px] font-display font-bold tracking-widest text-primary/70 uppercase px-2 mb-1">{group.label}</div>
+                            {groupCats.map(cat => (
+                              <Link
+                                key={cat.id}
+                                href={`/category/${cat.slug}`}
+                                onClick={() => setCatOpen(false)}
+                              >
+                                <div
+                                  className="flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer group"
+                                  data-testid={`link-category-${cat.slug}`}
+                                >
+                                  <ChevronRight className="w-3 h-3 text-muted-foreground/40 group-hover:text-primary/60 transition-colors flex-shrink-0" />
+                                  <span className="text-sm text-muted-foreground group-hover:text-white transition-colors">{cat.name}</span>
+                                </div>
+                              </Link>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
               )}
             </div>
 
@@ -281,19 +315,32 @@ export default function NavBar() {
                 </button>
               </div>
             </form>
-            <p className="text-xs text-muted-foreground font-display tracking-wider mb-2 px-1">CATEGORIES</p>
-            <div className="grid grid-cols-2 gap-1">
-              {categories.map(cat => (
-                <Link
-                  key={cat.id}
-                  href={`/category/${cat.slug}`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <div className="px-3 py-2.5 text-sm hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer rounded-md" data-testid={`link-mobile-category-${cat.slug}`}>
-                    {cat.name}
+            <p className="text-xs text-muted-foreground font-display tracking-wider mb-3 px-1">BROWSE CATEGORIES</p>
+            <div className="space-y-3">
+              {CATEGORY_GROUPS.map(group => {
+                const groupCats = group.slugs
+                  .map(s => categories.find(c => c.slug === s))
+                  .filter(Boolean) as Category[];
+                if (groupCats.length === 0) return null;
+                return (
+                  <div key={group.label}>
+                    <div className="text-[10px] font-display font-bold tracking-widest text-primary/70 uppercase px-1 mb-1">{group.label}</div>
+                    <div className="grid grid-cols-2 gap-0.5">
+                      {groupCats.map(cat => (
+                        <Link
+                          key={cat.id}
+                          href={`/category/${cat.slug}`}
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          <div className="px-3 py-2 text-sm hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer rounded-md text-muted-foreground" data-testid={`link-mobile-category-${cat.slug}`}>
+                            {cat.name}
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
                   </div>
-                </Link>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

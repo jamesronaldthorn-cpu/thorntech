@@ -30,7 +30,7 @@ export default function SearchPage() {
     enabled: query.length >= 2,
   });
 
-  const { filters, setFilters, filtered, availableBrands, priceRange, activeCount, clearAll } = useProductFilters(products);
+  const { filters, setFilters, filtered, availableBrands, priceRange, activeCount, clearAll, availableSpecs } = useProductFilters(products);
   const catMap = new Map(categories.map(c => [c.id, c]));
 
   return (
@@ -113,6 +113,7 @@ export default function SearchPage() {
               clearAll={clearAll}
               totalCount={products.length}
               filteredCount={filtered.length}
+              availableSpecs={availableSpecs}
             />
 
             <div className="flex-1 min-w-0">

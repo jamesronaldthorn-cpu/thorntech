@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
-import { ChevronRight, Truck, ShieldCheck, Tag, HelpCircle } from "lucide-react";
+import { ChevronRight, Truck, ShieldCheck, Tag, HelpCircle, ChevronDown } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import NavBar from "@/components/NavBar";
@@ -9,6 +10,20 @@ import ProductCard from "@/components/ProductCard";
 import ProductFilters, { useProductFilters } from "@/components/ProductFilters";
 import { usePageTitle, BreadcrumbJsonLd, FAQJsonLd } from "@/components/SEO";
 import type { Product, Category } from "@shared/schema";
+
+const CATEGORY_GROUPS: { label: string; slugs: string[] }[] = [
+  { label: "Core Components", slugs: ["processors", "graphics-cards", "motherboards", "memory", "power-supplies", "cases"] },
+  { label: "Storage", slugs: ["storage", "optical-drives"] },
+  { label: "Cooling", slugs: ["cooling"] },
+  { label: "Displays", slugs: ["monitors"] },
+  { label: "Peripherals", slugs: ["keyboards", "mice", "headsets-audio", "controllers-gaming"] },
+  { label: "Networking", slugs: ["networking", "cables-adapters"] },
+  { label: "Systems", slugs: ["pre-built-pcs", "laptops"] },
+  { label: "Print & Scan", slugs: ["printers", "ink-toner", "scanners-multifunction", "paper-supplies"] },
+  { label: "Servers & Power", slugs: ["servers-workstations", "ups-power-protection"] },
+  { label: "Security & Smart", slugs: ["security-cctv", "smart-home", "webcams-cameras"] },
+  { label: "Other", slugs: ["software", "accessories"] },
+];
 
 const CATEGORY_CONTENT: Record<string, { intro: string; guide: string; faqs: { q: string; a: string }[] }> = {
   "processors": {
@@ -133,6 +148,78 @@ const RELATED_CATEGORIES: Record<string, string[]> = {
   "optical-drives": ["cables-adapters", "software", "storage"],
 };
 
+function CategoryBrowseBar({ categories, currentSlug }: { categories: Category[]; currentSlug: string }) {
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const currentGroup = CATEGORY_GROUPS.find(g => g.slugs.includes(currentSlug));
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpenGroup(null);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div className="mb-8" ref={ref}>
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {CATEGORY_GROUPS.map(group => {
+          const groupCats = group.slugs
+            .map(s => categories.find(c => c.slug === s))
+            .filter(Boolean) as Category[];
+          if (groupCats.length === 0) return null;
+          const isCurrentGroup = group.label === currentGroup?.label;
+          const isOpen = openGroup === group.label;
+          return (
+            <div key={group.label} className="relative">
+              <button
+                onClick={() => setOpenGroup(isOpen ? null : group.label)}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-display font-bold tracking-wider transition-all whitespace-nowrap ${
+                  isCurrentGroup
+                    ? "bg-primary/20 text-primary border border-primary/40"
+                    : "border border-white/10 text-muted-foreground hover:text-white hover:bg-white/5"
+                }`}
+                data-testid={`button-browse-group-${group.label.toLowerCase().replace(/\s/g, '-')}`}
+              >
+                {group.label}
+                <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+              </button>
+              {isOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setOpenGroup(null)} />
+                  <div className="absolute top-full left-0 mt-1.5 z-50 min-w-[200px] bg-[#0f0f14] border border-white/10 rounded-lg shadow-2xl shadow-black/60 py-1.5 overflow-hidden">
+                    {groupCats.map(cat => (
+                      <Link
+                        key={cat.id}
+                        href={`/category/${cat.slug}`}
+                        onClick={() => setOpenGroup(null)}
+                      >
+                        <div
+                          className={`flex items-center gap-2 px-4 py-2 hover:bg-primary/10 transition-colors cursor-pointer group ${
+                            cat.slug === currentSlug ? "bg-primary/10 text-primary" : ""
+                          }`}
+                          data-testid={`link-browse-cat-${cat.slug}`}
+                        >
+                          {cat.slug === currentSlug && <div className="w-1 h-1 rounded-full bg-primary flex-shrink-0" />}
+                          <span className={`text-sm transition-colors ${cat.slug === currentSlug ? "text-primary font-medium" : "text-muted-foreground group-hover:text-white"}`}>
+                            {cat.name}
+                          </span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function CategoryPage() {
   const { slug } = useParams<{ slug: string }>();
 
@@ -152,12 +239,12 @@ export default function CategoryPage() {
     queryFn: () => fetch("/api/categories").then(r => r.json()),
   });
 
-  const { filters, setFilters, filtered, availableBrands, priceRange, activeCount, clearAll } = useProductFilters(products);
+  const { filters, setFilters, filtered, availableBrands, priceRange, activeCount, clearAll, availableSpecs } = useProductFilters(products);
 
   const catContent = category ? CATEGORY_CONTENT[category.slug] : undefined;
   const relatedSlugs = category ? RELATED_CATEGORIES[category.slug] || [] : [];
   const relatedCats = categories.filter(c => relatedSlugs.includes(c.slug));
-  const brands = [...new Set(products.map(p => p.vendor).filter(Boolean))];
+  const brands = Array.from(new Set(products.map(p => p.vendor).filter((v): v is string => !!v)));
 
   usePageTitle(
     category ? `Buy ${category.name} Online UK` : undefined,
@@ -216,20 +303,7 @@ export default function CategoryPage() {
           <div className="h-1 w-20 bg-primary rounded-full mt-4"></div>
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-8">
-          {categories.map(cat => (
-            <Link key={cat.id} href={`/category/${cat.slug}`}>
-              <Button
-                variant={cat.slug === slug ? "default" : "outline"}
-                size="sm"
-                className={cat.slug === slug ? "bg-primary" : "border-white/20 hover:bg-white/5"}
-                data-testid={`button-filter-${cat.slug}`}
-              >
-                {cat.name}
-              </Button>
-            </Link>
-          ))}
-        </div>
+        <CategoryBrowseBar categories={categories} currentSlug={slug || ""} />
 
         <div className="flex gap-8">
           <ProductFilters
@@ -241,6 +315,7 @@ export default function CategoryPage() {
             clearAll={clearAll}
             totalCount={products.length}
             filteredCount={filtered.length}
+            availableSpecs={availableSpecs}
           />
 
           <div className="flex-1 min-w-0">
