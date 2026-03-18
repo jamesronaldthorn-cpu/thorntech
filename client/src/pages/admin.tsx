@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Package, Tag, ShoppingCart, Plus, Pencil, Trash2, LogOut,
-  Eye, EyeOff, X, Save, Search, ChevronDown, ChevronUp, Rss, Upload, Copy, ExternalLink, Download, Loader2, CheckCircle, AlertCircle, Users, KeyRound, BarChart3, TrendingUp, Globe, Calendar, RotateCcw, Sparkles, Star
+  Eye, EyeOff, X, Save, Search, ChevronDown, ChevronUp, Rss, Upload, Copy, ExternalLink, Download, Loader2, CheckCircle, AlertCircle, Users, KeyRound, BarChart3, TrendingUp, Globe, Calendar, RotateCcw, Sparkles, Star, ImageOff, RefreshCw, ImageIcon
 } from "lucide-react";
 import type { Product, Category, Order, CustomFeed, FeedSource, BlogPost } from "@shared/schema";
 import { FileText } from "lucide-react";
@@ -419,7 +419,7 @@ interface AdminReview {
   createdAt: string | null;
 }
 
-type Tab = "dashboard" | "products" | "categories" | "orders" | "feeds" | "users" | "blog" | "reviews";
+type Tab = "dashboard" | "products" | "categories" | "orders" | "feeds" | "users" | "blog" | "reviews" | "images";
 
 export default function AdminPage() {
   const [authed, setAuthed] = useState(!!localStorage.getItem("admin_token"));
@@ -471,6 +471,10 @@ export default function AdminPage() {
   const [pullingImages, setPullingImages] = useState(false);
   const [pullImageResult, setPullImageResult] = useState<any>(null);
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [imgSearch, setImgSearch] = useState("");
+  const [imgFilter, setImgFilter] = useState<"all" | "has_image" | "no_image">("all");
+  const [imgRowStatus, setImgRowStatus] = useState<Record<number, { loading?: boolean; msg?: string; ok?: boolean; newImage?: string | null }>>({});
+  const [imgBulkStatus, setImgBulkStatus] = useState<{ loading?: boolean; msg?: string } | null>(null);
 
   const loadData = async () => {
     try {
@@ -860,6 +864,7 @@ export default function AdminPage() {
     { key: "feeds", label: "Feeds", icon: <Rss className="w-4 h-4" />, count: customFeeds.length },
     { key: "blog", label: "Blog", icon: <FileText className="w-4 h-4" />, count: blogPosts.length },
     { key: "reviews", label: "Reviews", icon: <Star className="w-4 h-4" />, count: adminReviews.filter(r => !r.approved).length },
+    { key: "images", label: "Images", icon: <ImageIcon className="w-4 h-4" />, count: products.filter(p => p.image).length },
   ];
 
   const filteredUsers = usersList.filter(u =>
@@ -2288,6 +2293,205 @@ export default function AdminPage() {
             )}
           </div>
         )}
+
+        {tab === "images" && (() => {
+          const PHONE_DOMAINS = ["gsmarena.com","phonearena.com","91mobiles.com","smartprix.com","kimovil.com","carphonewarehouse.com","mobiles.co.uk","fonehouse.co.uk"];
+          const PHONE_KEYS = ["smartphone","mobile-phone","iphone","galaxy-s","galaxy-a","galaxy-m","pixel-phone","android-phone","/phones/","phone-case","screen-protector","handset","cellphone","gsmarena","phonearena"];
+          const isPhoneUrl = (url: string) => { const l = url.toLowerCase(); return PHONE_DOMAINS.some(d => l.includes(d)) || PHONE_KEYS.some(k => l.includes(k)); };
+
+          const imgProducts = products
+            .filter(p => {
+              const matchSearch = !imgSearch || p.name.toLowerCase().includes(imgSearch.toLowerCase()) || String(p.id).includes(imgSearch);
+              const matchFilter = imgFilter === "all" || (imgFilter === "has_image" && p.image) || (imgFilter === "no_image" && !p.image);
+              return matchSearch && matchFilter;
+            })
+            .sort((a, b) => {
+              const aPhone = a.image && isPhoneUrl(a.image);
+              const bPhone = b.image && isPhoneUrl(b.image);
+              if (aPhone && !bPhone) return -1;
+              if (!aPhone && bPhone) return 1;
+              if (!a.image && b.image) return 1;
+              if (a.image && !b.image) return -1;
+              return 0;
+            });
+
+          const withImages = products.filter(p => p.image).length;
+          const noImages = products.filter(p => !p.image).length;
+          const suspectImages = products.filter(p => p.image && isPhoneUrl(p.image)).length;
+
+          const clearImage = async (p: Product) => {
+            setImgRowStatus(s => ({ ...s, [p.id]: { loading: true } }));
+            try {
+              const r = await adminFetch(`/api/admin/products/${p.id}/clear-image`, { method: "POST" });
+              const d = await r.json();
+              setImgRowStatus(s => ({ ...s, [p.id]: { ok: true, msg: d.message, newImage: null } }));
+              setProducts(ps => ps.map(pr => pr.id === p.id ? { ...pr, image: null } : pr));
+            } catch (e: any) {
+              setImgRowStatus(s => ({ ...s, [p.id]: { ok: false, msg: e.message } }));
+            }
+          };
+
+          const reenrich = async (p: Product) => {
+            setImgRowStatus(s => ({ ...s, [p.id]: { loading: true, msg: "Enriching — this takes ~30s..." } }));
+            try {
+              await adminFetch(`/api/admin/products/${p.id}/reenrich`, { method: "POST" });
+              let attempts = 0;
+              const poll = setInterval(async () => {
+                attempts++;
+                try {
+                  const sr = await adminFetch(`/api/admin/products/${p.id}/reenrich/status`);
+                  const st = await sr.json();
+                  if (st.enrichedAt) {
+                    clearInterval(poll);
+                    const newImg = st.image || null;
+                    setImgRowStatus(s => ({ ...s, [p.id]: { ok: true, msg: newImg ? "Re-enriched — new image found!" : "Re-enriched — no image found", newImage: newImg } }));
+                    setProducts(ps => ps.map(pr => pr.id === p.id ? { ...pr, image: newImg } : pr));
+                  } else if (attempts > 30) {
+                    clearInterval(poll);
+                    setImgRowStatus(s => ({ ...s, [p.id]: { ok: false, msg: "Timed out — check back shortly" } }));
+                  }
+                } catch {}
+              }, 3000);
+            } catch (e: any) {
+              setImgRowStatus(s => ({ ...s, [p.id]: { ok: false, msg: e.message } }));
+            }
+          };
+
+          const bulkClearPhone = async () => {
+            if (!confirm(`Clear phone/invalid images from all products and queue them for re-enrichment?`)) return;
+            setImgBulkStatus({ loading: true, msg: "Clearing phone images..." });
+            try {
+              const r = await adminFetch("/api/admin/clear-bad-images", { method: "POST" });
+              const d = await r.json();
+              setImgBulkStatus({ msg: d.message });
+              loadData();
+            } catch (e: any) {
+              setImgBulkStatus({ msg: `Error: ${e.message}` });
+            }
+          };
+
+          return (
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                  <p className="text-2xl font-bold text-green-400">{withImages}</p>
+                  <p className="text-xs text-gray-400 mt-1">Have images</p>
+                </div>
+                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                  <p className="text-2xl font-bold text-gray-400">{noImages}</p>
+                  <p className="text-xs text-gray-400 mt-1">No image</p>
+                </div>
+                <div className="bg-white/5 rounded-xl p-4 border border-red-500/20">
+                  <p className="text-2xl font-bold text-red-400">{suspectImages}</p>
+                  <p className="text-xs text-gray-400 mt-1">Suspect (phone)</p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative flex-1 min-w-48">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                  <Input value={imgSearch} onChange={e => setImgSearch(e.target.value)} placeholder="Search by name or ID..." className="pl-10 bg-white/5 border-white/10 text-white text-sm" data-testid="input-img-search" />
+                </div>
+                <div className="flex gap-1 bg-white/5 rounded-lg p-1">
+                  {(["all","has_image","no_image"] as const).map(f => (
+                    <button key={f} onClick={() => setImgFilter(f)} className={`px-3 py-1.5 rounded text-xs transition ${imgFilter === f ? "bg-purple-600 text-white" : "text-gray-400 hover:text-white"}`} data-testid={`filter-img-${f}`}>
+                      {f === "all" ? `All (${products.length})` : f === "has_image" ? `Has Image (${withImages})` : `No Image (${noImages})`}
+                    </button>
+                  ))}
+                </div>
+                <Button onClick={bulkClearPhone} variant="outline" className="border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs" data-testid="button-bulk-clear-phone">
+                  <ImageOff className="w-3.5 h-3.5 mr-1" /> Clear Phone Images ({suspectImages})
+                </Button>
+              </div>
+
+              {imgBulkStatus && (
+                <div className={`p-3 rounded-lg text-sm border ${imgBulkStatus.loading ? "bg-yellow-500/10 border-yellow-500/20 text-yellow-400" : "bg-green-500/10 border-green-500/20 text-green-400"}`}>
+                  {imgBulkStatus.loading && <Loader2 className="w-4 h-4 inline animate-spin mr-2" />}
+                  {imgBulkStatus.msg}
+                </div>
+              )}
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm" data-testid="table-images">
+                  <thead>
+                    <tr className="border-b border-white/10 text-gray-400 text-left">
+                      <th className="py-3 px-3 w-16">Image</th>
+                      <th className="py-3 px-3">Product</th>
+                      <th className="py-3 px-3 hidden lg:table-cell">Image URL</th>
+                      <th className="py-3 px-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {imgProducts.slice(0, 200).map(p => {
+                      const status = imgRowStatus[p.id];
+                      const currentImage = status?.newImage !== undefined ? status.newImage : p.image;
+                      const suspect = currentImage && isPhoneUrl(currentImage);
+                      return (
+                        <tr key={p.id} className={`border-b border-white/5 transition ${suspect ? "bg-red-500/5 hover:bg-red-500/10" : "hover:bg-white/5"}`} data-testid={`row-img-${p.id}`}>
+                          <td className="py-2 px-3">
+                            {currentImage ? (
+                              <img src={currentImage} alt="" className={`w-12 h-12 object-contain rounded border ${suspect ? "border-red-500/40" : "border-white/10"} bg-white/5`} onError={e => { (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Crect width='48' height='48' fill='%23333'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23666' font-size='10'%3ENo img%3C/text%3E%3C/svg%3E"; }} />
+                            ) : (
+                              <div className="w-12 h-12 rounded border border-white/10 bg-white/5 flex items-center justify-center">
+                                <ImageOff className="w-5 h-5 text-gray-600" />
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-2 px-3">
+                            <a href={`/product/${p.slug}`} target="_blank" rel="noopener noreferrer" className="font-medium text-white hover:text-purple-400 transition-colors text-sm" data-testid={`link-img-product-${p.id}`}>
+                              {p.name.length > 60 ? p.name.slice(0, 60) + "…" : p.name}
+                            </a>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-xs text-gray-500">#{p.id}</span>
+                              {suspect && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">PHONE IMAGE</span>}
+                              {!currentImage && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-500/20 text-gray-400">NO IMAGE</span>}
+                            </div>
+                            {status && (
+                              <div className={`text-xs mt-1 ${status.loading ? "text-yellow-400" : status.ok ? "text-green-400" : "text-red-400"}`}>
+                                {status.loading && <Loader2 className="w-3 h-3 inline animate-spin mr-1" />}
+                                {status.msg}
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-2 px-3 hidden lg:table-cell">
+                            {currentImage ? (
+                              <a href={currentImage} target="_blank" rel="noopener noreferrer" className={`text-xs truncate max-w-xs block hover:underline ${suspect ? "text-red-400" : "text-gray-500 hover:text-gray-300"}`} data-testid={`link-img-url-${p.id}`}>
+                                {currentImage.length > 70 ? currentImage.slice(0, 70) + "…" : currentImage}
+                              </a>
+                            ) : (
+                              <span className="text-xs text-gray-600 italic">No image set</span>
+                            )}
+                          </td>
+                          <td className="py-2 px-3">
+                            <div className="flex gap-1 justify-end">
+                              {currentImage && (
+                                <Button size="sm" variant="ghost" onClick={() => clearImage(p)} disabled={status?.loading} className="text-gray-400 hover:text-red-400 h-8 px-2 text-xs" data-testid={`button-clear-img-${p.id}`} title="Clear image">
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              )}
+                              <Button size="sm" variant="ghost" onClick={() => reenrich(p)} disabled={status?.loading} className="text-gray-400 hover:text-purple-400 h-8 px-2 text-xs" data-testid={`button-reenrich-${p.id}`} title="Clear image and re-enrich now">
+                                <RefreshCw className="w-3.5 h-3.5" />
+                              </Button>
+                              <a href={`/product/${p.slug}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center text-gray-400 hover:text-blue-400 h-8 w-8 p-0" data-testid={`button-view-img-product-${p.id}`} title="View product">
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {imgProducts.length === 0 && (
+                      <tr><td colSpan={4} className="py-12 text-center text-gray-500">No products match this filter</td></tr>
+                    )}
+                    {imgProducts.length > 200 && (
+                      <tr><td colSpan={4} className="py-4 text-center text-gray-500 text-xs">Showing first 200 of {imgProducts.length} — use search to narrow down</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

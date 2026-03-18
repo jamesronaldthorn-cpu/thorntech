@@ -1654,6 +1654,64 @@ export async function enrichProducts(batchSize = 500): Promise<EnrichResult> {
   return result;
 }
 
+export async function enrichSingleProduct(productId: number): Promise<{ success: boolean; message: string }> {
+  try {
+    const allProducts = await storage.getProducts();
+    const product = allProducts.find(p => p.id === productId);
+    if (!product) return { success: false, message: `Product ${productId} not found` };
+
+    const categories = await storage.getCategories();
+    const updates: Record<string, any> = { enrichedAt: new Date() };
+
+    let existingSpecs: Record<string, string> = {};
+    try { if (product.specs) existingSpecs = typeof product.specs === "string" ? JSON.parse(product.specs) : product.specs; } catch {}
+    let existingFeatures: string[] = [];
+    try { if (product.features) existingFeatures = typeof product.features === "string" ? JSON.parse(product.features) : product.features; } catch {}
+    let existingImages: string[] = [];
+    try { if (product.images) existingImages = typeof product.images === "string" ? JSON.parse(product.images) : product.images; } catch {}
+
+    const { specs: nameSpecs, features: nameFeatures } = parseSpecsFromName(product.name, product.vendor || undefined, product.description || undefined);
+    const descSpecs = parseSpecsFromDescription(product.description || "");
+    const descFeatures = parseFeaturesFromDescription(product.description || "");
+
+    const category = product.categoryId ? categories.find(c => c.id === product.categoryId) : null;
+    let webData: EnrichmentData | null = null;
+    try {
+      webData = await enrichProduct(product.name, product.vendor || undefined, product.mpn || undefined, category?.name || undefined);
+    } catch (e: any) {
+      console.log(`[SingleEnrich] Web fetch failed: ${e.message}`);
+    }
+
+    const mergedSpecs = { ...nameSpecs, ...descSpecs, ...(webData?.specs || {}) };
+    const finalSpecs = { ...existingSpecs, ...mergedSpecs };
+    const mergedFeatures = [...new Set([...(webData?.features || []), ...descFeatures, ...nameFeatures])];
+    const finalFeatures = [...new Set([...mergedFeatures, ...existingFeatures])].slice(0, 20);
+
+    if (Object.keys(finalSpecs).length > 0) updates.specs = JSON.stringify(finalSpecs);
+    if (finalFeatures.length > 0) updates.features = JSON.stringify(finalFeatures);
+
+    if (webData?.images && webData.images.length > 0) {
+      const combinedImages = [...new Set([...existingImages, ...webData.images])].slice(0, 15);
+      updates.images = JSON.stringify(combinedImages);
+      const isBadImage = !product.image || product.image.includes("placeholder") || product.image.includes("no-image");
+      if (isBadImage) updates.image = webData.images[0];
+    } else if (!product.image && existingImages.length > 0) {
+      updates.image = existingImages[0];
+    }
+
+    if (webData?.description && (!product.description || product.description.length < 80)) {
+      updates.description = webData.description;
+    }
+
+    await storage.updateProduct(product.id, updates);
+    console.log(`[SingleEnrich] Done: "${product.name}" — ${Object.keys(finalSpecs).length} specs, ${finalFeatures.length} features, image: ${updates.image || product.image || "none"}`);
+    return { success: true, message: `Enriched "${product.name}" — ${Object.keys(finalSpecs).length} specs, ${webData?.images?.length || 0} new images found` };
+  } catch (e: any) {
+    console.error(`[SingleEnrich] Error: ${e.message}`);
+    return { success: false, message: e.message };
+  }
+}
+
 let pullImageProgress = { running: false, current: 0, total: 0, updated: 0, skipped: 0, errors: 0, currentProduct: "", done: false };
 
 export function getPullImageProgress() {

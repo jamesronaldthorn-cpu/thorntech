@@ -1372,17 +1372,67 @@ export async function registerRoutes(
     }
   });
 
+  const PHONE_IMG_DOMAINS = ["gsmarena.com","phonearena.com","91mobiles.com","smartprix.com","kimovil.com","carphonewarehouse.com","mobiles.co.uk","fonehouse.co.uk"];
+  const PHONE_IMG_KEYWORDS = ["smartphone","mobile-phone","iphone","galaxy-s","galaxy-a","galaxy-m","pixel-phone","android-phone","/phones/","phone-case","screen-protector","handset","cellphone","gsmarena","phonearena"];
+  function isPhoneImgUrl(url: string): boolean {
+    const l = url.toLowerCase();
+    return PHONE_IMG_DOMAINS.some(d => l.includes(d)) || PHONE_IMG_KEYWORDS.some(k => l.includes(k));
+  }
+
+  app.post("/api/admin/products/:id/clear-image", adminAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.updateProduct(id, { image: null, images: null, enrichedAt: null } as any);
+      res.json({ success: true, message: "Image cleared — product queued for re-enrichment" });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/admin/products/:id/reenrich", adminAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.updateProduct(id, { image: null, images: null, enrichedAt: null } as any);
+      res.json({ status: "started", message: "Cleared image — enriching now..." });
+      const { enrichSingleProduct } = await import("./productEnricher");
+      const result = await enrichSingleProduct(id);
+      console.log(`[ReEnrich] Product ${id}: ${result.message}`);
+    } catch (e: any) {
+      console.error("[ReEnrich] Error:", e.message);
+    }
+  });
+
+  app.get("/api/admin/products/:id/reenrich/status", adminAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const allProducts = await storage.getProducts();
+      const p = allProducts.find(pr => pr.id === id);
+      if (!p) return res.status(404).json({ error: "Not found" });
+      res.json({ id: p.id, image: p.image, images: p.images, enrichedAt: (p as any).enrichedAt });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.post("/api/admin/clear-bad-images", adminAuth, async (_req, res) => {
     try {
       const allProducts = await storage.getProducts();
       let cleared = 0;
       for (const p of allProducts) {
-        if (p.image && p.image.includes("media-amazon.com")) {
-          await storage.updateProduct(p.id, { image: null, images: null, enrichedAt: null });
+        const isPhone = (p.image && isPhoneImgUrl(p.image));
+        let hasPhoneInGallery = false;
+        if (p.images) {
+          try {
+            const arr: string[] = JSON.parse(p.images as string);
+            if (arr.some(isPhoneImgUrl)) hasPhoneInGallery = true;
+          } catch {}
+        }
+        if (isPhone || hasPhoneInGallery) {
+          await storage.updateProduct(p.id, { image: null, images: null, enrichedAt: null } as any);
           cleared++;
         }
       }
-      res.json({ cleared, message: `Cleared ${cleared} Amazon images. Run "Pull Missing Images" to re-fetch them.` });
+      res.json({ cleared, message: `Cleared images from ${cleared} products with phone/invalid images. They are now queued for re-enrichment.` });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
