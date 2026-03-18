@@ -472,9 +472,11 @@ export default function AdminPage() {
   const [pullImageResult, setPullImageResult] = useState<any>(null);
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [imgSearch, setImgSearch] = useState("");
-  const [imgFilter, setImgFilter] = useState<"all" | "has_image" | "no_image">("all");
+  const [imgFilter, setImgFilter] = useState<"all" | "has_image" | "no_image" | "mismatch">("all");
   const [imgRowStatus, setImgRowStatus] = useState<Record<number, { loading?: boolean; msg?: string; ok?: boolean; newImage?: string | null }>>({});
   const [imgBulkStatus, setImgBulkStatus] = useState<{ loading?: boolean; msg?: string } | null>(null);
+  const [imgMismatches, setImgMismatches] = useState<Record<number, string>>({});
+  const [imgScanLoading, setImgScanLoading] = useState(false);
 
   const loadData = async () => {
     try {
@@ -2299,25 +2301,35 @@ export default function AdminPage() {
           const PHONE_KEYS = ["smartphone","mobile-phone","iphone","galaxy-s","galaxy-a","galaxy-m","pixel-phone","android-phone","/phones/","phone-case","screen-protector","handset","cellphone","gsmarena","phonearena"];
           const isPhoneUrl = (url: string) => { const l = url.toLowerCase(); return PHONE_DOMAINS.some(d => l.includes(d)) || PHONE_KEYS.some(k => l.includes(k)); };
 
+          const mismatchCount = Object.keys(imgMismatches).length;
+          const phoneCount = products.filter(p => p.image && isPhoneUrl(p.image)).length;
+          const badCount = products.filter(p => p.image && (isPhoneUrl(p.image) || imgMismatches[p.id])).length;
+          const withImages = products.filter(p => p.image).length;
+          const noImages = products.filter(p => !p.image).length;
+
           const imgProducts = products
             .filter(p => {
               const matchSearch = !imgSearch || p.name.toLowerCase().includes(imgSearch.toLowerCase()) || String(p.id).includes(imgSearch);
-              const matchFilter = imgFilter === "all" || (imgFilter === "has_image" && p.image) || (imgFilter === "no_image" && !p.image);
+              const isMismatch = !!(imgMismatches[p.id]);
+              const isPhone = !!(p.image && isPhoneUrl(p.image));
+              const matchFilter =
+                imgFilter === "all" ||
+                (imgFilter === "has_image" && p.image) ||
+                (imgFilter === "no_image" && !p.image) ||
+                (imgFilter === "mismatch" && (isMismatch || isPhone));
               return matchSearch && matchFilter;
             })
             .sort((a, b) => {
-              const aPhone = a.image && isPhoneUrl(a.image);
-              const bPhone = b.image && isPhoneUrl(b.image);
-              if (aPhone && !bPhone) return -1;
-              if (!aPhone && bPhone) return 1;
+              const aPhone = !!(a.image && isPhoneUrl(a.image));
+              const bPhone = !!(b.image && isPhoneUrl(b.image));
+              const aMismatch = !!(imgMismatches[a.id]);
+              const bMismatch = !!(imgMismatches[b.id]);
+              if ((aPhone || aMismatch) && !(bPhone || bMismatch)) return -1;
+              if (!(aPhone || aMismatch) && (bPhone || bMismatch)) return 1;
               if (!a.image && b.image) return 1;
               if (a.image && !b.image) return -1;
               return 0;
             });
-
-          const withImages = products.filter(p => p.image).length;
-          const noImages = products.filter(p => !p.image).length;
-          const suspectImages = products.filter(p => p.image && isPhoneUrl(p.image)).length;
 
           const clearImage = async (p: Product) => {
             setImgRowStatus(s => ({ ...s, [p.id]: { loading: true } }));
@@ -2326,6 +2338,7 @@ export default function AdminPage() {
               const d = await r.json();
               setImgRowStatus(s => ({ ...s, [p.id]: { ok: true, msg: d.message, newImage: null } }));
               setProducts(ps => ps.map(pr => pr.id === p.id ? { ...pr, image: null } : pr));
+              setImgMismatches(m => { const n = { ...m }; delete n[p.id]; return n; });
             } catch (e: any) {
               setImgRowStatus(s => ({ ...s, [p.id]: { ok: false, msg: e.message } }));
             }
@@ -2335,6 +2348,7 @@ export default function AdminPage() {
             setImgRowStatus(s => ({ ...s, [p.id]: { loading: true, msg: "Enriching — this takes ~30s..." } }));
             try {
               await adminFetch(`/api/admin/products/${p.id}/reenrich`, { method: "POST" });
+              setImgMismatches(m => { const n = { ...m }; delete n[p.id]; return n; });
               let attempts = 0;
               const poll = setInterval(async () => {
                 attempts++;
@@ -2357,13 +2371,31 @@ export default function AdminPage() {
             }
           };
 
-          const bulkClearPhone = async () => {
-            if (!confirm(`Clear phone/invalid images from all products and queue them for re-enrichment?`)) return;
-            setImgBulkStatus({ loading: true, msg: "Clearing phone images..." });
+          const scanMismatches = async () => {
+            setImgScanLoading(true);
+            setImgBulkStatus({ loading: true, msg: "Scanning all products for mismatched images..." });
+            try {
+              const r = await adminFetch("/api/admin/scan-mismatches");
+              const d = await r.json();
+              const map: Record<number, string> = {};
+              for (const m of (d.mismatched || [])) map[m.id] = m.reason;
+              setImgMismatches(map);
+              setImgBulkStatus({ msg: `Scan complete — found ${d.count} mismatched images` });
+            } catch (e: any) {
+              setImgBulkStatus({ msg: `Error: ${e.message}` });
+            } finally {
+              setImgScanLoading(false);
+            }
+          };
+
+          const bulkClearBad = async () => {
+            if (!confirm(`Clear all bad/mismatched images (phone images + category mismatches) and queue those products for re-enrichment?`)) return;
+            setImgBulkStatus({ loading: true, msg: "Clearing bad images..." });
             try {
               const r = await adminFetch("/api/admin/clear-bad-images", { method: "POST" });
               const d = await r.json();
               setImgBulkStatus({ msg: d.message });
+              setImgMismatches({});
               loadData();
             } catch (e: any) {
               setImgBulkStatus({ msg: `Error: ${e.message}` });
@@ -2372,7 +2404,7 @@ export default function AdminPage() {
 
           return (
             <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-4 gap-3">
                 <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                   <p className="text-2xl font-bold text-green-400">{withImages}</p>
                   <p className="text-xs text-gray-400 mt-1">Have images</p>
@@ -2382,25 +2414,37 @@ export default function AdminPage() {
                   <p className="text-xs text-gray-400 mt-1">No image</p>
                 </div>
                 <div className="bg-white/5 rounded-xl p-4 border border-red-500/20">
-                  <p className="text-2xl font-bold text-red-400">{suspectImages}</p>
-                  <p className="text-xs text-gray-400 mt-1">Suspect (phone)</p>
+                  <p className="text-2xl font-bold text-red-400">{phoneCount}</p>
+                  <p className="text-xs text-gray-400 mt-1">Phone images</p>
+                </div>
+                <div className="bg-white/5 rounded-xl p-4 border border-orange-500/20 cursor-pointer hover:border-orange-400/40 transition" onClick={scanMismatches}>
+                  <p className="text-2xl font-bold text-orange-400">{mismatchCount > 0 ? mismatchCount : "?"}</p>
+                  <p className="text-xs text-gray-400 mt-1">{mismatchCount > 0 ? "Mismatched" : "Click to scan"}</p>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2">
                 <div className="relative flex-1 min-w-48">
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                   <Input value={imgSearch} onChange={e => setImgSearch(e.target.value)} placeholder="Search by name or ID..." className="pl-10 bg-white/5 border-white/10 text-white text-sm" data-testid="input-img-search" />
                 </div>
-                <div className="flex gap-1 bg-white/5 rounded-lg p-1">
-                  {(["all","has_image","no_image"] as const).map(f => (
-                    <button key={f} onClick={() => setImgFilter(f)} className={`px-3 py-1.5 rounded text-xs transition ${imgFilter === f ? "bg-purple-600 text-white" : "text-gray-400 hover:text-white"}`} data-testid={`filter-img-${f}`}>
-                      {f === "all" ? `All (${products.length})` : f === "has_image" ? `Has Image (${withImages})` : `No Image (${noImages})`}
+                <div className="flex gap-1 bg-white/5 rounded-lg p-1 flex-wrap">
+                  {([
+                    { key: "all" as const, label: `All (${products.length})` },
+                    { key: "has_image" as const, label: `Has Image (${withImages})` },
+                    { key: "no_image" as const, label: `No Image (${noImages})` },
+                    { key: "mismatch" as const, label: `Bad Images (${badCount})` },
+                  ]).map(f => (
+                    <button key={f.key} onClick={() => setImgFilter(f.key)} className={`px-3 py-1.5 rounded text-xs transition ${imgFilter === f.key ? (f.key === "mismatch" ? "bg-orange-600 text-white" : "bg-purple-600 text-white") : "text-gray-400 hover:text-white"}`} data-testid={`filter-img-${f.key}`}>
+                      {f.label}
                     </button>
                   ))}
                 </div>
-                <Button onClick={bulkClearPhone} variant="outline" className="border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs" data-testid="button-bulk-clear-phone">
-                  <ImageOff className="w-3.5 h-3.5 mr-1" /> Clear Phone Images ({suspectImages})
+                <Button onClick={scanMismatches} disabled={imgScanLoading} variant="outline" className="border-orange-500/30 text-orange-400 hover:bg-orange-500/10 text-xs" data-testid="button-scan-mismatches">
+                  {imgScanLoading ? <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />Scanning...</> : <><Search className="w-3.5 h-3.5 mr-1" />Scan Mismatches</>}
+                </Button>
+                <Button onClick={bulkClearBad} variant="outline" className="border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs" data-testid="button-bulk-clear-bad">
+                  <ImageOff className="w-3.5 h-3.5 mr-1" /> Clear All Bad ({badCount + mismatchCount})
                 </Button>
               </div>
 
@@ -2417,7 +2461,7 @@ export default function AdminPage() {
                     <tr className="border-b border-white/10 text-gray-400 text-left">
                       <th className="py-3 px-3 w-16">Image</th>
                       <th className="py-3 px-3">Product</th>
-                      <th className="py-3 px-3 hidden lg:table-cell">Image URL</th>
+                      <th className="py-3 px-3 hidden lg:table-cell">Image URL / Issue</th>
                       <th className="py-3 px-3 text-right">Actions</th>
                     </tr>
                   </thead>
@@ -2425,12 +2469,14 @@ export default function AdminPage() {
                     {imgProducts.slice(0, 200).map(p => {
                       const status = imgRowStatus[p.id];
                       const currentImage = status?.newImage !== undefined ? status.newImage : p.image;
-                      const suspect = currentImage && isPhoneUrl(currentImage);
+                      const isPhone = !!(currentImage && isPhoneUrl(currentImage));
+                      const mismatchReason = imgMismatches[p.id];
+                      const isBad = isPhone || !!mismatchReason;
                       return (
-                        <tr key={p.id} className={`border-b border-white/5 transition ${suspect ? "bg-red-500/5 hover:bg-red-500/10" : "hover:bg-white/5"}`} data-testid={`row-img-${p.id}`}>
+                        <tr key={p.id} className={`border-b border-white/5 transition ${isPhone ? "bg-red-500/5 hover:bg-red-500/10" : mismatchReason ? "bg-orange-500/5 hover:bg-orange-500/10" : "hover:bg-white/5"}`} data-testid={`row-img-${p.id}`}>
                           <td className="py-2 px-3">
                             {currentImage ? (
-                              <img src={currentImage} alt="" className={`w-12 h-12 object-contain rounded border ${suspect ? "border-red-500/40" : "border-white/10"} bg-white/5`} onError={e => { (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Crect width='48' height='48' fill='%23333'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23666' font-size='10'%3ENo img%3C/text%3E%3C/svg%3E"; }} />
+                              <img src={currentImage} alt="" className={`w-12 h-12 object-contain rounded border ${isPhone ? "border-red-500/40" : mismatchReason ? "border-orange-500/40" : "border-white/10"} bg-white/5`} onError={e => { (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Crect width='48' height='48' fill='%23333'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23666' font-size='10'%3ENo img%3C/text%3E%3C/svg%3E"; }} />
                             ) : (
                               <div className="w-12 h-12 rounded border border-white/10 bg-white/5 flex items-center justify-center">
                                 <ImageOff className="w-5 h-5 text-gray-600" />
@@ -2441,9 +2487,10 @@ export default function AdminPage() {
                             <a href={`/product/${p.slug}`} target="_blank" rel="noopener noreferrer" className="font-medium text-white hover:text-purple-400 transition-colors text-sm" data-testid={`link-img-product-${p.id}`}>
                               {p.name.length > 60 ? p.name.slice(0, 60) + "…" : p.name}
                             </a>
-                            <div className="flex items-center gap-2 mt-0.5">
+                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                               <span className="text-xs text-gray-500">#{p.id}</span>
-                              {suspect && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">PHONE IMAGE</span>}
+                              {isPhone && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">PHONE IMAGE</span>}
+                              {mismatchReason && !isPhone && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400">MISMATCH</span>}
                               {!currentImage && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-500/20 text-gray-400">NO IMAGE</span>}
                             </div>
                             {status && (
@@ -2455,9 +2502,12 @@ export default function AdminPage() {
                           </td>
                           <td className="py-2 px-3 hidden lg:table-cell">
                             {currentImage ? (
-                              <a href={currentImage} target="_blank" rel="noopener noreferrer" className={`text-xs truncate max-w-xs block hover:underline ${suspect ? "text-red-400" : "text-gray-500 hover:text-gray-300"}`} data-testid={`link-img-url-${p.id}`}>
-                                {currentImage.length > 70 ? currentImage.slice(0, 70) + "…" : currentImage}
-                              </a>
+                              <div>
+                                <a href={currentImage} target="_blank" rel="noopener noreferrer" className={`text-xs truncate max-w-xs block hover:underline ${isBad ? "text-orange-400" : "text-gray-500 hover:text-gray-300"}`} data-testid={`link-img-url-${p.id}`}>
+                                  {currentImage.length > 65 ? currentImage.slice(0, 65) + "…" : currentImage}
+                                </a>
+                                {mismatchReason && <p className="text-[10px] text-orange-400/70 mt-0.5">{mismatchReason}</p>}
+                              </div>
                             ) : (
                               <span className="text-xs text-gray-600 italic">No image set</span>
                             )}
@@ -2465,14 +2515,14 @@ export default function AdminPage() {
                           <td className="py-2 px-3">
                             <div className="flex gap-1 justify-end">
                               {currentImage && (
-                                <Button size="sm" variant="ghost" onClick={() => clearImage(p)} disabled={status?.loading} className="text-gray-400 hover:text-red-400 h-8 px-2 text-xs" data-testid={`button-clear-img-${p.id}`} title="Clear image">
+                                <Button size="sm" variant="ghost" onClick={() => clearImage(p)} disabled={status?.loading} className="text-gray-400 hover:text-red-400 h-8 px-2 text-xs" data-testid={`button-clear-img-${p.id}`} title="Clear image — queues overnight re-enrichment">
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </Button>
                               )}
-                              <Button size="sm" variant="ghost" onClick={() => reenrich(p)} disabled={status?.loading} className="text-gray-400 hover:text-purple-400 h-8 px-2 text-xs" data-testid={`button-reenrich-${p.id}`} title="Clear image and re-enrich now">
+                              <Button size="sm" variant="ghost" onClick={() => reenrich(p)} disabled={status?.loading} className={`h-8 px-2 text-xs ${isBad ? "text-orange-400 hover:text-orange-300" : "text-gray-400 hover:text-purple-400"}`} data-testid={`button-reenrich-${p.id}`} title="Clear image and re-enrich now (~30s)">
                                 <RefreshCw className="w-3.5 h-3.5" />
                               </Button>
-                              <a href={`/product/${p.slug}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center text-gray-400 hover:text-blue-400 h-8 w-8 p-0" data-testid={`button-view-img-product-${p.id}`} title="View product">
+                              <a href={`/product/${p.slug}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center text-gray-400 hover:text-blue-400 h-8 w-8 p-0" data-testid={`button-view-img-product-${p.id}`} title="View product page">
                                 <ExternalLink className="w-3.5 h-3.5" />
                               </a>
                             </div>

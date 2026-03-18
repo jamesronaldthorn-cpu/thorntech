@@ -1414,25 +1414,47 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/admin/scan-mismatches", adminAuth, async (_req, res) => {
+    try {
+      const { isImageMismatch } = await import("./productEnricher");
+      const allProducts = await storage.getProducts();
+      const mismatched: { id: number; name: string; image: string; reason: string }[] = [];
+      for (const p of allProducts) {
+        if (!p.image) continue;
+        const reason = isImageMismatch(p.name, p.image);
+        if (reason) mismatched.push({ id: p.id, name: p.name, image: p.image, reason });
+      }
+      res.json({ count: mismatched.length, mismatched });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.post("/api/admin/clear-bad-images", adminAuth, async (_req, res) => {
     try {
+      const { isImageMismatch } = await import("./productEnricher");
       const allProducts = await storage.getProducts();
       let cleared = 0;
       for (const p of allProducts) {
-        const isPhone = (p.image && isPhoneImgUrl(p.image));
-        let hasPhoneInGallery = false;
+        const isBad = (url: string) => isPhoneImgUrl(url) || !!isImageMismatch(p.name, url);
+        const mainIsBad = p.image && isBad(p.image);
+        let cleanedGallery: string[] | null = null;
         if (p.images) {
           try {
             const arr: string[] = JSON.parse(p.images as string);
-            if (arr.some(isPhoneImgUrl)) hasPhoneInGallery = true;
+            const filtered = arr.filter(img => !isBad(img));
+            if (filtered.length !== arr.length) cleanedGallery = filtered;
           } catch {}
         }
-        if (isPhone || hasPhoneInGallery) {
-          await storage.updateProduct(p.id, { image: null, images: null, enrichedAt: null } as any);
+        if (mainIsBad || cleanedGallery) {
+          const updates: any = {};
+          if (mainIsBad) { updates.image = null; updates.enrichedAt = null; }
+          if (cleanedGallery !== null) updates.images = JSON.stringify(cleanedGallery);
+          await storage.updateProduct(p.id, updates);
           cleared++;
         }
       }
-      res.json({ cleared, message: `Cleared images from ${cleared} products with phone/invalid images. They are now queued for re-enrichment.` });
+      res.json({ cleared, message: `Cleared bad/mismatched images from ${cleared} products. They are now queued for re-enrichment.` });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }

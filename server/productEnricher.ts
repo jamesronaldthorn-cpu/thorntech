@@ -1238,6 +1238,107 @@ const BLOCKED_PAGE_URL_KEYWORDS = [
   "91mobiles", "fonehouse", "clove.co.uk", "unlocked-phones",
 ];
 
+// Keywords in image URL paths that indicate a completely wrong product category for a PC store
+const CROSS_CATEGORY_URL_PATTERNS: string[] = [
+  // Watches / clocks
+  "/watches/", "/watch/", "-wristwatch", "wrist-watch", "analog-watch", "digital-watch",
+  "chronograph", "horology", "watch-strap", "watch-band", "watch-face", "watch-case",
+  // Jewellery
+  "/jewellery/", "/jewelry/", "/rings/", "/necklaces/", "/bracelets/", "/earrings/", "/pendants/",
+  "engagement-ring", "wedding-ring", "diamond-ring", "gold-necklace", "silver-necklace",
+  "charm-bracelet", "stud-earring", "pearl-necklace",
+  // Clothing / fashion
+  "/clothing/", "/fashion/", "/apparel/", "/t-shirts/", "/tshirts/",
+  "/jackets/", "/dresses/", "/trousers/", "/jeans/", "/shoes/",
+  "/boots/", "/trainers/", "/sneakers/", "/sandals/", "/hoodies/",
+  "mens-shirt", "ladies-shirt", "womens-shirt", "boys-shirt", "girls-shirt",
+  // Food / drink / supplements
+  "/food/", "/grocery/", "/drinks/", "/beverages/",
+  "protein-powder", "whey-protein", "creatine-", "pre-workout",
+  "/supplement/", "/supplements/",
+  // Beauty / personal care
+  "/beauty/", "/makeup/", "/cosmetics/", "/skincare/", "/fragrance/", "/perfume/",
+  "/haircare/", "/shampoo", "/conditioner/", "lipstick-", "mascara-", "foundation-",
+  // Toys
+  "/toys/", "/toy/", "/action-figures/", "-plush-", "lego-set", "lego-brick",
+  "board-game", "jigsaw-puzzle", "action-figure", "/dolls/",
+  // Books / media
+  "/books/", "paperback-", "hardcover-", "/novel/", "book-cover",
+  // Automotive (non-tech)
+  "/tyres/", "/tires/", "car-seat-cover", "car-floor-mat",
+  "windscreen-wiper", "/car-cover/",
+  // Pets
+  "/pets/", "/pet-food/", "dog-food-", "cat-food-", "pet-collar-", "dog-lead",
+  // Sporting goods (non-gaming)
+  "/yoga-mat", "/dumbbell", "/barbell", "resistance-band",
+  // Home / furniture
+  "/sofas/", "/mattress/", "/wardrobe/", "/bedding/", "/curtains/",
+];
+
+// Trusted PC retail / manufacturer domains — images from these are always accepted
+const TRUSTED_IMAGE_DOMAINS = [
+  "scan.co.uk", "ccl.co.uk", "ebuyer.com", "overclockers.co.uk", "box.co.uk",
+  "novatech.co.uk", "lambdatek.com", "aria.co.uk", "cclonline.com",
+  "currys.co.uk", "johnlewis.com",
+  "vip-computers.com", "targetcomponents.com", "pictureserver.co.uk",
+  "amd.com", "intel.com", "nvidia.com", "asus.com", "msi.com", "gigabyte.com",
+  "corsair.com", "kingston.com", "samsung.com", "seagate.com", "westerndigital.com",
+  "crucial.com", "gskill.com", "hyperx.com", "coolermasters.com", "nzxt.com",
+  "thermaltake.com", "bequiet.com", "noctua.at", "arctic.ac",
+  "razer.com", "logitech.com", "steelseries.com", "rode.com", "elgato.com",
+  "lg.com", "dell.com", "benq.com", "aoc.com", "acer.com", "viewsonic.com",
+  "fractaldesign.com", "lianli.com", "phanteks.com", "antec.com", "silverstone-tek.com",
+  "seasonic.com", "evga.com", "sapphiretech.com", "xfxgpu.com", "powercolor.com",
+  "zotac.com", "asrock.com", "adata.com", "patriotmemory.com", "sabrent.com",
+  "deepcool.com", "ekwb.com", "thrustmaster.com", "tplink.com", "netgear.com",
+  "trust.com", "targus.com", "kensington.com", "belkin.com", "anker.com",
+  "duckduckgo.com", "media-amazon.com",
+];
+
+export function isImageMismatch(productName: string, imageUrl: string): string | null {
+  const imgLower = imageUrl.toLowerCase();
+
+  // Trusted domains are always fine
+  if (TRUSTED_IMAGE_DOMAINS.some(d => imgLower.includes(d))) return null;
+
+  // Check cross-category URL patterns in the image path
+  const imgPath = imgLower.replace(/^https?:\/\/[^/]+/, ""); // strip domain
+  for (const pattern of CROSS_CATEGORY_URL_PATTERNS) {
+    if (imgPath.includes(pattern)) {
+      return `URL path contains non-PC category pattern: "${pattern}"`;
+    }
+  }
+
+  // Check the image filename itself for wrong-category keywords
+  const filename = (imgLower.split("/").pop() || "").replace(/[?#].*$/, "");
+  const filenameWords = filename.replace(/[_\-\.]/g, " ").split(/\s+/);
+
+  const wrongCategoryWords: Record<string, string[]> = {
+    watch: ["watch", "timepiece", "chronograph"],
+    jewellery: ["necklace", "bracelet", "earring", "pendant", "jewellery", "jewelry", "diamond", "sapphire-ring", "ruby"],
+    clothing: ["tshirt", "jacket", "hoodie", "tracksuit", "trousers", "jeans", "blouse", "skirt", "dress", "leggings"],
+    shoes: ["trainers", "sneakers", "sandals", "loafers", "heels", "stiletto"],
+    food: ["supplement", "protein", "creatine", "preworkout", "multivitamin"],
+    beauty: ["lipstick", "mascara", "foundation", "concealer", "eyeshadow", "shampoo", "conditioner", "perfume", "cologne"],
+    toys: ["plush", "lego", "puzzle", "doll", "dollhouse"],
+    pet: ["dogfood", "catfood", "petcollar"],
+  };
+
+  for (const [cat, words] of Object.entries(wrongCategoryWords)) {
+    for (const word of words) {
+      if (filenameWords.includes(word) || filename.includes(word)) {
+        // Make sure the product name doesn't legitimately contain this word
+        const nameLower = productName.toLowerCase();
+        if (!nameLower.includes(word)) {
+          return `Filename contains ${cat} keyword: "${word}"`;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
 function isPhoneImage(imageUrl: string): boolean {
   const lower = imageUrl.toLowerCase();
   if (BLOCKED_IMAGE_DOMAINS.some(d => lower.includes(d))) return true;
@@ -1257,6 +1358,12 @@ function validateImageRelevance(productName: string, vendor: string | undefined,
   const vendorLower = vendor?.toLowerCase() || "";
 
   if (isPhoneImage(imageUrl)) return false;
+
+  const mismatch = isImageMismatch(productName, imageUrl);
+  if (mismatch) {
+    console.log(`[Enricher]   Rejected image (mismatch: ${mismatch}): ${imageUrl.substring(0, 80)}`);
+    return false;
+  }
 
   const genericBadPatterns = [
     "no-image", "placeholder", "default", "coming-soon", "noimage",

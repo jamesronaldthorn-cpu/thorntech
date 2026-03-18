@@ -204,6 +204,8 @@ async function autoFixCategories() {
     const catById = new Map(categories.map((c: any) => [c.id, c.slug]));
     let fixed = 0;
     let phonesCleared = 0;
+    const { isImageMismatch } = await import("./productEnricher");
+    const isBadImage = (name: string, url: string) => isPhoneImageUrl(url) || !!isImageMismatch(name, url);
 
     for (const p of allProducts) {
       // Fix wrong categories
@@ -214,23 +216,24 @@ async function autoFixCategories() {
         console.log(`[AutoFix] Moved "${p.name.substring(0, 60)}" → ${catById.get(override)}`);
       }
 
-      // Clear phone images
-      const hasPhoneImage = (p.image && isPhoneImageUrl(p.image));
+      // Clear phone images AND cross-category mismatch images
+
+      const hasPhoneImage = (p.image && isBadImage(p.name, p.image));
       let cleanedImages: string[] | null = null;
       if (p.images) {
         try {
           const arr: string[] = JSON.parse(p.images as string);
-          const filtered = arr.filter(img => !isPhoneImageUrl(img));
+          const filtered = arr.filter(img => !isBadImage(p.name, img));
           if (filtered.length !== arr.length) cleanedImages = filtered;
         } catch {}
       }
       if (hasPhoneImage || cleanedImages) {
         const updates: any = {};
-        if (hasPhoneImage) updates.image = null;
+        if (hasPhoneImage) { updates.image = null; updates.enrichedAt = null; }
         if (cleanedImages !== null) updates.images = JSON.stringify(cleanedImages);
         await storage.updateProduct(p.id, updates);
         phonesCleared++;
-        if (hasPhoneImage) console.log(`[AutoFix] Cleared phone image from "${p.name.substring(0, 60)}"`);
+        if (hasPhoneImage) console.log(`[AutoFix] Cleared bad/mismatched image from "${p.name.substring(0, 60)}"`);
       }
     }
 
