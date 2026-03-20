@@ -471,7 +471,7 @@ export default function ProductFilters({
       </div>
 
       <aside className="hidden lg:block w-60 shrink-0">
-        <div className="sticky top-4 p-4 bg-card/50 border border-white/5 rounded-xl">
+        <div className="sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto p-4 bg-card/50 border border-white/5 rounded-xl [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.15)_transparent]">
           {sidebar}
         </div>
       </aside>
