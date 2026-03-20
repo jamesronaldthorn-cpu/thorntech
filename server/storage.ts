@@ -1,4 +1,4 @@
-import { eq, sql, gte, desc, count, and } from "drizzle-orm";
+import { eq, sql, gte, desc, count, and, or, ilike, notIlike, ne } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { users, categories, products, orders, customFeeds, feedSources, pageViews, basketEvents, blogPosts, customerReviews, type User, type InsertUser, type Category, type InsertCategory, type Product, type InsertProduct, type Order, type InsertOrder, type CustomFeed, type InsertCustomFeed, type FeedSource, type InsertFeedSource, type BlogPost, type InsertBlogPost, type CustomerReview, type InsertCustomerReview } from "@shared/schema";
 
@@ -373,38 +373,56 @@ export class DatabaseStorage implements IStorage {
     if (!memCat[0]) return { fixed: 0, details: ["memory category not found"] };
     const memId = memCat[0].id;
 
-    // Unambiguous RAM identifiers — patterns that only appear in actual RAM product names
-    const ramSqlPatterns: string[] = [
-      `name ILIKE '%DIMM System Memory%'`,
-      `name ILIKE '%U-DIMM System Memory%'`,
-      `name ILIKE '%SO-DIMM System Memory%'`,
-      `(name ILIKE '%DDR4%' OR name ILIKE '%DDR5%' OR name ILIKE '%DDR3%') AND name ILIKE '%System Memory%'`,
-      `name ILIKE '%ValueRAM%' AND name ILIKE '%GB%'`,
-      `name ILIKE '%FURY Beast%' AND name ILIKE '%GB%' AND name NOT ILIKE '%NVMe%' AND name NOT ILIKE '%SSD%'`,
-      `name ILIKE '%FURY Renegade%' AND name ILIKE '%GB%' AND name NOT ILIKE '%NVMe%' AND name NOT ILIKE '%SSD%'`,
-      `name ILIKE '%Vengeance%' AND name ILIKE '%DDR%' AND name NOT ILIKE '%SSD%'`,
-      `name ILIKE '%Ripjaws%' AND name ILIKE '%DDR%'`,
-      `name ILIKE '%Trident Z%' AND name ILIKE '%DDR%'`,
-      `name ILIKE '%XPG Lancer%' AND name ILIKE '%DDR%'`,
-      `name ILIKE '%XPG Gammix%' AND name ILIKE '%DDR%'`,
-      `name ILIKE '%XPG Spectrix%' AND name ILIKE '%DDR%'`,
-      `name ILIKE '%Flare X%' AND name ILIKE '%DDR%'`,
-      `name ILIKE '%Dominator Platinum%' AND name ILIKE '%DDR%'`,
-      `name ILIKE '%LRDIMM%'`,
-      `name ILIKE '%RDIMM%' AND name NOT ILIKE '%SSD%'`,
-    ];
-
-    for (const pattern of ramSqlPatterns) {
-      const result = await this.db.execute(
-        sql.raw(`UPDATE products SET category_id = ${memId} WHERE (${pattern}) AND category_id != ${memId} RETURNING id, name`)
-      );
-      const rows = (result as any).rows ?? [];
+    // Helper: run one UPDATE and collect results
+    const rescue = async (condition: any) => {
+      const rows = await this.db
+        .update(products)
+        .set({ categoryId: memId })
+        .where(and(condition, ne(products.categoryId, memId)))
+        .returning({ id: products.id, name: products.name });
       for (const row of rows) {
-        const label = `RAM rescued: "${String(row.name).substring(0, 65)}"`;
-        details.push(label);
+        details.push(`RAM rescued: "${row.name.substring(0, 70)}"`);
         fixed++;
       }
-    }
+    };
+
+    const noSSD = and(notIlike(products.name, '%NVMe%'), notIlike(products.name, '%SSD%'), notIlike(products.name, '%M.2%'));
+
+    // DIMM form factors — completely unambiguous
+    await rescue(ilike(products.name, '%DIMM System Memory%'));
+    await rescue(and(ilike(products.name, '%U-DIMM%'), noSSD));
+    await rescue(and(ilike(products.name, '% DIMM%'), ilike(products.name, '%DDR%'), noSSD));
+    await rescue(and(ilike(products.name, '%SODIMM%'), noSSD));
+    await rescue(and(ilike(products.name, '%SO-DIMM%'), noSSD));
+    await rescue(and(ilike(products.name, '%RDIMM%'), noSSD));
+    await rescue(ilike(products.name, '%LRDIMM%'));
+
+    // DDR type + Memory keyword (covers "DDR4 Memory", "DDR5 Memory", "System Memory")
+    await rescue(and(or(ilike(products.name, '%DDR4%'), ilike(products.name, '%DDR5%'), ilike(products.name, '%DDR3%')), ilike(products.name, '%Memory%'), noSSD,
+      notIlike(products.name, '%Slot%'), notIlike(products.name, '%Motherboard%'), notIlike(products.name, '%Socket%'),
+      notIlike(products.name, '%Laptop%'), notIlike(products.name, '%Notebook%'), notIlike(products.name, '%Pre-Built%'),
+      notIlike(products.name, '%GeForce%'), notIlike(products.name, '%Radeon%'), notIlike(products.name, '%Graphics%')
+    ));
+
+    // Well-known RAM brands
+    await rescue(and(ilike(products.name, '%ValueRAM%'), ilike(products.name, '%GB%')));
+    await rescue(and(ilike(products.name, '%FURY Beast%'), ilike(products.name, '%GB%'), noSSD));
+    await rescue(and(ilike(products.name, '%FURY Renegade%'), ilike(products.name, '%GB%'), noSSD));
+    await rescue(and(ilike(products.name, '%Vengeance%'), ilike(products.name, '%DDR%'), notIlike(products.name, '%SSD%')));
+    await rescue(and(ilike(products.name, '%Ripjaws%'), ilike(products.name, '%DDR%')));
+    await rescue(and(ilike(products.name, '%Trident Z%'), ilike(products.name, '%DDR%')));
+    await rescue(and(ilike(products.name, '%XPG Lancer%'), ilike(products.name, '%DDR%')));
+    await rescue(and(ilike(products.name, '%XPG Gammix%'), ilike(products.name, '%DDR%')));
+    await rescue(and(ilike(products.name, '%XPG Spectrix%'), ilike(products.name, '%DDR%')));
+    await rescue(and(ilike(products.name, '%Flare X%'), ilike(products.name, '%DDR%')));
+    await rescue(and(ilike(products.name, '%Dominator Platinum%'), ilike(products.name, '%DDR%')));
+    await rescue(and(ilike(products.name, '%Patriot%'), ilike(products.name, '%DDR%'), ilike(products.name, '%GB%'), noSSD,
+      notIlike(products.name, '%Motherboard%'), notIlike(products.name, '%Laptop%')));
+    await rescue(and(ilike(products.name, '%HyperX%'), ilike(products.name, '%DDR%'), notIlike(products.name, '%Headset%'), notIlike(products.name, '%Mouse%'), notIlike(products.name, '%Keyboard%')));
+    await rescue(and(ilike(products.name, '%Crucial%'), ilike(products.name, '%DDR%'), ilike(products.name, '%GB%'), noSSD));
+    await rescue(and(ilike(products.name, '%Team Group%'), ilike(products.name, '%DDR%'), ilike(products.name, '%GB%')));
+    await rescue(and(ilike(products.name, '%Ballistix%'), ilike(products.name, '%DDR%')));
+    await rescue(and(ilike(products.name, '%Signature Series%'), ilike(products.name, '%DDR%'), ilike(products.name, '%GB%')));
 
     return { fixed, details };
   }
