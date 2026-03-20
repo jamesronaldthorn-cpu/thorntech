@@ -1,0 +1,104 @@
+root@bold-golick:~/thorntech# cd /root/thorntech && git remote set-url origin https://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@github.com/jamesronaldthorn-cpu/thorntech.git && git fetch origin && git reset --hard origin/main && npm install && npm run build && pm2 restart thorntech
+remote: Enumerating objects: 7, done.
+remote: Counting objects: 100% (7/7), done.
+remote: Compressing objects: 100% (4/4), done.
+remote: Total 4 (delta 3), reused 0 (delta 0), pack-reused 0 (from 0)
+Unpacking objects: 100% (4/4), 952 bytes | 476.00 KiB/s, done.
+From https://github.com/jamesronaldthorn-cpu/thorntech
+   63c6d2b..590fcfd  main       -> origin/main
+HEAD is now at 590fcfd Add /fix-ram browser URL for one-click RAM category repair
+
+up to date, audited 447 packages in 902ms
+
+59 packages are looking for funding
+  run `npm fund` for details
+
+8 vulnerabilities (1 low, 5 moderate, 2 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+> rest-express@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.3.1 building client environment for production...
+✓ 1850 modules transformed.
+../dist/public/index.html                       6.46 kB │ gzip:   2.09 kB
+../dist/public/assets/logo-BFk2Yk2T.png       777.57 kB
+../dist/public/assets/hero-bg-Y8bzrNyO.png  1,322.76 kB
+../dist/public/assets/index-Ca9QtXlr.css      134.18 kB │ gzip:  20.66 kB
+../dist/public/assets/index-DiErAq35.js       684.93 kB │ gzip: 190.08 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 3.06s
+building server...
+
+  dist/index.cjs  1.3mb ⚠️
+
+⚡ Done in 173ms
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [thorntech](ids: [ 0 ])
+[PM2] [thorntech](0) ✓
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 0  │ thorntech          │ fork     │ 31   │ online    │ 0%       │ 2.1mb    │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+root@bold-golick:~/thorntech# cd /root/thorntech && git remote set-url origin https://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@github.com/jamesronaldthorn-cpu/thorntech.git && git fetch origin && git reset --hard origin/main && npm install && npm run build && pm2 restart thorntech
+HEAD is now at 590fcfd Add /fix-ram browser URL for one-click RAM category repair
+
+up to date, audited 447 packages in 877ms
+
+59 packages are looking for funding
+  run `npm fund` for details
+
+8 vulnerabilities (1 low, 5 moderate, 2 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+> rest-express@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.3.1 building client environment for production...
+✓ 1850 modules transformed.
+../dist/public/index.html                       6.46 kB │ gzip:   2.09 kB
+../dist/public/assets/logo-BFk2Yk2T.png       777.57 kB
+../dist/public/assets/hero-bg-Y8bzrNyO.png  1,322.76 kB
+../dist/public/assets/index-Ca9QtXlr.css      134.18 kB │ gzip:  20.66 kB
+../dist/public/assets/index-DiErAq35.js       684.93 kB │ gzip: 190.08 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 3.04s
+building server...
+
+  dist/index.cjs  1.3mb ⚠️
+
+⚡ Done in 159ms
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [thorntech](ids: [ 0 ])
+[PM2] [thorntech](0) ✓
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 0  │ thorntech          │ fork     │ 32   │ online    │ 0%       │ 8.8mb    │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+root@bold-golick:~/thorntech#
