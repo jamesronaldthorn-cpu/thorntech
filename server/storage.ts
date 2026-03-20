@@ -52,6 +52,7 @@ export interface IStorage {
   createReview(review: InsertCustomerReview): Promise<CustomerReview>;
   approveReview(id: number): Promise<CustomerReview | undefined>;
   deleteReview(id: number): Promise<boolean>;
+  fixRamCategories(): Promise<{ fixed: number; details: string[] }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -362,6 +363,50 @@ export class DatabaseStorage implements IStorage {
   async deleteReview(id: number): Promise<boolean> {
     const result = await this.db.delete(customerReviews).where(eq(customerReviews.id, id)).returning();
     return result.length > 0;
+  }
+
+  async fixRamCategories(): Promise<{ fixed: number; details: string[] }> {
+    const details: string[] = [];
+    let fixed = 0;
+
+    const memCat = await this.db.select().from(categories).where(eq(categories.slug, "memory"));
+    if (!memCat[0]) return { fixed: 0, details: ["memory category not found"] };
+    const memId = memCat[0].id;
+
+    // Unambiguous RAM identifiers — patterns that only appear in actual RAM product names
+    const ramSqlPatterns: string[] = [
+      `name ILIKE '%DIMM System Memory%'`,
+      `name ILIKE '%U-DIMM System Memory%'`,
+      `name ILIKE '%SO-DIMM System Memory%'`,
+      `(name ILIKE '%DDR4%' OR name ILIKE '%DDR5%' OR name ILIKE '%DDR3%') AND name ILIKE '%System Memory%'`,
+      `name ILIKE '%ValueRAM%' AND name ILIKE '%GB%'`,
+      `name ILIKE '%FURY Beast%' AND name ILIKE '%GB%' AND name NOT ILIKE '%NVMe%' AND name NOT ILIKE '%SSD%'`,
+      `name ILIKE '%FURY Renegade%' AND name ILIKE '%GB%' AND name NOT ILIKE '%NVMe%' AND name NOT ILIKE '%SSD%'`,
+      `name ILIKE '%Vengeance%' AND name ILIKE '%DDR%' AND name NOT ILIKE '%SSD%'`,
+      `name ILIKE '%Ripjaws%' AND name ILIKE '%DDR%'`,
+      `name ILIKE '%Trident Z%' AND name ILIKE '%DDR%'`,
+      `name ILIKE '%XPG Lancer%' AND name ILIKE '%DDR%'`,
+      `name ILIKE '%XPG Gammix%' AND name ILIKE '%DDR%'`,
+      `name ILIKE '%XPG Spectrix%' AND name ILIKE '%DDR%'`,
+      `name ILIKE '%Flare X%' AND name ILIKE '%DDR%'`,
+      `name ILIKE '%Dominator Platinum%' AND name ILIKE '%DDR%'`,
+      `name ILIKE '%LRDIMM%'`,
+      `name ILIKE '%RDIMM%' AND name NOT ILIKE '%SSD%'`,
+    ];
+
+    for (const pattern of ramSqlPatterns) {
+      const result = await this.db.execute(
+        sql.raw(`UPDATE products SET category_id = ${memId} WHERE (${pattern}) AND category_id != ${memId} RETURNING id, name`)
+      );
+      const rows = (result as any).rows ?? [];
+      for (const row of rows) {
+        const label = `RAM rescued: "${String(row.name).substring(0, 65)}"`;
+        details.push(label);
+        fixed++;
+      }
+    }
+
+    return { fixed, details };
   }
 }
 

@@ -198,12 +198,21 @@ async function autoFixCategories() {
   try {
     const { storage } = await import("./storage");
     const { nameBasedCategoryOverride } = await import("./targetApi");
-    const allProducts = await storage.getProducts();
     const categories = await storage.getCategories();
     const catBySlug = new Map(categories.map((c: any) => [c.slug, c.id]));
     const catById = new Map(categories.map((c: any) => [c.id, c.slug]));
     let fixed = 0;
     let phonesCleared = 0;
+
+    // Pass 1: SQL-based RAM rescue (catches all misplaced RAM regardless of category)
+    const sqlResult = await storage.fixRamCategories();
+    fixed += sqlResult.fixed;
+    for (const detail of sqlResult.details) {
+      console.log(`[AutoFix-SQL] ${detail}`);
+    }
+
+    // Pass 2: nameBasedCategoryOverride for remaining products
+    const allProducts = await storage.getProducts();
     const { isImageMismatch } = await import("./productEnricher");
     const isBadImage = (name: string, url: string) => isPhoneImageUrl(url) || !!isImageMismatch(name, url);
 

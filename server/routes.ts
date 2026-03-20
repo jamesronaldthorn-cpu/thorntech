@@ -1237,21 +1237,31 @@ export async function registerRoutes(
   app.post("/api/admin/fix-categories", adminAuth, async (_req, res) => {
     res.json({ status: "started", message: "Re-categorising misplaced products in background..." });
     try {
+      let totalFixed = 0;
+
+      // Pass 1: direct SQL rescue by name patterns (catches RAM in any wrong category)
+      const sqlResult = await storage.fixRamCategories();
+      totalFixed += sqlResult.fixed;
+      for (const detail of sqlResult.details) {
+        console.log(`[FixCats-SQL] ${detail}`);
+      }
+
+      // Pass 2: nameBasedCategoryOverride for any remaining misplacements
       const { nameBasedCategoryOverride: nameCatOverride } = await import("./targetApi");
       const allProducts = await storage.getProducts();
       const categories = await storage.getCategories();
       const catBySlug = new Map(categories.map(c => [c.slug, c.id]));
       const catById = new Map(categories.map(c => [c.id, c.slug]));
-      let fixed = 0;
       for (const p of allProducts) {
         const override = nameCatOverride(p.name, catBySlug);
         if (override && override !== p.categoryId) {
           await storage.updateProduct(p.id, { categoryId: override });
-          fixed++;
+          totalFixed++;
           console.log(`[FixCats] Moved "${p.name.substring(0, 60)}" → ${catById.get(override)}`);
         }
       }
-      console.log(`[FixCats] Re-categorised ${fixed} products`);
+
+      console.log(`[FixCats] Total re-categorised: ${totalFixed} products`);
     } catch (e: any) {
       console.error("[FixCats] Error:", e.message);
     }
