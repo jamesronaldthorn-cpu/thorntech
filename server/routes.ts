@@ -1234,6 +1234,42 @@ export async function registerRoutes(
     }
   });
 
+  // Browser-accessible fix URL: GET /fix-ram?key=thorntech2024
+  app.get("/fix-ram", async (req, res) => {
+    if (req.query.key !== "thorntech2024") {
+      return res.status(403).send("Invalid key");
+    }
+    try {
+      const sqlResult = await storage.fixRamCategories();
+      const { nameBasedCategoryOverride: nameCatOverride } = await import("./targetApi");
+      const allProducts = await storage.getProducts();
+      const cats = await storage.getCategories();
+      const catBySlug = new Map(cats.map(c => [c.slug, c.id]));
+      const catById = new Map(cats.map(c => [c.id, c.slug]));
+      let pass2 = 0;
+      for (const p of allProducts) {
+        const override = nameCatOverride(p.name, catBySlug);
+        if (override && override !== p.categoryId) {
+          await storage.updateProduct(p.id, { categoryId: override });
+          pass2++;
+          console.log(`[FixRAM-URL] Moved "${p.name.substring(0, 60)}" → ${catById.get(override)}`);
+        }
+      }
+      const total = sqlResult.fixed + pass2;
+      const html = `<html><body style="font-family:sans-serif;padding:2rem;max-width:800px">
+        <h2>✅ RAM Fix Complete</h2>
+        <p><strong>${total} products</strong> moved to Memory category.</p>
+        <h3>SQL pass (${sqlResult.fixed} fixed):</h3>
+        <ul>${sqlResult.details.map(d => `<li>${d}</li>`).join('')}</ul>
+        <h3>Name-override pass: ${pass2} additional fixed</h3>
+        <p><a href="/">← Back to site</a></p>
+      </body></html>`;
+      res.send(html);
+    } catch (e: any) {
+      res.status(500).send(`Error: ${e.message}`);
+    }
+  });
+
   app.post("/api/admin/fix-categories", adminAuth, async (_req, res) => {
     res.json({ status: "started", message: "Re-categorising misplaced products in background..." });
     try {
