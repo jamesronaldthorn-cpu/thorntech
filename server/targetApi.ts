@@ -714,7 +714,9 @@ export function nameBasedCategoryOverride(name: string, catBySlug: Map<string, n
 
   // RAM / System memory — must come BEFORE storage checks to avoid misclassification
   if (/\b(ddr[3-6]|lpddr[3-6]|lpddr)\b/.test(n) && !/sd\s?card|flash\s?drive|usb\s?drive|thumb\s?drive/i.test(n)) return catBySlug.get("memory") || null;
-  if (/\b(so-dimm|sodimm|dimm)\b/.test(n) && !/sd\s?card|flash\s?drive/i.test(n)) return catBySlug.get("memory") || null;
+  if (/\b(so-dimm|sodimm|rdimm|udimm|lrdimm|dimm)\b/.test(n) && !/sd\s?card|flash\s?drive/i.test(n)) return catBySlug.get("memory") || null;
+  if (/\bpc[345][a-z]?[-_]\d{4,}/.test(n) && !/ssd|nvme|m\.2|hard\s?drive|solid\s?state/i.test(n)) return catBySlug.get("memory") || null;
+  if (/(\becc\b.*\b\d+gb\b|\b\d+gb\b.*\becc\b)/.test(n) && !/ssd|nvme|hard\s?drive|solid\s?state/i.test(n)) return catBySlug.get("memory") || null;
   if (/\b(vengeance|ripjaws|trident\s?z|fury\s?beast|fury\s?renegade|flare\s?x|dominator\s?platinum)\b/.test(n) && /\b\d+gb\b/.test(n) && !/ssd|nvme|m\.2|hard\s?drive|solid\s?state/i.test(n)) return catBySlug.get("memory") || null;
 
   // USB flash drives / thumb drives — broad patterns to catch all variants
@@ -730,7 +732,7 @@ export function nameBasedCategoryOverride(name: string, catBySlug: Map<string, n
   if (/\bscanner\b|multifunction.*printer|all.in.one.*printer/.test(n)) return catBySlug.get("scanners-multifunction") || null;
 
   // NAS / CCTV / Smart home
-  if (/\bnas\b.*drive|\bnas\b.*server|network.*attached.*storage/.test(n)) return catBySlug.get("storage") || null;
+  if (/\bnas\b|network.*attached.*storage/.test(n) && !/ssd|hdd|hard\s?drive|hard\s?disk/.test(n)) return catBySlug.get("servers-workstations") || null;
   if (/cctv|ip\s?camera|security\s?camera|dashcam|dash\s?cam/.test(n)) return catBySlug.get("security-cctv") || null;
   if (/smart\s?(plug|bulb|switch|speaker|display|home|strip)|echo\s|alexa\s|google\s*home\b/.test(n)) return catBySlug.get("smart-home") || null;
   return null;

@@ -642,7 +642,10 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
       // Name-based fallback for unrecognised VIP ProductGroups
       if (!categoryId) {
         const nl = name.toLowerCase();
-        if (/\b(ddr[3-6]|lpddr[3-6]|lpddr|so-dimm|sodimm|dimm)\b/.test(nl) && !/sd\s?card|flash\s?drive|usb\s?drive/i.test(nl)) categoryId = catBySlug.get("memory") || null;
+        if (/\b(ddr[3-6]|lpddr[3-6]|lpddr)\b/.test(nl) && !/sd\s?card|flash\s?drive|usb\s?drive/i.test(nl)) categoryId = catBySlug.get("memory") || null;
+        else if (/\b(so-dimm|sodimm|rdimm|udimm|lrdimm|dimm)\b/.test(nl) && !/sd\s?card|flash\s?drive/i.test(nl)) categoryId = catBySlug.get("memory") || null;
+        else if (/\bpc[345][a-z]?[-_]\d{4,}/.test(nl) && !/ssd|nvme|m\.2|hard\s?drive|solid\s?state/i.test(nl)) categoryId = catBySlug.get("memory") || null;
+        else if (/(\becc\b.*\b\d+gb\b|\b\d+gb\b.*\becc\b)/.test(nl) && !/ssd|nvme|hard\s?drive|solid\s?state/i.test(nl)) categoryId = catBySlug.get("memory") || null;
         else if (/\b(vengeance|ripjaws|trident\s?z|fury\s?beast|fury\s?renegade|flare\s?x|dominator\s?platinum)\b/.test(nl) && /\b\d+gb\b/.test(nl) && !/ssd|nvme|m\.2|solid\s?state|hard\s?drive/i.test(nl)) categoryId = catBySlug.get("memory") || null;
       }
       if (categoryId) result.categoriesMatched++;
