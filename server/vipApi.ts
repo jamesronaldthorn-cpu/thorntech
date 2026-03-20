@@ -2,6 +2,7 @@
 import { XMLParser } from "fast-xml-parser";
 import { storage } from "./storage";
 import { matchInternetPrices } from "./priceMatcher";
+import { nameBasedCategoryOverride } from "./targetApi";
 
 const VIP_SECURITY_URL = "https://xml3.vip-computers.com/Security.asmx";
 const VIP_PRODUCTS_URL = "https://xml3.vip-computers.com/Products.asmx";
@@ -639,15 +640,9 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
 
       const catSlug = vipCategoryMap[vp.ProductGroup];
       let categoryId: number | null = catSlug ? (catBySlug.get(catSlug) || null) : null;
-      // Name-based fallback for unrecognised VIP ProductGroups
-      if (!categoryId) {
-        const nl = name.toLowerCase();
-        if (/\b(ddr[3-6]|lpddr[3-6]|lpddr)\b/.test(nl) && !/sd\s?card|flash\s?drive|usb\s?drive/i.test(nl)) categoryId = catBySlug.get("memory") || null;
-        else if (/\b(so-dimm|sodimm|rdimm|udimm|lrdimm|dimm)\b/.test(nl) && !/sd\s?card|flash\s?drive/i.test(nl)) categoryId = catBySlug.get("memory") || null;
-        else if (/\bpc[345][a-z]?[-_]\d{4,}/.test(nl) && !/ssd|nvme|m\.2|hard\s?drive|solid\s?state/i.test(nl)) categoryId = catBySlug.get("memory") || null;
-        else if (/(\becc\b.*\b\d+gb\b|\b\d+gb\b.*\becc\b)/.test(nl) && !/ssd|nvme|hard\s?drive|solid\s?state/i.test(nl)) categoryId = catBySlug.get("memory") || null;
-        else if (/\b(vengeance|ripjaws|trident\s?z|fury\s?beast|fury\s?renegade|flare\s?x|dominator\s?platinum)\b/.test(nl) && /\b\d+gb\b/.test(nl) && !/ssd|nvme|m\.2|solid\s?state|hard\s?drive/i.test(nl)) categoryId = catBySlug.get("memory") || null;
-      }
+      // Name-based override runs unconditionally — corrects wrong ProductGroup assignments
+      const nameOverride = nameBasedCategoryOverride(name, catBySlug);
+      if (nameOverride) categoryId = nameOverride;
       if (categoryId) result.categoriesMatched++;
 
       const mpn = vp.ManufacturersPartNumber != null ? String(vp.ManufacturersPartNumber).trim() : null;
