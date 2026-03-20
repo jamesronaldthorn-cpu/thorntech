@@ -460,6 +460,8 @@ export default function AdminPage() {
   const [xeroLoading, setXeroLoading] = useState(false);
   const [vipSyncing, setVipSyncing] = useState(false);
   const [vipResult, setVipResult] = useState<any>(null);
+  const [fixCatsLoading, setFixCatsLoading] = useState(false);
+  const [fixCatsMsg, setFixCatsMsg] = useState<string | null>(null);
   const [targetSyncing, setTargetSyncing] = useState(false);
   const [targetResult, setTargetResult] = useState<any>(null);
   const [priceMatching, setPriceMatching] = useState(false);
@@ -716,6 +718,21 @@ export default function AdminPage() {
     } catch (e: any) {
       setVipResult({ error: e.message });
       setVipSyncing(false);
+    }
+  };
+
+  const fixCategories = async () => {
+    setFixCatsLoading(true);
+    setFixCatsMsg("Re-categorising misplaced products...");
+    try {
+      const r = await adminFetch("/api/admin/fix-categories", { method: "POST" });
+      const d = await r.json();
+      setFixCatsMsg(d.message || "Done — check server logs for details");
+      loadData();
+    } catch (e: any) {
+      setFixCatsMsg(`Error: ${e.message}`);
+    } finally {
+      setFixCatsLoading(false);
     }
   };
 
@@ -1569,6 +1586,10 @@ export default function AdminPage() {
                 <option value="vip">VIP Computers ({products.filter(p => !(p as any).source || (p as any).source === "VIP Computers").length})</option>
                 <option value="target">Target Components ({products.filter(p => (p as any).source === "Target Components").length})</option>
               </select>
+              <Button onClick={fixCategories} disabled={fixCatsLoading} variant="outline" className="border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10 text-xs" data-testid="button-fix-categories">
+                {fixCatsLoading ? <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />Fixing...</> : <>Fix RAM Categories</>}
+              </Button>
+              {fixCatsMsg && <span className="text-xs text-gray-400">{fixCatsMsg}</span>}
             </div>
             )}
 

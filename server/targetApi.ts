@@ -598,6 +598,11 @@ export function nameBasedCategoryOverride(name: string, catBySlug: Map<string, n
   if (/webcam|web cam/.test(n)) return catBySlug.get("webcams-cameras") || null;
   if (/\bups\b|uninterruptible power|battery backup unit/.test(n)) return catBySlug.get("ups-power-protection") || null;
 
+  // RAM / System memory — must come BEFORE storage checks to avoid misclassification
+  if (/\b(ddr[3-6]|lpddr[3-6]|lpddr)\b/.test(n) && !/sd\s?card|flash\s?drive|usb\s?drive|thumb\s?drive/i.test(n)) return catBySlug.get("memory") || null;
+  if (/\b(so-dimm|sodimm|dimm)\b/.test(n) && !/sd\s?card|flash\s?drive/i.test(n)) return catBySlug.get("memory") || null;
+  if (/\b(vengeance|ripjaws|trident\s?z|fury\s?beast|fury\s?renegade|flare\s?x|dominator\s?platinum)\b/.test(n) && /\b\d+gb\b/.test(n) && !/ssd|nvme|m\.2|hard\s?drive|solid\s?state/i.test(n)) return catBySlug.get("memory") || null;
+
   // USB flash drives / thumb drives — broad patterns to catch all variants
   if (/usb.*flash|flash.*drive|thumb.*drive|pen.*drive|usb.*stick|datatraveler|flash\s?voyager|cruzer|ultra\s?fit|ultra\s?flair|ultra\s?dual|swivel.*usb|usb.*swivel/.test(n)) return catBySlug.get("storage") || null;
   if (/\busb\b.{1,30}\b(drive|drives|64gb|128gb|256gb|512gb|16gb|32gb|8gb)\b/.test(n) && !/hub|charger|cable|adapter|card reader/i.test(n)) return catBySlug.get("storage") || null;

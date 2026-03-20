@@ -639,6 +639,12 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
 
       const catSlug = vipCategoryMap[vp.ProductGroup];
       let categoryId: number | null = catSlug ? (catBySlug.get(catSlug) || null) : null;
+      // Name-based fallback for unrecognised VIP ProductGroups
+      if (!categoryId) {
+        const nl = name.toLowerCase();
+        if (/\b(ddr[3-6]|lpddr[3-6]|lpddr|so-dimm|sodimm|dimm)\b/.test(nl) && !/sd\s?card|flash\s?drive|usb\s?drive/i.test(nl)) categoryId = catBySlug.get("memory") || null;
+        else if (/\b(vengeance|ripjaws|trident\s?z|fury\s?beast|fury\s?renegade|flare\s?x|dominator\s?platinum)\b/.test(nl) && /\b\d+gb\b/.test(nl) && !/ssd|nvme|m\.2|solid\s?state|hard\s?drive/i.test(nl)) categoryId = catBySlug.get("memory") || null;
+      }
       if (categoryId) result.categoriesMatched++;
 
       const mpn = vp.ManufacturersPartNumber != null ? String(vp.ManufacturersPartNumber).trim() : null;
