@@ -1429,6 +1429,96 @@ function hasBrandMismatch(productName: string, vendor: string | undefined, image
   return false;
 }
 
+// Within-brand product-line mismatch detection.
+// Each entry covers one brand family and lists its named lines with keywords to
+// match against both the product name and the image URL path.
+const PRODUCT_LINE_GROUPS: {
+  brands: string[];
+  lines: { name: string; nameKeys: string[]; urlKeys: string[] }[];
+}[] = [
+  {
+    brands: ["seagate"],
+    lines: [
+      { name: "ironwolf",  nameKeys: ["ironwolf", "iron wolf"],        urlKeys: ["ironwolf", "iron-wolf", "iron_wolf"] },
+      { name: "skyhawk",   nameKeys: ["skyhawk", "sky hawk"],          urlKeys: ["skyhawk", "sky-hawk", "sky_hawk"] },
+      { name: "barracuda", nameKeys: ["barracuda"],                    urlKeys: ["barracuda", "barra-cuda"] },
+      { name: "exos",      nameKeys: ["exos"],                         urlKeys: ["exos"] },
+      { name: "firecuda",  nameKeys: ["firecuda", "fire cuda"],        urlKeys: ["firecuda", "fire-cuda"] },
+      { name: "nytro",     nameKeys: ["nytro"],                        urlKeys: ["nytro"] },
+    ],
+  },
+  {
+    brands: ["western digital", "/wd-", "wd "],
+    lines: [
+      { name: "wd black",  nameKeys: ["wd black", "wd-black"],         urlKeys: ["wd-black", "wdblack", "wd_black"] },
+      { name: "wd blue",   nameKeys: ["wd blue", "wd-blue"],           urlKeys: ["wd-blue", "wdblue", "wd_blue"] },
+      { name: "wd red",    nameKeys: ["wd red", "wd-red"],             urlKeys: ["wd-red", "wdred", "wd_red"] },
+      { name: "wd green",  nameKeys: ["wd green", "wd-green"],         urlKeys: ["wd-green", "wdgreen", "wd_green"] },
+      { name: "wd purple", nameKeys: ["wd purple", "wd-purple"],       urlKeys: ["wd-purple", "wdpurple", "wd_purple"] },
+      { name: "wd gold",   nameKeys: ["wd gold", "wd-gold"],           urlKeys: ["wd-gold", "wdgold", "wd_gold"] },
+    ],
+  },
+  {
+    brands: ["corsair"],
+    lines: [
+      { name: "vengeance", nameKeys: ["vengeance"],                    urlKeys: ["vengeance"] },
+      { name: "dominator", nameKeys: ["dominator"],                    urlKeys: ["dominator"] },
+    ],
+  },
+  {
+    brands: ["kingston"],
+    lines: [
+      { name: "valueram",  nameKeys: ["valueram", "value ram"],        urlKeys: ["valueram", "value-ram", "kvr"] },
+      { name: "fury beast",nameKeys: ["fury beast"],                   urlKeys: ["fury-beast", "kf5"] },
+      { name: "fury reneg",nameKeys: ["fury renegade"],                urlKeys: ["fury-renegade"] },
+      { name: "fury impact",nameKeys: ["fury impact"],                 urlKeys: ["fury-impact"] },
+    ],
+  },
+  {
+    brands: ["samsung"],
+    lines: [
+      { name: "870 evo",   nameKeys: ["870 evo"],                      urlKeys: ["870-evo", "870evo"] },
+      { name: "870 qvo",   nameKeys: ["870 qvo"],                      urlKeys: ["870-qvo", "870qvo"] },
+      { name: "980 pro",   nameKeys: ["980 pro"],                      urlKeys: ["980-pro", "980pro"] },
+      { name: "990 pro",   nameKeys: ["990 pro"],                      urlKeys: ["990-pro", "990pro"] },
+    ],
+  },
+];
+
+/**
+ * Returns true if the image URL appears to belong to a DIFFERENT product line
+ * within the same brand (e.g. Seagate IronWolf image on a SkyHawk product).
+ */
+function hasProductLineMismatch(productName: string, vendor: string | undefined, imageUrl: string): boolean {
+  const imgLower = imageUrl.toLowerCase();
+  if (isSupplierImage(imageUrl)) return false;
+
+  const nameLower = productName.toLowerCase();
+  const vendorLower = (vendor || "").toLowerCase();
+  const imgPath = imgLower.replace(/^https?:\/\/[^/]+/, "");
+
+  for (const group of PRODUCT_LINE_GROUPS) {
+    const isBrand = group.brands.some(b => nameLower.includes(b) || vendorLower.includes(b));
+    if (!isBrand) continue;
+
+    // Find which line this product belongs to
+    const productLine = group.lines.find(line =>
+      line.nameKeys.some(k => nameLower.includes(k))
+    );
+    if (!productLine) continue; // Can't determine line; skip
+
+    // Check whether image URL contains keywords for a DIFFERENT line
+    for (const otherLine of group.lines) {
+      if (otherLine.name === productLine.name) continue;
+      if (otherLine.urlKeys.some(k => imgPath.includes(k))) {
+        console.log(`[Enricher]   Rejected image (product-line mismatch: product is "${productLine.name}" but image contains "${otherLine.name}" keywords): ${imageUrl.substring(0, 80)}`);
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 function validateImageRelevance(productName: string, vendor: string | undefined, imageUrl: string): boolean {
   const imgLower = imageUrl.toLowerCase();
   const nameLower = productName.toLowerCase();
@@ -1443,6 +1533,7 @@ function validateImageRelevance(productName: string, vendor: string | undefined,
   }
 
   if (hasBrandMismatch(productName, vendor, imageUrl)) return false;
+  if (hasProductLineMismatch(productName, vendor, imageUrl)) return false;
 
   const genericBadPatterns = [
     "no-image", "placeholder", "default", "coming-soon", "noimage",
