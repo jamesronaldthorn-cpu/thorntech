@@ -1329,24 +1329,28 @@ export async function registerRoutes(
   });
 
   // Browser-accessible image cleanup: GET /fix-images?key=thorntech2024
+  // Runs in background so Nginx doesn't time out on large catalogues
   app.get("/fix-images", async (req, res) => {
     if (req.query.key !== "thorntech2024") {
       return res.status(403).send("Invalid key");
     }
-    try {
-      const { cleanBadImages } = await import("./productEnricher");
-      const result = await cleanBadImages();
-      const html = `<html><body style="font-family:sans-serif;padding:2rem;max-width:800px">
-        <h2>✅ Image Cleanup Complete</h2>
-        <p>Checked <strong>${result.checked}</strong> products.</p>
-        <p>Fixed <strong>${result.fixed}</strong> bad images (cleared + replaced with supplier/better image).</p>
-        <p>Cleared with no replacement: <strong>${result.cleared}</strong>.</p>
-        <p><a href="/">← Back to site</a></p>
-      </body></html>`;
-      res.send(html);
-    } catch (e: any) {
-      res.status(500).send(`Error: ${e.message}`);
-    }
+    // Respond immediately so the connection isn't held open
+    res.send(`<html><body style="font-family:sans-serif;padding:2rem;max-width:800px">
+      <h2>⏳ Image Cleanup Started</h2>
+      <p>The cleanup is running in the background. Check the server logs (<code>pm2 logs thorntech</code>) for progress.</p>
+      <p>It will finish within a few minutes. All products with wrong images will be corrected automatically.</p>
+      <p><a href="/">← Back to site</a></p>
+    </body></html>`);
+    // Run cleanup after response is sent
+    setImmediate(async () => {
+      try {
+        const { cleanBadImages } = await import("./productEnricher");
+        const result = await cleanBadImages();
+        console.log(`[fix-images] Done — checked ${result.checked}, fixed ${result.fixed}, cleared ${result.cleared}`);
+      } catch (e: any) {
+        console.error(`[fix-images] Error: ${e.message}`);
+      }
+    });
   });
 
   app.post("/api/admin/fix-categories", adminAuth, async (_req, res) => {
