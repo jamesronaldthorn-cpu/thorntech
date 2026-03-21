@@ -125,7 +125,10 @@ export class DatabaseStorage implements IStorage {
 
   async getProductsByCategory(categoryId: number): Promise<Product[]> {
     return this.db.select().from(products).where(
-      sql`${eq(products.categoryId, categoryId)} AND NOT (LOWER(${products.name}) LIKE '%test product%' AND ${products.price} < 1)`
+      and(
+        eq(products.categoryId, categoryId),
+        sql`NOT (LOWER(${products.name}) LIKE '%test product%' AND ${products.price} < 1)`
+      )
     );
   }
 
@@ -457,6 +460,55 @@ export class DatabaseStorage implements IStorage {
     const memCat = await this.db.select().from(categories).where(eq(categories.slug, "memory"));
     if (!memCat[0]) return { fixed: 0, details: ["memory category not found"] };
     const memId = memCat[0].id;
+
+    // Evict devices (laptops/tablets/PCs) that landed in memory because their names mention DDR/LPDDR
+    const laptopCat = await this.db.select().from(categories).where(eq(categories.slug, "laptops"));
+    const tabletCat = await this.db.select().from(categories).where(eq(categories.slug, "tablets"));
+    const desktopCat = await this.db.select().from(categories).where(eq(categories.slug, "servers-workstations"));
+    if (laptopCat[0]) {
+      const laptopRows = await this.db.update(products)
+        .set({ categoryId: laptopCat[0].id })
+        .where(and(
+          eq(products.categoryId, memId),
+          or(
+            ilike(products.name, '%laptop%'),
+            ilike(products.name, '%notebook%'),
+            ilike(products.name, '%chromebook%'),
+            and(ilike(products.name, '%windows 11 home%'), ilike(products.name, '%ssd%')),
+            and(ilike(products.name, '%windows 11 pro%'), ilike(products.name, '%ssd%'))
+          ),
+          notIlike(products.name, '%DIMM System Memory%'),
+          notIlike(products.name, '%System Memory%')
+        ))
+        .returning({ id: products.id, name: products.name });
+      for (const row of laptopRows) { details.push(`Laptop evicted from memory: "${row.name.substring(0, 70)}"`); fixed++; }
+    }
+    if (tabletCat[0]) {
+      const tabletRows = await this.db.update(products)
+        .set({ categoryId: tabletCat[0].id })
+        .where(and(
+          eq(products.categoryId, memId),
+          or(ilike(products.name, '%tablet%'), ilike(products.name, '%android%'))
+        ))
+        .returning({ id: products.id, name: products.name });
+      for (const row of tabletRows) { details.push(`Tablet evicted from memory: "${row.name.substring(0, 70)}"`); fixed++; }
+    }
+    if (desktopCat[0]) {
+      const desktopRows = await this.db.update(products)
+        .set({ categoryId: desktopCat[0].id })
+        .where(and(
+          eq(products.categoryId, memId),
+          or(
+            ilike(products.name, '%tower%'),
+            ilike(products.name, '%desktop pc%'),
+            ilike(products.name, '%gaming build%'),
+            ilike(products.name, '%tiny pc%'),
+            ilike(products.name, '%mini pc%')
+          )
+        ))
+        .returning({ id: products.id, name: products.name });
+      for (const row of desktopRows) { details.push(`Desktop evicted from memory: "${row.name.substring(0, 70)}"`); fixed++; }
+    }
 
     // Helper: run one UPDATE and collect results
     const rescue = async (condition: any) => {

@@ -713,10 +713,12 @@ export function nameBasedCategoryOverride(name: string, catBySlug: Map<string, n
   if (/\bups\b|uninterruptible power|battery backup unit/.test(n)) return catBySlug.get("ups-power-protection") || null;
 
   // RAM / System memory — must come BEFORE storage checks to avoid misclassification
-  if (/\b(ddr[3-6]|lpddr[3-6]|lpddr)\b/.test(n) && !/sd\s?card|flash\s?drive|usb\s?drive|thumb\s?drive/i.test(n)) return catBySlug.get("memory") || null;
-  if (/\b(so-dimm|sodimm|rdimm|udimm|lrdimm|dimm)\b/.test(n) && !/sd\s?card|flash\s?drive/i.test(n)) return catBySlug.get("memory") || null;
-  if (/\bpc[345][a-z]?[-_]\d{4,}/.test(n) && !/ssd|nvme|m\.2|hard\s?drive|solid\s?state/i.test(n)) return catBySlug.get("memory") || null;
-  if (/(\becc\b.*\b\d+gb\b|\b\d+gb\b.*\becc\b)/.test(n) && !/ssd|nvme|hard\s?drive|solid\s?state/i.test(n)) return catBySlug.get("memory") || null;
+  // Exclude laptops, tablets, notebooks, pre-built systems that mention RAM in their specs
+  const isDevice = /\blaptop\b|\bnotebook\b|\btablet\b|\bchromebook\b|\bmacbook\b|\ball.in.one\b|\bdesktop\s+(pc|computer)\b|\bpre.?built\b|\b\d{2}\.\d"|\b\d{2}\.\d\s?inch|\bwindows\s+\d+\s+(home|pro)\b|\bandroid\s+\d+\b|\bcore\s+i[3579]\b|\bryzen\s+[357]\b|\bceleron\b|\bpentium\b|\bcore\s+ultra\b/.test(n);
+  if (!isDevice && /\b(ddr[3-6]|lpddr[3-6]|lpddr)\b/.test(n) && !/sd\s?card|flash\s?drive|usb\s?drive|thumb\s?drive/i.test(n)) return catBySlug.get("memory") || null;
+  if (!isDevice && /\b(so-dimm|sodimm|rdimm|udimm|lrdimm|dimm)\b/.test(n) && !/sd\s?card|flash\s?drive/i.test(n)) return catBySlug.get("memory") || null;
+  if (!isDevice && /\bpc[345][a-z]?[-_]\d{4,}/.test(n) && !/ssd|nvme|m\.2|hard\s?drive|solid\s?state/i.test(n)) return catBySlug.get("memory") || null;
+  if (!isDevice && /(\becc\b.*\b\d+gb\b|\b\d+gb\b.*\becc\b)/.test(n) && !/ssd|nvme|hard\s?drive|solid\s?state/i.test(n)) return catBySlug.get("memory") || null;
   if (/\b(vengeance|ripjaws|trident\s?z|fury\s?beast|fury\s?renegade|flare\s?x|dominator\s?platinum)\b/.test(n) && /\b\d+gb\b/.test(n) && !/ssd|nvme|m\.2|hard\s?drive|solid\s?state/i.test(n)) return catBySlug.get("memory") || null;
 
   // USB flash drives / thumb drives — broad patterns to catch all variants
