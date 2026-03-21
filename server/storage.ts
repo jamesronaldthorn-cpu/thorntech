@@ -516,6 +516,26 @@ export class DatabaseStorage implements IStorage {
       for (const row of desktopRows) { details.push(`Desktop evicted from memory: "${row.name.substring(0, 70)}"`); fixed++; }
     }
 
+    // Evict motherboards from memory (they mention DDR slots but are not RAM)
+    const mbCat = await this.db.select().from(categories).where(eq(categories.slug, "motherboards"));
+    if (mbCat[0]) {
+      const mbRows = await this.db.update(products)
+        .set({ categoryId: mbCat[0].id })
+        .where(and(
+          eq(products.categoryId, memId),
+          or(
+            ilike(products.name, '%motherboard%'),
+            ilike(products.name, '% ATX%'),
+            ilike(products.name, '%M-ATX%'),
+            ilike(products.name, '%Micro-ATX%'),
+            ilike(products.name, '%Mini-ITX%'),
+            and(ilike(products.name, '%Socket%'), ilike(products.name, '%DDR%'))
+          )
+        ))
+        .returning({ id: products.id, name: products.name });
+      for (const row of mbRows) { details.push(`Motherboard evicted from memory: "${row.name.substring(0, 70)}"`); fixed++; }
+    }
+
     // Helper: run one UPDATE and collect results
     const rescue = async (condition: any) => {
       const rows = await this.db

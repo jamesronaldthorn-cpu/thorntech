@@ -713,8 +713,12 @@ export function nameBasedCategoryOverride(name: string, catBySlug: Map<string, n
   if (/\bups\b|uninterruptible power|battery backup unit/.test(n)) return catBySlug.get("ups-power-protection") || null;
 
   // RAM / System memory — must come BEFORE storage checks to avoid misclassification
-  // Exclude laptops, tablets, notebooks, pre-built systems that mention RAM in their specs
+  // Exclude laptops, tablets, notebooks, pre-built systems, and motherboards that mention DDR slots
   const isDevice = /\blaptop\b|\bnotebook\b|\btablet\b|\bchromebook\b|\bmacbook\b|\ball.in.one\b|\bdesktop\s+(pc|computer)\b|\bpre.?built\b|\b\d{2}\.\d"|\b\d{2}\.\d\s?inch|\bwindows\s+\d+\s+(home|pro)\b|\bandroid\s+\d+\b|\bcore\s+i[3579]\b|\bryzen\s+[357]\b|\bceleron\b|\bpentium\b|\bcore\s+ultra\b/.test(n);
+  const isMotherboard = /\bmotherboard\b|\b(atx|m-atx|micro-atx|mini-itx|e-atx)\b|\bsocket\s+(1[7-9]\d\d|am[45]|lga\d+)\b|\b(ddr[345]\s+slots?|ddr[345]\s+dimm)\b/.test(n);
+  // Motherboards go to motherboards category regardless of DDR mentions
+  if (isMotherboard) return catBySlug.get("motherboards") || null;
+
   if (!isDevice && /\b(ddr[3-6]|lpddr[3-6]|lpddr)\b/.test(n) && !/sd\s?card|flash\s?drive|usb\s?drive|thumb\s?drive/i.test(n)) return catBySlug.get("memory") || null;
   if (!isDevice && /\b(so-dimm|sodimm|rdimm|udimm|lrdimm|dimm)\b/.test(n) && !/sd\s?card|flash\s?drive/i.test(n)) return catBySlug.get("memory") || null;
   if (!isDevice && /\bpc[345][a-z]?[-_]\d{4,}/.test(n) && !/ssd|nvme|m\.2|hard\s?drive|solid\s?state/i.test(n)) return catBySlug.get("memory") || null;
