@@ -1436,51 +1436,386 @@ const PRODUCT_LINE_GROUPS: {
   brands: string[];
   lines: { name: string; nameKeys: string[]; urlKeys: string[] }[];
 }[] = [
+
+  // ── Storage: Seagate ─────────────────────────────────────────────────────
   {
     brands: ["seagate"],
     lines: [
-      { name: "ironwolf",  nameKeys: ["ironwolf", "iron wolf"],        urlKeys: ["ironwolf", "iron-wolf", "iron_wolf"] },
-      { name: "skyhawk",   nameKeys: ["skyhawk", "sky hawk"],          urlKeys: ["skyhawk", "sky-hawk", "sky_hawk"] },
-      { name: "barracuda", nameKeys: ["barracuda"],                    urlKeys: ["barracuda", "barra-cuda"] },
-      { name: "exos",      nameKeys: ["exos"],                         urlKeys: ["exos"] },
-      { name: "firecuda",  nameKeys: ["firecuda", "fire cuda"],        urlKeys: ["firecuda", "fire-cuda"] },
-      { name: "nytro",     nameKeys: ["nytro"],                        urlKeys: ["nytro"] },
+      { name: "ironwolf",  nameKeys: ["ironwolf", "iron wolf"],             urlKeys: ["ironwolf", "iron-wolf", "iron_wolf"] },
+      { name: "skyhawk",   nameKeys: ["skyhawk", "sky hawk"],               urlKeys: ["skyhawk", "sky-hawk", "sky_hawk"] },
+      { name: "barracuda", nameKeys: ["barracuda"],                         urlKeys: ["barracuda", "barra-cuda"] },
+      { name: "exos",      nameKeys: ["exos"],                              urlKeys: ["exos"] },
+      { name: "firecuda",  nameKeys: ["firecuda", "fire cuda"],             urlKeys: ["firecuda", "fire-cuda"] },
+      { name: "nytro",     nameKeys: ["nytro"],                             urlKeys: ["nytro"] },
+      { name: "lyve",      nameKeys: ["lyve"],                              urlKeys: ["lyve"] },
     ],
   },
+
+  // ── Storage: Western Digital ──────────────────────────────────────────────
   {
-    brands: ["western digital", "/wd-", "wd "],
+    brands: ["western digital", "wd black", "wd blue", "wd red", "wd green", "wd purple", "wd gold"],
     lines: [
-      { name: "wd black",  nameKeys: ["wd black", "wd-black"],         urlKeys: ["wd-black", "wdblack", "wd_black"] },
-      { name: "wd blue",   nameKeys: ["wd blue", "wd-blue"],           urlKeys: ["wd-blue", "wdblue", "wd_blue"] },
-      { name: "wd red",    nameKeys: ["wd red", "wd-red"],             urlKeys: ["wd-red", "wdred", "wd_red"] },
-      { name: "wd green",  nameKeys: ["wd green", "wd-green"],         urlKeys: ["wd-green", "wdgreen", "wd_green"] },
-      { name: "wd purple", nameKeys: ["wd purple", "wd-purple"],       urlKeys: ["wd-purple", "wdpurple", "wd_purple"] },
-      { name: "wd gold",   nameKeys: ["wd gold", "wd-gold"],           urlKeys: ["wd-gold", "wdgold", "wd_gold"] },
+      { name: "wd black",  nameKeys: ["wd black"],   urlKeys: ["wd-black", "wdblack", "wd_black"] },
+      { name: "wd blue",   nameKeys: ["wd blue"],    urlKeys: ["wd-blue",  "wdblue",  "wd_blue"] },
+      { name: "wd red",    nameKeys: ["wd red"],     urlKeys: ["wd-red",   "wdred",   "wd_red"] },
+      { name: "wd green",  nameKeys: ["wd green"],   urlKeys: ["wd-green", "wdgreen", "wd_green"] },
+      { name: "wd purple", nameKeys: ["wd purple"],  urlKeys: ["wd-purple","wdpurple","wd_purple"] },
+      { name: "wd gold",   nameKeys: ["wd gold"],    urlKeys: ["wd-gold",  "wdgold",  "wd_gold"] },
     ],
   },
-  {
-    brands: ["corsair"],
-    lines: [
-      { name: "vengeance", nameKeys: ["vengeance"],                    urlKeys: ["vengeance"] },
-      { name: "dominator", nameKeys: ["dominator"],                    urlKeys: ["dominator"] },
-    ],
-  },
-  {
-    brands: ["kingston"],
-    lines: [
-      { name: "valueram",  nameKeys: ["valueram", "value ram"],        urlKeys: ["valueram", "value-ram", "kvr"] },
-      { name: "fury beast",nameKeys: ["fury beast"],                   urlKeys: ["fury-beast", "kf5"] },
-      { name: "fury reneg",nameKeys: ["fury renegade"],                urlKeys: ["fury-renegade"] },
-      { name: "fury impact",nameKeys: ["fury impact"],                 urlKeys: ["fury-impact"] },
-    ],
-  },
+
+  // ── Storage: Samsung SSDs ─────────────────────────────────────────────────
   {
     brands: ["samsung"],
     lines: [
-      { name: "870 evo",   nameKeys: ["870 evo"],                      urlKeys: ["870-evo", "870evo"] },
-      { name: "870 qvo",   nameKeys: ["870 qvo"],                      urlKeys: ["870-qvo", "870qvo"] },
-      { name: "980 pro",   nameKeys: ["980 pro"],                      urlKeys: ["980-pro", "980pro"] },
-      { name: "990 pro",   nameKeys: ["990 pro"],                      urlKeys: ["990-pro", "990pro"] },
+      { name: "990 pro",   nameKeys: ["990 pro"],                           urlKeys: ["990-pro", "990pro", "990_pro"] },
+      { name: "980 pro",   nameKeys: ["980 pro"],                           urlKeys: ["980-pro", "980pro", "980_pro"] },
+      { name: "970 evo",   nameKeys: ["970 evo"],                           urlKeys: ["970-evo", "970evo"] },
+      { name: "870 evo",   nameKeys: ["870 evo"],                           urlKeys: ["870-evo", "870evo"] },
+      { name: "870 qvo",   nameKeys: ["870 qvo"],                           urlKeys: ["870-qvo", "870qvo"] },
+      { name: "860 evo",   nameKeys: ["860 evo"],                           urlKeys: ["860-evo", "860evo"] },
+      { name: "860 qvo",   nameKeys: ["860 qvo"],                           urlKeys: ["860-qvo", "860qvo"] },
+      { name: "t7",        nameKeys: [" t7 ", " t7-"],                      urlKeys: ["-t7-", "_t7_", "/t7-"] },
+      { name: "t9",        nameKeys: [" t9 ", " t9-"],                      urlKeys: ["-t9-", "_t9_", "/t9-"] },
+    ],
+  },
+
+  // ── Storage: Crucial SSDs ─────────────────────────────────────────────────
+  {
+    brands: ["crucial"],
+    lines: [
+      { name: "t700",      nameKeys: ["t700"],                              urlKeys: ["t700", "-t700"] },
+      { name: "t500",      nameKeys: ["t500"],                              urlKeys: ["t500", "-t500"] },
+      { name: "p5 plus",   nameKeys: ["p5 plus", "p5plus"],                 urlKeys: ["p5-plus", "p5plus"] },
+      { name: "p3 plus",   nameKeys: ["p3 plus", "p3plus"],                 urlKeys: ["p3-plus", "p3plus"] },
+      { name: "mx500",     nameKeys: ["mx500", "mx 500"],                   urlKeys: ["mx500", "mx-500"] },
+      { name: "bx500",     nameKeys: ["bx500", "bx 500"],                   urlKeys: ["bx500", "bx-500"] },
+      { name: "x9",        nameKeys: [" x9 pro", " x9 "],                   urlKeys: ["-x9-", "/x9-"] },
+    ],
+  },
+
+  // ── Storage: Kingston SSDs ────────────────────────────────────────────────
+  {
+    brands: ["kingston"],
+    lines: [
+      { name: "kc3000",    nameKeys: ["kc3000"],                            urlKeys: ["kc3000"] },
+      { name: "nv2",       nameKeys: ["nv2"],                               urlKeys: ["nv2"] },
+      { name: "a400",      nameKeys: [" a400"],                             urlKeys: ["-a400", "/a400"] },
+      { name: "valueram",  nameKeys: ["valueram", "value ram"],             urlKeys: ["valueram", "value-ram", "kvr"] },
+      { name: "fury beast",nameKeys: ["fury beast"],                        urlKeys: ["fury-beast", "furybeast"] },
+      { name: "fury renegade", nameKeys: ["fury renegade"],                 urlKeys: ["fury-renegade", "furyrenegade"] },
+      { name: "fury impact",   nameKeys: ["fury impact"],                   urlKeys: ["fury-impact", "furyimpact"] },
+    ],
+  },
+
+  // ── Storage: Sabrent SSDs ─────────────────────────────────────────────────
+  {
+    brands: ["sabrent"],
+    lines: [
+      { name: "rocket 4 plus", nameKeys: ["rocket 4 plus", "rocket4plus"], urlKeys: ["rocket-4-plus", "rocket4plus"] },
+      { name: "rocket 4",      nameKeys: ["rocket 4"],                      urlKeys: ["rocket-4", "rocket4"] },
+      { name: "rocket q",      nameKeys: ["rocket q"],                      urlKeys: ["rocket-q", "rocketq"] },
+      { name: "rocket nano",   nameKeys: ["rocket nano"],                   urlKeys: ["rocket-nano", "rocketnano"] },
+    ],
+  },
+
+  // ── RAM: Corsair ──────────────────────────────────────────────────────────
+  {
+    brands: ["corsair"],
+    lines: [
+      { name: "dominator",    nameKeys: ["dominator"],                      urlKeys: ["dominator"] },
+      { name: "vengeance",    nameKeys: ["vengeance"],                      urlKeys: ["vengeance"] },
+      { name: "value select", nameKeys: ["value select", "valueselect"],    urlKeys: ["value-select", "valueselect"] },
+    ],
+  },
+
+  // ── RAM: G.Skill ──────────────────────────────────────────────────────────
+  {
+    brands: ["g.skill", "gskill"],
+    lines: [
+      { name: "trident z5",  nameKeys: ["trident z5", "tridentz5"],        urlKeys: ["trident-z5", "tridentz5"] },
+      { name: "trident z neo", nameKeys: ["trident z neo", "neo"],         urlKeys: ["trident-z-neo", "tridentz-neo", "tridentz5-neo"] },
+      { name: "trident z rgb", nameKeys: ["trident z rgb", "tridentz rgb"],urlKeys: ["trident-z-rgb", "tridentz-rgb"] },
+      { name: "ripjaws s5",  nameKeys: ["ripjaws s5"],                      urlKeys: ["ripjaws-s5", "ripjawss5"] },
+      { name: "ripjaws v",   nameKeys: ["ripjaws v"],                       urlKeys: ["ripjaws-v", "ripjawsv"] },
+      { name: "flare x5",    nameKeys: ["flare x5"],                        urlKeys: ["flare-x5", "flarex5"] },
+      { name: "aegis",       nameKeys: ["aegis"],                           urlKeys: ["aegis"] },
+    ],
+  },
+
+  // ── RAM: Crucial ──────────────────────────────────────────────────────────
+  {
+    brands: ["crucial"],
+    lines: [
+      { name: "pro ddr5",    nameKeys: ["pro ddr5", "pro ddr4"],           urlKeys: ["pro-ddr5", "pro-ddr4"] },
+      { name: "ballistix",   nameKeys: ["ballistix"],                       urlKeys: ["ballistix"] },
+    ],
+  },
+
+  // ── RAM: Teamgroup ────────────────────────────────────────────────────────
+  {
+    brands: ["teamgroup", "team group", "t-force"],
+    lines: [
+      { name: "t-force delta",     nameKeys: ["delta"],                    urlKeys: ["t-force-delta", "tforcedelta"] },
+      { name: "t-force vulcan",    nameKeys: ["vulcan"],                   urlKeys: ["t-force-vulcan", "tforcevulcan"] },
+      { name: "t-force night hawk",nameKeys: ["night hawk", "nighthawk"],  urlKeys: ["night-hawk", "nighthawk"] },
+      { name: "t-force xtreem",    nameKeys: ["xtreem"],                   urlKeys: ["xtreem"] },
+      { name: "elite",             nameKeys: [" elite "],                  urlKeys: ["team-elite", "/elite-"] },
+    ],
+  },
+
+  // ── RAM: ADATA / XPG ─────────────────────────────────────────────────────
+  {
+    brands: ["adata", "xpg"],
+    lines: [
+      { name: "spectrix d60g", nameKeys: ["spectrix d60", "spectrix"],     urlKeys: ["spectrix-d60", "spectrix"] },
+      { name: "lancer",        nameKeys: ["xpg lancer", "lancer rgb"],     urlKeys: ["xpg-lancer", "xpglancer"] },
+      { name: "gammix d35",    nameKeys: ["gammix d35"],                   urlKeys: ["gammix-d35"] },
+      { name: "gammix d30",    nameKeys: ["gammix d30"],                   urlKeys: ["gammix-d30"] },
+      { name: "hunter",        nameKeys: ["xpg hunter"],                   urlKeys: ["xpg-hunter"] },
+      { name: "caster",        nameKeys: ["xpg caster"],                   urlKeys: ["xpg-caster"] },
+    ],
+  },
+
+  // ── GPU: ASUS ─────────────────────────────────────────────────────────────
+  {
+    brands: ["asus"],
+    lines: [
+      { name: "rog strix",   nameKeys: ["rog strix", "rog-strix"],         urlKeys: ["rog-strix", "rogstrix", "rog_strix"] },
+      { name: "tuf gaming",  nameKeys: ["tuf gaming", "tuf-gaming"],       urlKeys: ["tuf-gaming", "tufgaming", "tuf_gaming"] },
+      { name: "dual",        nameKeys: [" dual "],                          urlKeys: ["-dual-", "/dual-", "_dual_"] },
+      { name: "prime",       nameKeys: ["asus prime"],                      urlKeys: ["asus-prime", "asusprime"] },
+      { name: "proart",      nameKeys: ["proart"],                          urlKeys: ["proart"] },
+      { name: "rog maximus", nameKeys: ["rog maximus"],                     urlKeys: ["rog-maximus", "rogmaximus"] },
+      { name: "rog crosshair", nameKeys: ["rog crosshair"],                 urlKeys: ["rog-crosshair", "rogcrosshair"] },
+    ],
+  },
+
+  // ── GPU / Motherboard: MSI ────────────────────────────────────────────────
+  {
+    brands: ["msi"],
+    lines: [
+      { name: "gaming x trio", nameKeys: ["gaming x trio"],                urlKeys: ["gaming-x-trio", "gamingxtrio"] },
+      { name: "gaming x",      nameKeys: ["gaming x"],                     urlKeys: ["gaming-x", "gamingx"] },
+      { name: "suprim x",      nameKeys: ["suprim x"],                     urlKeys: ["suprim-x", "suprimx"] },
+      { name: "suprim",        nameKeys: ["suprim"],                        urlKeys: ["suprim"] },
+      { name: "ventus 3x",     nameKeys: ["ventus 3x"],                    urlKeys: ["ventus-3x", "ventus3x"] },
+      { name: "ventus 2x",     nameKeys: ["ventus 2x"],                    urlKeys: ["ventus-2x", "ventus2x"] },
+      { name: "mech 3x",       nameKeys: ["mech 3x"],                      urlKeys: ["mech-3x", "mech3x"] },
+      { name: "mech 2x",       nameKeys: ["mech 2x"],                      urlKeys: ["mech-2x", "mech2x"] },
+      { name: "meg",           nameKeys: [" meg "],                         urlKeys: ["-meg-", "/meg-", "_meg_"] },
+      { name: "mpg",           nameKeys: [" mpg "],                         urlKeys: ["-mpg-", "/mpg-", "_mpg_"] },
+      { name: "mag",           nameKeys: [" mag "],                         urlKeys: ["-mag-", "/mag-", "_mag_"] },
+    ],
+  },
+
+  // ── GPU / Motherboard: Gigabyte / AORUS ──────────────────────────────────
+  {
+    brands: ["gigabyte", "aorus"],
+    lines: [
+      { name: "aorus master",   nameKeys: ["aorus master"],                urlKeys: ["aorus-master", "aorusmaster"] },
+      { name: "aorus pro",      nameKeys: ["aorus pro"],                   urlKeys: ["aorus-pro", "aoruspro"] },
+      { name: "aorus elite",    nameKeys: ["aorus elite"],                  urlKeys: ["aorus-elite", "aouruselite"] },
+      { name: "aorus xtreme",   nameKeys: ["aorus xtreme"],                urlKeys: ["aorus-xtreme", "aorusxtreme"] },
+      { name: "gaming oc",      nameKeys: ["gaming oc"],                   urlKeys: ["gaming-oc", "gamingoc"] },
+      { name: "eagle oc",       nameKeys: ["eagle oc"],                    urlKeys: ["eagle-oc", "eagleoc"] },
+      { name: "windforce oc",   nameKeys: ["windforce oc"],                urlKeys: ["windforce-oc", "windforceoc"] },
+      { name: "windforce",      nameKeys: ["windforce"],                   urlKeys: ["windforce"] },
+      { name: "gaming x",       nameKeys: ["gaming x"],                    urlKeys: ["gaming-x", "gamingx"] },
+    ],
+  },
+
+  // ── GPU: Sapphire ─────────────────────────────────────────────────────────
+  {
+    brands: ["sapphire"],
+    lines: [
+      { name: "nitro+",  nameKeys: ["nitro+", "nitro plus"],               urlKeys: ["nitro-plus", "nitroplus", "nitro+"] },
+      { name: "pulse",   nameKeys: ["pulse"],                              urlKeys: ["pulse"] },
+      { name: "toxic",   nameKeys: ["toxic"],                              urlKeys: ["toxic"] },
+      { name: "pure",    nameKeys: ["sapphire pure"],                      urlKeys: ["sapphire-pure"] },
+    ],
+  },
+
+  // ── GPU: PowerColor ───────────────────────────────────────────────────────
+  {
+    brands: ["powercolor"],
+    lines: [
+      { name: "red devil",   nameKeys: ["red devil"],                      urlKeys: ["red-devil", "reddevil"] },
+      { name: "red dragon",  nameKeys: ["red dragon"],                     urlKeys: ["red-dragon", "reddragon"] },
+      { name: "fighter",     nameKeys: ["fighter"],                        urlKeys: ["fighter"] },
+      { name: "hellhound",   nameKeys: ["hellhound"],                      urlKeys: ["hellhound"] },
+      { name: "liquid devil",nameKeys: ["liquid devil"],                   urlKeys: ["liquid-devil", "liquiddevil"] },
+    ],
+  },
+
+  // ── GPU: XFX ──────────────────────────────────────────────────────────────
+  {
+    brands: ["xfx"],
+    lines: [
+      { name: "merc",  nameKeys: ["merc"],                                 urlKeys: ["merc"] },
+      { name: "qick",  nameKeys: ["qick"],                                 urlKeys: ["qick"] },
+      { name: "core",  nameKeys: ["speedster core"],                       urlKeys: ["speedster-core"] },
+    ],
+  },
+
+  // ── GPU: Zotac ────────────────────────────────────────────────────────────
+  {
+    brands: ["zotac"],
+    lines: [
+      { name: "amp extreme", nameKeys: ["amp extreme"],                    urlKeys: ["amp-extreme", "ampextreme"] },
+      { name: "amp airo",    nameKeys: ["amp airo"],                       urlKeys: ["amp-airo", "ampairo"] },
+      { name: "amp",         nameKeys: [" amp "],                          urlKeys: ["-amp-", "/amp-"] },
+      { name: "trinity",     nameKeys: ["trinity"],                        urlKeys: ["trinity"] },
+      { name: "twin edge",   nameKeys: ["twin edge"],                      urlKeys: ["twin-edge", "twinedge"] },
+    ],
+  },
+
+  // ── Motherboard: ASRock ───────────────────────────────────────────────────
+  {
+    brands: ["asrock"],
+    lines: [
+      { name: "taichi",         nameKeys: ["taichi"],                      urlKeys: ["taichi"] },
+      { name: "steel legend",   nameKeys: ["steel legend"],                urlKeys: ["steel-legend", "steellegend"] },
+      { name: "phantom gaming", nameKeys: ["phantom gaming"],              urlKeys: ["phantom-gaming", "phantomgaming"] },
+      { name: "pg lightning",   nameKeys: ["pg lightning"],                urlKeys: ["pg-lightning", "pglightning"] },
+    ],
+  },
+
+  // ── PSU: Corsair ──────────────────────────────────────────────────────────
+  {
+    brands: ["corsair"],
+    lines: [
+      { name: "ax",  nameKeys: [" ax ", " ax1", " ax8", " ax7", " ax6"],  urlKeys: ["-ax-", "/ax-", "-ax1", "-ax8"] },
+      { name: "hx",  nameKeys: [" hx ", " hx1", " hx8", " hx7"],         urlKeys: ["-hx-", "/hx-", "-hx1", "-hx8"] },
+      { name: "rm",  nameKeys: [" rm ", " rm1", " rm8", " rm7", " rm6"],  urlKeys: ["-rm-", "/rm-", "-rm1", "-rm8"] },
+      { name: "sf",  nameKeys: [" sf "],                                   urlKeys: ["-sf-", "/sf-"] },
+      { name: "cv",  nameKeys: [" cv "],                                   urlKeys: ["-cv-", "/cv-"] },
+    ],
+  },
+
+  // ── PSU: Seasonic ─────────────────────────────────────────────────────────
+  {
+    brands: ["seasonic"],
+    lines: [
+      { name: "prime tx",   nameKeys: ["prime tx", "prime-tx"],            urlKeys: ["prime-tx", "primetx"] },
+      { name: "prime px",   nameKeys: ["prime px", "prime-px"],            urlKeys: ["prime-px", "primepx"] },
+      { name: "prime gx",   nameKeys: ["prime gx", "prime-gx"],            urlKeys: ["prime-gx", "primegx"] },
+      { name: "focus gx",   nameKeys: ["focus gx", "focus-gx"],            urlKeys: ["focus-gx", "focusgx"] },
+      { name: "focus px",   nameKeys: ["focus px", "focus-px"],            urlKeys: ["focus-px", "focuspx"] },
+      { name: "vertex gx",  nameKeys: ["vertex gx"],                       urlKeys: ["vertex-gx", "vertexgx"] },
+      { name: "vertex px",  nameKeys: ["vertex px"],                       urlKeys: ["vertex-px", "vertexpx"] },
+      { name: "core gm",    nameKeys: ["core gm"],                         urlKeys: ["core-gm", "coregm"] },
+    ],
+  },
+
+  // ── PSU / Cases: be quiet! ────────────────────────────────────────────────
+  {
+    brands: ["be quiet", "bequiet"],
+    lines: [
+      { name: "dark power",    nameKeys: ["dark power"],                   urlKeys: ["dark-power", "darkpower"] },
+      { name: "straight power", nameKeys: ["straight power"],              urlKeys: ["straight-power", "straightpower"] },
+      { name: "pure power",    nameKeys: ["pure power"],                   urlKeys: ["pure-power", "purepower"] },
+      { name: "dark base",     nameKeys: ["dark base"],                    urlKeys: ["dark-base", "darkbase"] },
+      { name: "silent base",   nameKeys: ["silent base"],                  urlKeys: ["silent-base", "silentbase"] },
+      { name: "pure base",     nameKeys: ["pure base"],                    urlKeys: ["pure-base", "purebase"] },
+      { name: "dark rock pro", nameKeys: ["dark rock pro"],                urlKeys: ["dark-rock-pro", "darkrockpro"] },
+      { name: "dark rock",     nameKeys: ["dark rock"],                    urlKeys: ["dark-rock", "darkrock"] },
+      { name: "pure rock",     nameKeys: ["pure rock"],                    urlKeys: ["pure-rock", "purerock"] },
+      { name: "shadow rock",   nameKeys: ["shadow rock"],                  urlKeys: ["shadow-rock", "shadowrock"] },
+    ],
+  },
+
+  // ── Cooling: Noctua ───────────────────────────────────────────────────────
+  {
+    brands: ["noctua"],
+    lines: [
+      { name: "nh-d15",  nameKeys: ["nh-d15", "nhd15"],                   urlKeys: ["nh-d15", "nhd15"] },
+      { name: "nh-d14",  nameKeys: ["nh-d14", "nhd14"],                   urlKeys: ["nh-d14", "nhd14"] },
+      { name: "nh-u14s", nameKeys: ["nh-u14s", "nhu14s"],                  urlKeys: ["nh-u14s", "nhu14s"] },
+      { name: "nh-u12s", nameKeys: ["nh-u12s", "nhu12s"],                  urlKeys: ["nh-u12s", "nhu12s"] },
+      { name: "nh-u9s",  nameKeys: ["nh-u9s", "nhu9s"],                    urlKeys: ["nh-u9s", "nhu9s"] },
+      { name: "nh-l12s", nameKeys: ["nh-l12s", "nhl12s"],                  urlKeys: ["nh-l12s", "nhl12s"] },
+      { name: "nh-c14s", nameKeys: ["nh-c14s", "nhc14s"],                  urlKeys: ["nh-c14s", "nhc14s"] },
+    ],
+  },
+
+  // ── Cooling: Arctic ───────────────────────────────────────────────────────
+  {
+    brands: ["arctic"],
+    lines: [
+      { name: "liquid freezer ii", nameKeys: ["liquid freezer ii", "liquid freezer 2"], urlKeys: ["liquid-freezer-ii", "liquid-freezer-2", "liquidfreezer"] },
+      { name: "freezer 36",        nameKeys: ["freezer 36"],              urlKeys: ["freezer-36", "freezer36"] },
+      { name: "freezer 34",        nameKeys: ["freezer 34"],              urlKeys: ["freezer-34", "freezer34"] },
+      { name: "freezer 7",         nameKeys: ["freezer 7"],               urlKeys: ["freezer-7", "freezer7"] },
+    ],
+  },
+
+  // ── Cooling: Cooler Master ────────────────────────────────────────────────
+  {
+    brands: ["cooler master"],
+    lines: [
+      { name: "hyper 212",      nameKeys: ["hyper 212"],                  urlKeys: ["hyper-212", "hyper212"] },
+      { name: "hyper 622",      nameKeys: ["hyper 622"],                  urlKeys: ["hyper-622", "hyper622"] },
+      { name: "masterliquid",   nameKeys: ["masterliquid"],               urlKeys: ["masterliquid"] },
+      { name: "masterair",      nameKeys: ["masterair"],                  urlKeys: ["masterair"] },
+      { name: "masterfan",      nameKeys: ["masterfan"],                  urlKeys: ["masterfan"] },
+    ],
+  },
+
+  // ── Cases: Fractal Design ─────────────────────────────────────────────────
+  {
+    brands: ["fractal design"],
+    lines: [
+      { name: "define",   nameKeys: ["define r", "define 7", "define s"],  urlKeys: ["define-r", "define-7", "define-s"] },
+      { name: "meshify",  nameKeys: ["meshify"],                           urlKeys: ["meshify"] },
+      { name: "north",    nameKeys: ["fractal north"],                     urlKeys: ["fractal-north"] },
+      { name: "pop",      nameKeys: ["pop air", "pop mini", "pop xl"],     urlKeys: ["pop-air", "pop-mini", "pop-xl"] },
+      { name: "torrent",  nameKeys: ["torrent"],                           urlKeys: ["torrent"] },
+    ],
+  },
+
+  // ── Cases: NZXT ───────────────────────────────────────────────────────────
+  {
+    brands: ["nzxt"],
+    lines: [
+      { name: "h9 elite",  nameKeys: ["h9 elite"],                        urlKeys: ["h9-elite", "h9elite"] },
+      { name: "h9",        nameKeys: [" h9 "],                            urlKeys: ["-h9-", "/h9-"] },
+      { name: "h7",        nameKeys: [" h7 "],                            urlKeys: ["-h7-", "/h7-"] },
+      { name: "h6",        nameKeys: [" h6 "],                            urlKeys: ["-h6-", "/h6-"] },
+      { name: "h510",      nameKeys: ["h510"],                            urlKeys: ["h510"] },
+      { name: "h710",      nameKeys: ["h710"],                            urlKeys: ["h710"] },
+    ],
+  },
+
+  // ── Cases: Corsair (iCUE series) ─────────────────────────────────────────
+  {
+    brands: ["corsair"],
+    lines: [
+      { name: "icue 5000d",  nameKeys: ["5000d"],                         urlKeys: ["5000d", "5000-d"] },
+      { name: "icue 4000d",  nameKeys: ["4000d"],                         urlKeys: ["4000d", "4000-d"] },
+      { name: "carbide",     nameKeys: ["carbide"],                        urlKeys: ["carbide"] },
+      { name: "crystal",     nameKeys: ["crystal"],                        urlKeys: ["crystal"] },
+    ],
+  },
+
+  // ── Networking: TP-Link ───────────────────────────────────────────────────
+  {
+    brands: ["tp-link", "tplink"],
+    lines: [
+      { name: "deco",    nameKeys: ["deco"],                               urlKeys: ["deco"] },
+      { name: "archer",  nameKeys: ["archer"],                             urlKeys: ["archer"] },
+      { name: "omada",   nameKeys: ["omada"],                              urlKeys: ["omada"] },
+    ],
+  },
+
+  // ── Networking: ASUS routers ──────────────────────────────────────────────
+  {
+    brands: ["asus"],
+    lines: [
+      { name: "zenwifi",   nameKeys: ["zenwifi"],                          urlKeys: ["zenwifi", "zen-wifi"] },
+      { name: "rt-ax",     nameKeys: ["rt-ax"],                            urlKeys: ["rt-ax"] },
+      { name: "rt-ac",     nameKeys: ["rt-ac"],                            urlKeys: ["rt-ac"] },
+      { name: "rog rapture",nameKeys: ["rog rapture"],                     urlKeys: ["rog-rapture", "rograpture"] },
     ],
   },
 ];
