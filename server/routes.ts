@@ -671,6 +671,29 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/admin/suspicious-prices", adminAuth, async (_req, res) => {
+    try {
+      const suspects = await storage.getSuspiciousPrices();
+      res.json(suspects);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/admin/fix-price/:id", adminAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const product = await storage.getProduct(id);
+      if (!product) return res.status(404).json({ error: "Product not found" });
+      if (!product.costPrice || product.costPrice <= 0) return res.status(400).json({ error: "No cost price set" });
+      const correctPrice = Math.round(product.costPrice * 1.2 * 1.02 * 100) / 100;
+      const updated = await storage.updateProduct(id, { price: correctPrice, compareAtPrice: null });
+      res.json({ id, oldPrice: product.price, newPrice: correctPrice, product: updated });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.get("/api/admin/products", adminAuth, async (_req, res) => {
     const prods = await storage.getProducts();
     res.json(prods);

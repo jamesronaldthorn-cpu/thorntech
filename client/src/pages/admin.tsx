@@ -462,6 +462,10 @@ export default function AdminPage() {
   const [vipResult, setVipResult] = useState<any>(null);
   const [fixCatsLoading, setFixCatsLoading] = useState(false);
   const [fixCatsMsg, setFixCatsMsg] = useState<string | null>(null);
+  const [suspiciousPrices, setSuspiciousPrices] = useState<{ id: number; name: string; price: number; costPrice: number; source: string | null; issue: string }[]>([]);
+  const [suspPricesLoading, setSuspPricesLoading] = useState(false);
+  const [suspPricesOpen, setSuspPricesOpen] = useState(false);
+  const [fixingPriceId, setFixingPriceId] = useState<number | null>(null);
   const [targetSyncing, setTargetSyncing] = useState(false);
   const [targetResult, setTargetResult] = useState<any>(null);
   const [priceMatching, setPriceMatching] = useState(false);
@@ -718,6 +722,34 @@ export default function AdminPage() {
     } catch (e: any) {
       setVipResult({ error: e.message });
       setVipSyncing(false);
+    }
+  };
+
+  const scanSuspiciousPrices = async () => {
+    setSuspPricesLoading(true);
+    setSuspPricesOpen(true);
+    try {
+      const r = await adminFetch("/api/admin/suspicious-prices");
+      const d = await r.json();
+      setSuspiciousPrices(Array.isArray(d) ? d : []);
+    } catch (e: any) {
+      setSuspiciousPrices([]);
+    } finally {
+      setSuspPricesLoading(false);
+    }
+  };
+
+  const fixProductPrice = async (id: number) => {
+    setFixingPriceId(id);
+    try {
+      const r = await adminFetch(`/api/admin/fix-price/${id}`, { method: "POST" });
+      const d = await r.json();
+      if (r.ok) {
+        setSuspiciousPrices(prev => prev.filter(p => p.id !== id));
+        loadData();
+      }
+    } finally {
+      setFixingPriceId(null);
     }
   };
 
@@ -1590,7 +1622,71 @@ export default function AdminPage() {
                 {fixCatsLoading ? <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />Fixing...</> : <>Fix RAM Categories</>}
               </Button>
               {fixCatsMsg && <span className="text-xs text-gray-400">{fixCatsMsg}</span>}
+              <Button onClick={scanSuspiciousPrices} disabled={suspPricesLoading} variant="outline" className="border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs" data-testid="button-scan-prices">
+                {suspPricesLoading ? <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />Scanning...</> : <>Scan Suspicious Prices</>}
+              </Button>
             </div>
+            )}
+
+            {suspPricesOpen && (
+              <div className="mb-4 border border-red-500/20 rounded-lg overflow-hidden" data-testid="panel-suspicious-prices">
+                <div className="flex items-center justify-between px-4 py-2 bg-red-500/10">
+                  <span className="text-sm font-medium text-red-400">
+                    {suspPricesLoading ? "Scanning for anomalous prices…" : `${suspiciousPrices.length} suspicious price${suspiciousPrices.length !== 1 ? "s" : ""} found`}
+                  </span>
+                  <button onClick={() => setSuspPricesOpen(false)} className="text-gray-500 hover:text-white text-xs">✕ Close</button>
+                </div>
+                {suspiciousPrices.length > 0 && (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-white/10 text-gray-400 text-left">
+                          <th className="py-2 px-3">Product</th>
+                          <th className="py-2 px-3">Price</th>
+                          <th className="py-2 px-3">Cost</th>
+                          <th className="py-2 px-3">Source</th>
+                          <th className="py-2 px-3">Issue</th>
+                          <th className="py-2 px-3">Fix</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {suspiciousPrices.map(p => (
+                          <tr key={p.id} className="border-b border-white/5 hover:bg-white/5" data-testid={`row-suspicious-${p.id}`}>
+                            <td className="py-2 px-3 max-w-xs">
+                              <a href={`/product/${p.id}`} target="_blank" rel="noopener noreferrer" className="text-white hover:text-purple-400 truncate block" title={p.name}>{p.name.substring(0, 55)}{p.name.length > 55 ? "…" : ""}</a>
+                            </td>
+                            <td className="py-2 px-3 text-purple-400">£{Number(p.price).toFixed(2)}</td>
+                            <td className="py-2 px-3 text-gray-400">£{Number(p.costPrice).toFixed(2)}</td>
+                            <td className="py-2 px-3">
+                              {p.source === "Target Components" ? <span className="text-orange-400">Target</span> : <span className="text-blue-400">VIP</span>}
+                            </td>
+                            <td className="py-2 px-3 text-red-300 max-w-xs">
+                              <span title={p.issue}>{p.issue.substring(0, 60)}{p.issue.length > 60 ? "…" : ""}</span>
+                            </td>
+                            <td className="py-2 px-3">
+                              {p.costPrice > 0 && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs border-green-500/30 text-green-400 hover:bg-green-500/10 h-6 px-2"
+                                  disabled={fixingPriceId === p.id}
+                                  onClick={() => fixProductPrice(p.id)}
+                                  data-testid={`button-fix-price-${p.id}`}
+                                >
+                                  {fixingPriceId === p.id ? <Loader2 className="w-3 h-3 animate-spin" /> : `→ £${(p.costPrice * 1.2 * 1.02).toFixed(2)}`}
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {!suspPricesLoading && suspiciousPrices.length === 0 && (
+                  <p className="text-xs text-gray-400 px-4 py-3">No suspicious prices detected — all products look correctly priced.</p>
+                )}
+              </div>
             )}
 
             <div className="overflow-x-auto">

@@ -1,6 +1,68 @@
 import { storage } from "./storage";
 
 const MIN_MARGIN = 0.02;
+
+// ---------- Price sanity helpers ----------
+
+function parseCapacityGB(name: string): number | null {
+  const tb = name.match(/(\d+(?:\.\d+)?)\s*TB/i);
+  if (tb) return Math.round(parseFloat(tb[1]) * 1024);
+  const gb = name.match(/(\d+(?:\.\d+)?)\s*GB/i);
+  if (gb) return parseFloat(gb[1]);
+  return null;
+}
+
+function parseCapacityMB(name: string): number | null {
+  const mb = name.match(/(\d+(?:\.\d+)?)\s*MB/i);
+  if (mb) return parseFloat(mb[1]);
+  return null;
+}
+
+/**
+ * Returns the maximum sane retail (inc-VAT) price we should ever accept
+ * from an internet price search for this product.
+ * Returns null if no sanity cap can be determined.
+ */
+function maxSaneInternetPrice(name: string, costPrice: number): number | null {
+  const nameLower = name.toLowerCase();
+  const capacityGB = parseCapacityGB(name);
+
+  // Storage: NVMe, SSD, HDD
+  if (capacityGB !== null && (
+    nameLower.includes("nvme") || nameLower.includes("ssd") ||
+    nameLower.includes("solid state") || nameLower.includes("m.2") ||
+    nameLower.includes("hdd") || nameLower.includes("hard drive") ||
+    nameLower.includes("hard disk")
+  )) {
+    // Max £1.20/GB (very generous — even server NVMe is cheaper than this at retail)
+    const perGbCap = capacityGB * 1.20;
+    // Never go below 4× cost (to allow legitimate premium products)
+    return Math.max(perGbCap, costPrice * 4);
+  }
+
+  // RAM: DIMM, DDR, etc.
+  if (capacityGB !== null && (
+    nameLower.includes("ddr") || nameLower.includes("dimm") ||
+    nameLower.includes(" ram") || nameLower.includes("memory") ||
+    nameLower.includes("sodimm") || nameLower.includes("rdimm")
+  )) {
+    // Max £20/GB (generous — 128GB ECC server kits can be pricey)
+    const perGbCap = capacityGB * 20;
+    return Math.max(perGbCap, costPrice * 4);
+  }
+
+  // USB drives / flash
+  if (capacityGB !== null && (
+    nameLower.includes("usb") && (nameLower.includes("flash") || nameLower.includes("drive") || nameLower.includes("stick"))
+  )) {
+    const perGbCap = capacityGB * 0.60;
+    return Math.max(perGbCap, costPrice * 4);
+  }
+
+  // For everything else: cap at 5× cost price to catch wild mismatches
+  return costPrice * 5;
+}
+
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
 interface PriceMatchResult {
@@ -305,6 +367,16 @@ export async function matchInternetPrices(batchSize = 500): Promise<PriceMatchRe
 
       if (!internetPrice) {
         result.noResultsFound++;
+        matchedProductIds.add(product.id);
+        await delay(1500);
+        continue;
+      }
+
+      // Sanity check: reject internet price if it's unreasonably high for this product type
+      const maxSane = maxSaneInternetPrice(product.name, costPrice);
+      if (maxSane !== null && internetPrice > maxSane) {
+        console.log(`[PriceMatcher]   SANITY REJECT: internet £${internetPrice.toFixed(2)} > max sane £${maxSane.toFixed(2)} for "${product.name.substring(0, 50)}" — keeping existing £${product.price.toFixed(2)}`);
+        result.keptExisting++;
         matchedProductIds.add(product.id);
         await delay(1500);
         continue;

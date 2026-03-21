@@ -1352,6 +1352,83 @@ function isPhonePage(pageUrl: string): boolean {
   return false;
 }
 
+// Known PC-component brand keywords mapped to the brand identity.
+// Used to detect when an image URL's path contains a different brand to the product.
+const PC_BRAND_KEYWORDS: Record<string, string[]> = {
+  "western digital": ["western-digital", "westerndigital", "/wd-", "wd-black", "wd-blue", "wd-red", "wd-green", "wd-purple"],
+  "wd": ["western-digital", "westerndigital"],
+  "seagate": ["seagate", "barracuda", "ironwolf", "firecuda"],
+  "samsung": ["samsung"],
+  "kingston": ["kingston"],
+  "crucial": ["crucial"],
+  "pny": ["pny"],
+  "lexar": ["lexar"],
+  "sabrent": ["sabrent"],
+  "silicon power": ["silicon-power"],
+  "corsair": ["corsair", "vengeance", "dominator"],
+  "g.skill": ["gskill", "g-skill", "tridentz", "ripjaws"],
+  "gskill": ["gskill", "g-skill", "tridentz", "ripjaws"],
+  "patriot": ["patriot-memory", "patriot-viper"],
+  "teamgroup": ["teamgroup", "team-group"],
+  "adata": ["adata", "xpg"],
+  "asus": ["asus", "strix", "tuf-gaming", "rog-"],
+  "msi": ["/msi-", "msi-geforce", "msi-radeon"],
+  "gigabyte": ["gigabyte", "aorus"],
+  "sapphire": ["sapphire"],
+  "powercolor": ["powercolor"],
+  "xfx": ["/xfx-"],
+  "zotac": ["zotac"],
+  "intel": ["intel-core", "intel-i", "/i9-", "/i7-", "/i5-", "/i3-"],
+  "amd": ["amd-ryzen", "amd-epyc"],
+  "tp-link": ["tp-link", "tplink"],
+  "netgear": ["netgear"],
+  "logitech": ["logitech"],
+  "razer": ["razer"],
+};
+
+/**
+ * Detects if an image URL path explicitly belongs to a different brand than the product's vendor.
+ * Only fires when the image path contains a brand token for a DIFFERENT brand (not the product's own brand).
+ */
+function hasBrandMismatch(productName: string, vendor: string | undefined, imageUrl: string): boolean {
+  // Only check non-supplier images (supplier images are trusted)
+  const imgLower = imageUrl.toLowerCase();
+  if (
+    imgLower.includes("vip-computers.com") ||
+    imgLower.includes("pictureserver.co.uk") ||
+    imgLower.includes("targetcomponents.com")
+  ) return false;
+
+  // Extract path only (after domain)
+  const imgPath = imgLower.replace(/^https?:\/\/[^/]+/, "");
+
+  const nameLower = productName.toLowerCase();
+  const vendorLower = (vendor || "").toLowerCase();
+
+  // Determine the product's own brand tokens
+  let ownTokens: string[] = [];
+  for (const [brand, tokens] of Object.entries(PC_BRAND_KEYWORDS)) {
+    if (nameLower.includes(brand) || vendorLower.includes(brand)) {
+      ownTokens.push(...tokens, brand.replace(/[\s.]/g, "-"), brand.replace(/[\s.]/g, ""));
+    }
+  }
+
+  // Check each brand; if path contains another brand's token → mismatch
+  for (const [brand, tokens] of Object.entries(PC_BRAND_KEYWORDS)) {
+    // Skip if this IS the product's own brand
+    if (nameLower.includes(brand) || vendorLower.includes(brand)) continue;
+    // Skip if the own tokens already include these (overlapping brands)
+    if (ownTokens.some(t => tokens.includes(t))) continue;
+
+    // Check if image path contains this brand's identifying tokens
+    if (tokens.some(t => imgPath.includes(t))) {
+      console.log(`[Enricher]   Rejected image (brand mismatch: contains "${brand}" tokens but product is "${vendor || productName.split(" ")[0]}"): ${imageUrl.substring(0, 80)}`);
+      return true;
+    }
+  }
+  return false;
+}
+
 function validateImageRelevance(productName: string, vendor: string | undefined, imageUrl: string): boolean {
   const imgLower = imageUrl.toLowerCase();
   const nameLower = productName.toLowerCase();
@@ -1364,6 +1441,8 @@ function validateImageRelevance(productName: string, vendor: string | undefined,
     console.log(`[Enricher]   Rejected image (mismatch: ${mismatch}): ${imageUrl.substring(0, 80)}`);
     return false;
   }
+
+  if (hasBrandMismatch(productName, vendor, imageUrl)) return false;
 
   const genericBadPatterns = [
     "no-image", "placeholder", "default", "coming-soon", "noimage",

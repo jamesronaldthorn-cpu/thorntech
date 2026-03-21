@@ -53,6 +53,7 @@ export interface IStorage {
   approveReview(id: number): Promise<CustomerReview | undefined>;
   deleteReview(id: number): Promise<boolean>;
   fixRamCategories(): Promise<{ fixed: number; details: string[] }>;
+  getSuspiciousPrices(): Promise<{ id: number; name: string; price: number; costPrice: number; source: string | null; issue: string }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -102,7 +103,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProducts(): Promise<Product[]> {
-    return this.db.select().from(products);
+    return this.db.select().from(products).where(
+      sql`NOT (LOWER(${products.name}) LIKE '%test product%' AND ${products.price} < 1)`
+    );
   }
 
   async searchProducts(query: string): Promise<Product[]> {
@@ -116,11 +119,14 @@ export class DatabaseStorage implements IStorage {
     for (let i = 1; i < conditions.length; i++) {
       combined = sql`${combined} AND ${conditions[i]}`;
     }
-    return this.db.select().from(products).where(combined).limit(50);
+    const testFilter = sql`NOT (LOWER(${products.name}) LIKE '%test product%' AND ${products.price} < 1)`;
+    return this.db.select().from(products).where(sql`${combined} AND ${testFilter}`).limit(50);
   }
 
   async getProductsByCategory(categoryId: number): Promise<Product[]> {
-    return this.db.select().from(products).where(eq(products.categoryId, categoryId));
+    return this.db.select().from(products).where(
+      sql`${eq(products.categoryId, categoryId)} AND NOT (LOWER(${products.name}) LIKE '%test product%' AND ${products.price} < 1)`
+    );
   }
 
   async getProductBySlug(slug: string): Promise<Product | undefined> {
@@ -363,6 +369,85 @@ export class DatabaseStorage implements IStorage {
   async deleteReview(id: number): Promise<boolean> {
     const result = await this.db.delete(customerReviews).where(eq(customerReviews.id, id)).returning();
     return result.length > 0;
+  }
+
+  async getSuspiciousPrices(): Promise<{ id: number; name: string; price: number; costPrice: number; source: string | null; issue: string }[]> {
+    const all = await this.db.select({
+      id: products.id,
+      name: products.name,
+      price: products.price,
+      costPrice: products.costPrice,
+      source: products.source,
+    }).from(products).where(sql`${products.costPrice} > 0 AND ${products.inStock} = true`);
+
+    const suspicious: { id: number; name: string; price: number; costPrice: number; source: string | null; issue: string }[] = [];
+
+    for (const p of all) {
+      const nameLower = p.name.toLowerCase();
+      const cost = Number(p.costPrice) || 0;
+      const price = Number(p.price) || 0;
+      const issues: string[] = [];
+
+      // Parse storage capacity — require whole number GB (not 2.5G or 5G networking)
+      // Exclude GB that is followed by 'E' (GbE ethernet) or 'ps' (Gbps networking)
+      const tbMatch = p.name.match(/\b(\d+)\s*TB\b/i);
+      // Must be ≥ 16GB for standalone drives/RAM (avoids 5G WiFi etc.)
+      const gbMatch = p.name.match(/\b(\d{2,})\s*GB\b(?!E)(?!ps)/i);
+      const capacityGB = tbMatch ? Math.round(parseFloat(tbMatch[1]) * 1024) : gbMatch ? parseFloat(gbMatch[1]) : null;
+
+      // Skip system products (laptops, PCs, etc.) — they bundle multiple components
+      const isSystem = nameLower.includes("laptop") || nameLower.includes(" pc") || nameLower.includes("desktop") ||
+                       nameLower.includes("windows 11") || nameLower.includes("windows 10") || nameLower.includes("gaming build") ||
+                       nameLower.includes("logix ") || nameLower.includes("workstation") || nameLower.includes("tower") ||
+                       nameLower.includes("mini pc") || nameLower.includes("small form factor") || nameLower.includes("all-in-one") ||
+                       nameLower.includes("tablet") || nameLower.includes("android") || nameLower.includes("chromebook") ||
+                       nameLower.includes("server") || nameLower.includes("nas ") || nameLower.includes("motherboard");
+
+      // Standalone storage drives only (not GPUs, laptops, etc.)
+      const isStorage = !isSystem && (nameLower.includes("ssd") || nameLower.includes("nvme") ||
+                        nameLower.includes("solid state") || nameLower.includes("hard drive") || nameLower.includes("hard disk")) &&
+                        !nameLower.includes("gddr") && !nameLower.includes("geforce") && !nameLower.includes("radeon");
+
+      // Standalone RAM sticks only (not GPU VRAM, not laptops with RAM spec)
+      const isRam = !isSystem && (nameLower.includes("dimm") || (nameLower.includes("ddr") && !nameLower.includes("gddr") && !nameLower.includes("geforce") && !nameLower.includes("radeon"))) &&
+                   !nameLower.includes("laptop") && !nameLower.includes("graphics");
+
+      if (capacityGB !== null && isStorage) {
+        const pricePerGB = price / capacityGB;
+        if (pricePerGB > 1.20) {
+          issues.push(`£${pricePerGB.toFixed(2)}/GB for ${capacityGB}GB storage (max expected ~£1.20/GB)`);
+        }
+        if (cost / capacityGB > 0.80) {
+          issues.push(`cost £${(cost / capacityGB).toFixed(2)}/GB (max expected ~£0.80/GB for storage)`);
+        }
+      }
+
+      if (capacityGB !== null && isRam) {
+        const pricePerGB = price / capacityGB;
+        if (pricePerGB > 25) {
+          issues.push(`£${pricePerGB.toFixed(2)}/GB for ${capacityGB}GB RAM (max expected ~£25/GB)`);
+        }
+      }
+
+      // Markup ratio check (should be ~1.22 for all products)
+      if (cost > 0 && price / cost > 3) {
+        issues.push(`markup ${(price / cost).toFixed(1)}× cost (expected ~1.22×)`);
+      }
+      if (cost > 0 && price / cost < 1.05) {
+        issues.push(`price £${price} below cost £${cost} — possible data error`);
+      }
+
+      // Test product that snuck in
+      if (nameLower.includes("test product") || nameLower.includes("do not buy")) {
+        issues.push("test/placeholder product — should be removed");
+      }
+
+      if (issues.length > 0) {
+        suspicious.push({ id: p.id, name: p.name, price, costPrice: cost, source: p.source, issue: issues.join("; ") });
+      }
+    }
+
+    return suspicious.sort((a, b) => b.price - a.price);
   }
 
   async fixRamCategories(): Promise<{ fixed: number; details: string[] }> {
