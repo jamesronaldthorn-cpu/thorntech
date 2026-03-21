@@ -104,7 +104,10 @@ export class DatabaseStorage implements IStorage {
 
   async getProducts(): Promise<Product[]> {
     return this.db.select().from(products).where(
-      sql`NOT (LOWER(${products.name}) LIKE '%test product%' AND ${products.price} < 1)`
+      and(
+        sql`NOT (LOWER(${products.name}) LIKE '%test product%' AND ${products.price} < 1)`,
+        sql`${products.price} <= 1400`
+      )
     );
   }
 
@@ -120,14 +123,17 @@ export class DatabaseStorage implements IStorage {
       combined = sql`${combined} AND ${conditions[i]}`;
     }
     const testFilter = sql`NOT (LOWER(${products.name}) LIKE '%test product%' AND ${products.price} < 1)`;
-    return this.db.select().from(products).where(sql`${combined} AND ${testFilter}`).limit(50);
+    return this.db.select().from(products).where(
+      sql`${combined} AND ${testFilter} AND ${products.price} <= 1400`
+    ).limit(50);
   }
 
   async getProductsByCategory(categoryId: number): Promise<Product[]> {
     return this.db.select().from(products).where(
       and(
         eq(products.categoryId, categoryId),
-        sql`NOT (LOWER(${products.name}) LIKE '%test product%' AND ${products.price} < 1)`
+        sql`NOT (LOWER(${products.name}) LIKE '%test product%' AND ${products.price} < 1)`,
+        sql`${products.price} <= 1400`
       )
     );
   }

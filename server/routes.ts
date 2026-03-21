@@ -1172,6 +1172,19 @@ export async function registerRoutes(
           console.error("[VIP→PullImages] Failed to start auto-pull:", e.message);
         }
       }
+
+      // Auto-run price matching after sync (background)
+      if (!priceMatchStatus.running) {
+        priceMatchStatus = { running: true, result: null };
+        console.log(`[VIP] Post-sync price matching started (batch 200)…`);
+        matchInternetPrices(200).then(r => {
+          priceMatchStatus = { running: false, result: r };
+          console.log(`[VIP→PriceMatch] Complete: ${r.priceUpdated} updated, ${r.noResultsFound} no results`);
+        }).catch(e => {
+          priceMatchStatus = { running: false, result: { error: e.message } };
+          console.error("[VIP→PriceMatch] Error:", e.message);
+        });
+      }
     } catch (e: any) {
       console.error("[VIP] Sync error:", e);
       syncStatus = { running: false, result: null, error: e.message };
@@ -1223,8 +1236,30 @@ export async function registerRoutes(
     try {
       const { syncTargetProducts } = await import("./targetApi");
       const result = await syncTargetProducts();
+
+      // Run category cleanup after sync to fix any misclassified products
+      try {
+        const fixResult = await storage.fixRamCategories();
+        if (fixResult.fixed > 0) console.log(`[Target] Post-sync category fix: ${fixResult.fixed} products corrected`);
+      } catch (e: any) {
+        console.error("[Target] Post-sync category fix error:", e.message);
+      }
+
       targetSyncStatus = { running: false, result, error: null };
       console.log(`[Target] Sync complete: ${result.imported} new, ${result.updated} updated`);
+
+      // Auto-run price matching after sync (background)
+      if (!priceMatchStatus.running) {
+        priceMatchStatus = { running: true, result: null };
+        console.log(`[Target] Post-sync price matching started (batch 200)…`);
+        matchInternetPrices(200).then(r => {
+          priceMatchStatus = { running: false, result: r };
+          console.log(`[Target→PriceMatch] Complete: ${r.priceUpdated} updated, ${r.noResultsFound} no results`);
+        }).catch(e => {
+          priceMatchStatus = { running: false, result: { error: e.message } };
+          console.error("[Target→PriceMatch] Error:", e.message);
+        });
+      }
     } catch (e: any) {
       console.error("[Target] Sync error:", e);
       targetSyncStatus = { running: false, result: null, error: e.message };
