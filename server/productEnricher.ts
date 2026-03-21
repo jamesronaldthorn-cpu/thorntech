@@ -2035,57 +2035,70 @@ export async function pullMissingImages(): Promise<{ updated: number; skipped: n
   return { updated, skipped, errors };
 }
 
+function isSupplierImage(url: string): boolean {
+  const u = url.toLowerCase();
+  return u.includes("vip-computers.com") || u.includes("pictureserver.co.uk") || u.includes("targetcomponents.com");
+}
+
 export async function cleanBadImages(): Promise<{ checked: number; fixed: number; cleared: number }> {
   const allProducts = await storage.getProducts();
   let checked = 0;
   let fixed = 0;
   let cleared = 0;
 
-  console.log(`[BadImageCleaner] Checking ${allProducts.length} products for broken/bad images...`);
+  console.log(`[BadImageCleaner] Checking ${allProducts.length} products for bad/mismatched images...`);
 
   for (const p of allProducts) {
     if (!p.image) continue;
     checked++;
 
-    let imageOk = false;
-    try {
-      const res = await fetch(p.image, {
-        method: "HEAD",
-        signal: AbortSignal.timeout(8000),
-        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" },
-      });
-      if (res.ok) {
-        const ct = res.headers.get("content-type") || "";
-        imageOk = ct.includes("image");
-      }
-    } catch {}
+    // Parse all images in the array
+    let allImgs: string[] = [];
+    try { if (p.images) allImgs = typeof p.images === "string" ? JSON.parse(p.images) : p.images; } catch {}
+    if (!allImgs.includes(p.image)) allImgs = [p.image, ...allImgs];
 
-    if (imageOk) continue;
+    // Split into supplier (trusted) and web-enriched images
+    const supplierImgs = allImgs.filter(img => isSupplierImage(img));
+    const webImgs = allImgs.filter(img => !isSupplierImage(img));
 
-    let replacementImage: string | null = null;
-    if (p.images) {
-      try {
-        const extras = typeof p.images === "string" ? JSON.parse(p.images) : p.images;
-        if (Array.isArray(extras)) {
-          for (const img of extras) {
-            if (img === p.image) continue;
-            try {
-              const c = await fetch(img, { method: "HEAD", signal: AbortSignal.timeout(5000), headers: { "User-Agent": "Mozilla/5.0" } });
-              if (c.ok) { replacementImage = img; break; }
-            } catch {}
-          }
-        }
-      } catch {}
+    // Filter out any web images that fail brand/relevance check
+    const cleanWebImgs = webImgs.filter(img => validateImageRelevance(p.name, p.vendor || undefined, img));
+    const removedFromWeb = webImgs.length - cleanWebImgs.length;
+    if (removedFromWeb > 0) {
+      console.log(`[BadImageCleaner] "${p.name}": removed ${removedFromWeb} brand-mismatched web image(s)`);
     }
 
-    if (replacementImage) {
-      await storage.updateProduct(p.id, { image: replacementImage });
-      fixed++;
-      console.log(`[BadImageCleaner] Fixed: "${p.name}" → ${replacementImage}`);
-    } else {
-      await storage.updateProduct(p.id, { image: null, images: null, enrichedAt: null } as any);
-      cleared++;
-      console.log(`[BadImageCleaner] Cleared broken image: "${p.name}"`);
+    // Rebuild images array: supplier first, then clean web images
+    const cleanAll = [...supplierImgs, ...cleanWebImgs];
+
+    // Determine if main image is bad (broken URL or brand mismatch)
+    const mainIsBad = !validateImageRelevance(p.name, p.vendor || undefined, p.image) || await (async () => {
+      try {
+        const res = await fetch(p.image!, { method: "HEAD", signal: AbortSignal.timeout(8000), headers: { "User-Agent": "Mozilla/5.0" } });
+        if (!res.ok) return true;
+        const ct = res.headers.get("content-type") || "";
+        return !ct.includes("image");
+      } catch { return true; }
+    })();
+
+    if (!mainIsBad && cleanAll.length === allImgs.length) continue; // nothing to do
+
+    if (mainIsBad) {
+      // Prefer supplier image, then first clean web image
+      const replacement = supplierImgs[0] || cleanWebImgs[0] || null;
+      if (replacement) {
+        await storage.updateProduct(p.id, { image: replacement, images: JSON.stringify(cleanAll) });
+        fixed++;
+        const src = isSupplierImage(replacement) ? "supplier" : "web";
+        console.log(`[BadImageCleaner] Replaced bad main image with ${src} image: "${p.name.substring(0, 50)}"`);
+      } else {
+        await storage.updateProduct(p.id, { image: null, images: null, enrichedAt: null } as any);
+        cleared++;
+        console.log(`[BadImageCleaner] Cleared (no good replacement): "${p.name.substring(0, 50)}"`);
+      }
+    } else if (removedFromWeb > 0) {
+      // Main image is fine but array had bad images — just update the array
+      await storage.updateProduct(p.id, { images: JSON.stringify(cleanAll) });
     }
   }
 

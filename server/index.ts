@@ -264,13 +264,24 @@ async function autoFixCategories() {
   startFeedScheduler();
 
   const { startVipScheduler } = await import("./vipApi");
-  startVipScheduler(6);
+  startVipScheduler(3);
 
-  const { startMidnightEnricher } = await import("./productEnricher");
+  const { startMidnightEnricher, cleanBadImages } = await import("./productEnricher");
   startMidnightEnricher();
 
   const { startTargetScheduler } = await import("./targetApi");
-  startTargetScheduler(6);
+  startTargetScheduler(3);
+
+  // Run image cleanup shortly after startup to fix any bad/mismatched images already in the DB
+  setTimeout(async () => {
+    try {
+      console.log("[Startup] Running initial bad-image cleanup...");
+      const result = await cleanBadImages();
+      console.log(`[Startup] Bad-image cleanup: ${result.fixed} fixed, ${result.cleared} cleared (of ${result.checked} checked)`);
+    } catch (e: any) {
+      console.error("[Startup] Bad-image cleanup error:", e.message);
+    }
+  }, 60_000);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

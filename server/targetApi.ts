@@ -1099,7 +1099,7 @@ function escapeXml(str: string): string {
 
 let targetSyncInterval: ReturnType<typeof setInterval> | null = null;
 
-export function startTargetScheduler(intervalHours = 6) {
+export function startTargetScheduler(intervalHours = 3) {
   if (targetSyncInterval) return;
 
   if (!TARGET_ACCOUNT || !TARGET_SECURITY_CODE) {
@@ -1114,6 +1114,19 @@ export function startTargetScheduler(intervalHours = 6) {
       console.log("[Target Scheduler] Running scheduled sync...");
       const result = await syncTargetProducts();
       console.log(`[Target Scheduler] Done: ${result.imported} new, ${result.updated} updated, ${result.outOfStock} out of stock`);
+
+      const { storage } = await import("./storage");
+      const fixResult = await storage.fixRamCategories();
+      if (fixResult.fixed > 0) console.log(`[Target Scheduler] Category fix: ${fixResult.fixed} products corrected`);
+
+      console.log("[Target Scheduler] Cleaning bad/mismatched images...");
+      const { cleanBadImages, pullMissingImages } = await import("./productEnricher");
+      const cleanResult = await cleanBadImages();
+      console.log(`[Target Scheduler] Image clean: ${cleanResult.fixed} fixed, ${cleanResult.cleared} cleared`);
+      if (cleanResult.cleared > 0) {
+        const pullResult = await pullMissingImages();
+        console.log(`[Target Scheduler] Image pull: ${pullResult.updated} updated`);
+      }
 
       console.log("[Target Scheduler] Starting internet price matching...");
       const priceResult = await matchInternetPrices(500);

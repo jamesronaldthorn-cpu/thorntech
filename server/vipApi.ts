@@ -904,7 +904,7 @@ export async function purgeDeadProducts(): Promise<{ removed: number; total: num
 
 let vipSyncInterval: ReturnType<typeof setInterval> | null = null;
 
-export function startVipScheduler(intervalHours = 6) {
+export function startVipScheduler(intervalHours = 3) {
   if (vipSyncInterval) return;
 
   const hasCredentials = process.env.VIP_ACCOUNT_ID && process.env.VIP_USERNAME && process.env.VIP_PASSWORD;
@@ -922,6 +922,16 @@ export function startVipScheduler(intervalHours = 6) {
       console.log(`[VIP Scheduler] Done: ${result.imported} new, ${result.updated} updated, ${result.outOfStock} out of stock`);
       const dedupResult = await deduplicateProducts();
       if (dedupResult > 0) console.log(`[VIP Scheduler] Dedup: removed ${dedupResult} duplicates`);
+
+      console.log("[VIP Scheduler] Cleaning bad/mismatched images...");
+      const { cleanBadImages, pullMissingImages } = await import("./productEnricher");
+      const cleanResult = await cleanBadImages();
+      console.log(`[VIP Scheduler] Image clean: ${cleanResult.fixed} fixed, ${cleanResult.cleared} cleared`);
+      if (cleanResult.cleared > 0) {
+        const pullResult = await pullMissingImages();
+        console.log(`[VIP Scheduler] Image pull: ${pullResult.updated} updated`);
+      }
+
       console.log("[VIP Scheduler] Starting internet price matching...");
       const priceResult = await matchInternetPrices(500);
       console.log(`[VIP Scheduler] Price match done: ${priceResult.priceUpdated} updated, ${priceResult.noResultsFound} no results`);
