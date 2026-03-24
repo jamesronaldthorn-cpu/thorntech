@@ -747,37 +747,37 @@ export function nameBasedCategoryOverride(name: string, catBySlug: Map<string, n
 export async function syncTargetProducts(): Promise<{ imported: number; updated: number; skipped: number; outOfStock: number; errors: number; total: number }> {
   const result = { imported: 0, updated: 0, skipped: 0, outOfStock: 0, errors: 0, total: 0 };
 
-  const targetCategoryCodes = [...new Set(Object.keys(targetCategoryMap))];
-  console.log(`[Target] Fetching products from ${targetCategoryCodes.length} categories via STOCKCAT...`);
-
+  // Use STOCKCHECKALL to get every product in one call — avoids missing products
+  // in categories not yet in the hardcoded map
+  console.log(`[Target] Fetching ALL products via STOCKCHECKALL...`);
   let targetProducts: TargetProduct[] = [];
-  const seenStockcodes = new Set<string>();
-  let catsFetched = 0;
-  let catsWithProducts = 0;
-
-  for (const catCode of targetCategoryCodes) {
-    try {
-      const products = await getTargetProductsByCategory(catCode);
-      catsFetched++;
-      if (products.length > 0) {
-        catsWithProducts++;
+  try {
+    targetProducts = await getTargetAllProducts();
+  } catch (e: any) {
+    // If STOCKCHECKALL fails, fall back to per-category fetching
+    console.warn(`[Target] STOCKCHECKALL failed (${e.message}), falling back to per-category fetch...`);
+    const targetCategoryCodes = [...new Set(Object.keys(targetCategoryMap))];
+    const seenStockcodes = new Set<string>();
+    for (const catCode of targetCategoryCodes) {
+      try {
+        const products = await getTargetProductsByCategory(catCode);
         for (const p of products) {
           if (!seenStockcodes.has(p.stockcode)) {
             seenStockcodes.add(p.stockcode);
             targetProducts.push(p);
           }
         }
-      }
-    } catch (e: any) {
-      if (!e.message?.includes("NO RESULTS")) {
-        console.error(`[Target] Error fetching category ${catCode}: ${e.message}`);
+      } catch (ce: any) {
+        if (!ce.message?.includes("NO RESULTS")) {
+          console.error(`[Target] Error fetching category ${catCode}: ${ce.message}`);
+        }
       }
     }
   }
 
   const inStockCount = targetProducts.filter(tp => tp.stock > 0).length;
   result.total = targetProducts.length;
-  console.log(`[Target] Fetched ${targetProducts.length} unique products (${inStockCount} in stock) from ${catsWithProducts}/${catsFetched} categories`);
+  console.log(`[Target] Fetched ${targetProducts.length} products total (${inStockCount} in stock, ${targetProducts.length - inStockCount} out of stock)`);
 
   const existingProducts = await storage.getProducts();
   const existingByMpn = new Map<string, any>();
@@ -795,10 +795,8 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
   let matchedByMpn = 0, matchedBySlug = 0, newCount = 0;
   for (const tp of targetProducts) {
     try {
-      if (tp.stock <= 0) {
-        result.outOfStock++;
-        continue;
-      }
+      const isInStock = tp.stock > 0;
+      if (!isInStock) result.outOfStock++;
 
       const name = cleanTargetTitle(tp.description, tp.manufacturer);
       if (!name || name.length < 5) { result.skipped++; continue; }
@@ -835,7 +833,7 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
         if (existingByMpnMatch) matchedByMpn++;
         else matchedBySlug++;
         const updates: Record<string, any> = {};
-        if (existing.inStock !== true) updates.inStock = true;
+        if (existing.inStock !== isInStock) updates.inStock = isInStock;
 
         const hasNoImage = !existing.image;
         const hasBadImage = existing.image && (existing.image.includes("placeholder") || existing.image.includes("no-image") || existing.image.includes("default"));
@@ -1002,7 +1000,7 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
         features: features.length > 0 ? JSON.stringify(features) : null,
         vipFeatures: null as string | null,
         badge: null as string | null,
-        inStock: true,
+        inStock: isInStock,
         vendor: tp.manufacturer || null,
         mpn,
         ean: tp.ean || null,

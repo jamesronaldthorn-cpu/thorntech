@@ -690,6 +690,8 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         }
         if (vp.Manufacturer && vp.Manufacturer !== existing.vendor) updates.vendor = vp.Manufacturer;
         if (mpn && existing.mpn !== mpn) updates.mpn = mpn;
+        // Always push the best category we know — name-override takes precedence
+        if (categoryId && existing.categoryId !== categoryId) updates.categoryId = categoryId;
 
         const existingCost = existing.costPrice || Infinity;
         if (costPriceExVat < existingCost) {
