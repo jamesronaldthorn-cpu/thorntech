@@ -1353,6 +1353,54 @@ export async function registerRoutes(
     });
   });
 
+  // Browser-accessible VIP sync trigger: GET /trigger-vip-sync?key=thorntech2024
+  // Nginx strips Authorization header so this is the workaround
+  app.get("/trigger-vip-sync", async (req, res) => {
+    if (req.query.key !== "thorntech2024") return res.status(403).send("Invalid key");
+    res.send(`<html><body style="font-family:sans-serif;padding:2rem;max-width:800px">
+      <h2>&#x23F3; VIP Sync Started</h2>
+      <p>Full VIP sync is running in the background — this pulls <strong>all products</strong> including graphics cards, CPUs, and any lines that were previously missing.</p>
+      <p>Monitor progress: <code>pm2 logs thorntech</code></p>
+      <p>Check completion: <a href="/trigger-vip-sync/status?key=thorntech2024">/trigger-vip-sync/status</a></p>
+      <p><a href="/">&#8592; Back to site</a></p>
+    </body></html>`);
+    setImmediate(async () => {
+      try {
+        const result = await vipApi.syncVipProducts();
+        const dedupRemoved = await vipApi.deduplicateProducts();
+        console.log(`[trigger-vip-sync] Done — imported=${result.imported} updated=${result.updated} skipped=${result.skipped} outOfStock=${result.outOfStock} dedup=${dedupRemoved}`);
+        // Auto price-match after sync
+        try {
+          const { matchInternetPrices } = await import("./productEnricher");
+          const pm = await matchInternetPrices(200);
+          console.log(`[trigger-vip-sync] Price match done — ${pm.priceUpdated} updated`);
+        } catch {}
+      } catch (e: any) {
+        console.error(`[trigger-vip-sync] Error: ${e.message}`);
+      }
+    });
+  });
+
+  // Browser-accessible Target sync trigger: GET /trigger-target-sync?key=thorntech2024
+  app.get("/trigger-target-sync", async (req, res) => {
+    if (req.query.key !== "thorntech2024") return res.status(403).send("Invalid key");
+    res.send(`<html><body style="font-family:sans-serif;padding:2rem;max-width:800px">
+      <h2>&#x23F3; Target Sync Started</h2>
+      <p>Full Target Components sync is running in the background using STOCKCHECKALL — every product on the account will be checked.</p>
+      <p>Monitor progress: <code>pm2 logs thorntech</code></p>
+      <p><a href="/">&#8592; Back to site</a></p>
+    </body></html>`);
+    setImmediate(async () => {
+      try {
+        const { syncTargetProducts } = await import("./targetApi");
+        const result = await syncTargetProducts();
+        console.log(`[trigger-target-sync] Done — imported=${result.imported} updated=${result.updated} skipped=${result.skipped}`);
+      } catch (e: any) {
+        console.error(`[trigger-target-sync] Error: ${e.message}`);
+      }
+    });
+  });
+
   app.post("/api/admin/fix-categories", adminAuth, async (_req, res) => {
     res.json({ status: "started", message: "Re-categorising misplaced products in background..." });
     try {

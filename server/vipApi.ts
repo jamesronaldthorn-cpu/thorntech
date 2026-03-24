@@ -43,17 +43,23 @@ function getBestCostPrice(price: VipPrice): number {
   if (price.OnOffer === "True" && price.OfferDiscount1 > 0) {
     return price.OfferDiscount1;
   }
+  if (price.Discount1 > 0) return price.Discount1;
+  if (price.TradePrice && price.TradePrice > 0) return price.TradePrice;
 
-  if (price.Discount1 > 0) {
-    return price.Discount1;
-  }
-
-  if (price.TradePrice && price.TradePrice > 0) {
-    return price.TradePrice;
-  }
-
-  const fallbacks = [price.Discount2, price.Discount3, price.OfferDiscount1, price.OfferDiscount2, price.OfferDiscount3].filter((v): v is number => typeof v === 'number' && v > 0);
+  const fallbacks = [
+    price.Discount2, price.Discount3,
+    price.OfferDiscount1, price.OfferDiscount2, price.OfferDiscount3,
+  ].filter((v): v is number => typeof v === "number" && v > 0);
   if (fallbacks.length > 0) return Math.min(...fallbacks);
+
+  // Last resort: use RRP/SRP as cost price basis if everything else is zero
+  const rrp = price.RRP && price.RRP > 0 ? price.RRP : 0;
+  const srp = price.SRP && price.SRP > 0 ? price.SRP : 0;
+  const rrpBest = Math.min(...[rrp, srp].filter(v => v > 0));
+  if (rrpBest > 0) {
+    // Treat RRP as already including a margin — back-calculate cost at ~83% of RRP
+    return Math.round(rrpBest * 0.83 * 100) / 100;
+  }
 
   return 0;
 }
@@ -250,12 +256,11 @@ async function getPrices(sessionKey: string): Promise<Map<number, VipPrice>> {
       if (dp) console.log(`[VIP] DEBUG price for SKU ${dsku}:`, JSON.stringify(dp));
     }
   }
-  const map = new Map<number, VipPrice>();
+  const map = new Map<number | string, VipPrice>();
   for (const p of prices) {
-    map.set(p.ProdID, p);
-    if (p.SKU && p.SKU !== p.ProdID) {
-      map.set(p.SKU, p);
-    }
+    // Index by both numeric and string form to handle XML parser type inconsistencies
+    if (p.ProdID != null) { map.set(p.ProdID, p); map.set(String(p.ProdID), p); }
+    if (p.SKU != null && p.SKU !== p.ProdID) { map.set(p.SKU, p); map.set(String(p.SKU), p); }
   }
   return map;
 }
@@ -285,12 +290,10 @@ async function getStock(sessionKey: string): Promise<Map<number, VipStock>> {
   }
 
   stocks = findArray(stockData) || [];
-  const map = new Map<number, VipStock>();
+  const map = new Map<number | string, VipStock>();
   for (const s of stocks) {
-    map.set(s.ProdID, s);
-    if (s.SKU && s.SKU !== s.ProdID) {
-      map.set(s.SKU, s);
-    }
+    if (s.ProdID != null) { map.set(s.ProdID, s); map.set(String(s.ProdID), s); }
+    if (s.SKU != null && s.SKU !== s.ProdID) { map.set(s.SKU, s); map.set(String(s.SKU), s); }
   }
   return map;
 }
@@ -608,8 +611,10 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
 
   for (const vp of vipProducts) {
     try {
-      let price = priceMap.get(vp.ProdID) || priceMap.get(vp.SKU);
-      let stock = stockMap.get(vp.ProdID) || stockMap.get(vp.SKU);
+      let price = priceMap.get(vp.ProdID) || priceMap.get(vp.SKU)
+        || priceMap.get(String(vp.ProdID)) || priceMap.get(String(vp.SKU));
+      let stock = stockMap.get(vp.ProdID) || stockMap.get(vp.SKU)
+        || stockMap.get(String(vp.ProdID)) || stockMap.get(String(vp.SKU));
 
       if (vp.ProdID === 183738 || vp.SKU === 127414 || vp.ProdID === 127414 || (vp.Description && vp.Description.includes("9070 XT") && vp.Description.includes("PRIME"))) {
         console.log(`[VIP] DEBUG product: ProdID=${vp.ProdID}, SKU=${vp.SKU}, desc="${vp.Description}", priceFound=${!!price}, costPrice=${price ? getBestCostPrice(price) : 'N/A'}`);
@@ -617,6 +622,15 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
 
       const buyPrice = price ? getBestCostPrice(price) : 0;
       if (buyPrice <= 0) {
+        if (!price) {
+          if (result.skipped < 5) {
+            console.log(`[VIP] SKIP (no price): ProdID=${vp.ProdID} SKU=${vp.SKU} "${vp.Description?.substring(0,60)}"`);
+          }
+        } else {
+          if (result.skipped < 5) {
+            console.log(`[VIP] SKIP (zero price): ProdID=${vp.ProdID} SKU=${vp.SKU} price=${JSON.stringify(price)}`);
+          }
+        }
         result.skipped++;
         continue;
       }
