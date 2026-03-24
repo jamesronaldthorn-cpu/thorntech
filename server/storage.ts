@@ -15,6 +15,7 @@ export interface IStorage {
   updateCategory(id: number, cat: Partial<InsertCategory>): Promise<Category | undefined>;
   deleteCategory(id: number): Promise<boolean>;
   getProducts(): Promise<Product[]>;
+  getAllProductsAdmin(): Promise<Product[]>;
   searchProducts(query: string): Promise<Product[]>;
   getProductsByCategory(categoryId: number): Promise<Product[]>;
   getProductBySlug(slug: string): Promise<Product | undefined>;
@@ -108,6 +109,12 @@ export class DatabaseStorage implements IStorage {
         sql`NOT (LOWER(${products.name}) LIKE '%test product%' AND ${products.price} < 1)`,
         sql`${products.price} <= 1400`
       )
+    );
+  }
+
+  async getAllProductsAdmin(): Promise<Product[]> {
+    return this.db.select().from(products).where(
+      sql`NOT (LOWER(${products.name}) LIKE '%test product%' AND ${products.price} < 1)`
     );
   }
 

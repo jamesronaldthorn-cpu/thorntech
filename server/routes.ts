@@ -1339,9 +1339,7 @@ export async function registerRoutes(
     (async () => {
       try {
         const { nameBasedCategoryOverride: nameCatOverride } = await import("./targetApi");
-        const { db } = await import("./db");
-        const { products: productsTable } = await import("../shared/schema");
-        const allProducts = await db.select().from(productsTable);
+        const allProducts = await storage.getAllProductsAdmin();
         const cats = await storage.getCategories();
         const catBySlug = new Map(cats.map(c => [c.slug, c.id]));
         const catById = new Map(cats.map(c => [c.id, c.slug]));
@@ -1462,7 +1460,7 @@ export async function registerRoutes(
 
       // Pass 2: nameBasedCategoryOverride for any remaining misplacements
       const { nameBasedCategoryOverride: nameCatOverride } = await import("./targetApi");
-      const allProducts = await storage.getProducts();
+      const allProducts = await storage.getAllProductsAdmin();
       const categories = await storage.getCategories();
       const catBySlug = new Map(categories.map(c => [c.slug, c.id]));
       const catById = new Map(categories.map(c => [c.id, c.slug]));
