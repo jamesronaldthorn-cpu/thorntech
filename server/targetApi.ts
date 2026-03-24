@@ -714,6 +714,11 @@ export function nameBasedCategoryOverride(name: string, catBySlug: Map<string, n
   if (/webcam|web cam/.test(n)) return catBySlug.get("webcams-cameras") || null;
   if (/\bups\b|uninterruptible power|battery backup unit/.test(n)) return catBySlug.get("ups-power-protection") || null;
 
+  // PC Monitors — must come before PSU check so monitor names with wattage don't get misclassified
+  // Exclude accessories: arms, mounts, stands, cables; also exclude DJ/audio/baby monitors
+  const isMonitorAccessory = /\b(arm|mount|stand|cleaner|wipe|riser|wall\s*mount|bracket|docking\s*station)\b.{0,30}\bmonitor\b|\bmonitor\b.{0,30}\b(arm|mount|stand|cleaner|bracket|cable|hub|dock)\b/.test(n);
+  if (!isMonitorAccessory && /\bmonitor\b/.test(n) && !/\bdj\s*monitor\b|\baudio\s*monitor\b|\bbaby\s*monitor\b/.test(n)) return catBySlug.get("monitors") || null;
+
   // Networking devices — route to networking before PSU check (POE/powered switches mention "powered")
   if (/\bunifi\b|\bubiquiti\b|\bnano\s*station|\bairmax\b|\busw[\s-]|\buap[\s-]|\bpoe\s+(switch|hub|injector|splitter)|\bmanaged\s+(poe\s+)?switch|\bgigabit\s+(poe\s+)?switch|\bnetgear\b|\btp.?link\b|\bnetworking\s+switch/.test(n)) return catBySlug.get("networking") || null;
 
