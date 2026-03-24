@@ -747,33 +747,40 @@ export function nameBasedCategoryOverride(name: string, catBySlug: Map<string, n
 export async function syncTargetProducts(): Promise<{ imported: number; updated: number; skipped: number; outOfStock: number; errors: number; total: number }> {
   const result = { imported: 0, updated: 0, skipped: 0, outOfStock: 0, errors: 0, total: 0 };
 
-  // Use STOCKCHECKALL to get every product in one call — avoids missing products
-  // in categories not yet in the hardcoded map
-  console.log(`[Target] Fetching ALL products via STOCKCHECKALL...`);
+  // Fetch every category from Target dynamically, then pull full product details
+  // (including prices) for each via STOCKCAT. STOCKCHECKALL doesn't include prices.
+  console.log(`[Target] Fetching category list from Target API...`);
   let targetProducts: TargetProduct[] = [];
+  const seenStockcodes = new Set<string>();
+
+  let allCategoryCodes: string[] = [];
   try {
-    targetProducts = await getTargetAllProducts();
+    const liveCats = await getTargetCategories();
+    allCategoryCodes = liveCats.map(c => c.code);
+    console.log(`[Target] Got ${allCategoryCodes.length} live categories from API`);
   } catch (e: any) {
-    // If STOCKCHECKALL fails, fall back to per-category fetching
-    console.warn(`[Target] STOCKCHECKALL failed (${e.message}), falling back to per-category fetch...`);
-    const targetCategoryCodes = [...new Set(Object.keys(targetCategoryMap))];
-    const seenStockcodes = new Set<string>();
-    for (const catCode of targetCategoryCodes) {
-      try {
-        const products = await getTargetProductsByCategory(catCode);
-        for (const p of products) {
-          if (!seenStockcodes.has(p.stockcode)) {
-            seenStockcodes.add(p.stockcode);
-            targetProducts.push(p);
-          }
-        }
-      } catch (ce: any) {
-        if (!ce.message?.includes("NO RESULTS")) {
-          console.error(`[Target] Error fetching category ${catCode}: ${ce.message}`);
+    console.warn(`[Target] Category list fetch failed (${e.message}), using hardcoded list`);
+    allCategoryCodes = [...new Set(Object.keys(targetCategoryMap))];
+  }
+
+  let catsFetched = 0, catsEmpty = 0, catsFailed = 0;
+  for (const catCode of allCategoryCodes) {
+    try {
+      const products = await getTargetProductsByCategory(catCode);
+      for (const p of products) {
+        if (!seenStockcodes.has(p.stockcode)) {
+          seenStockcodes.add(p.stockcode);
+          targetProducts.push(p);
         }
       }
+      if (products.length > 0) catsFetched++;
+      else catsEmpty++;
+    } catch (ce: any) {
+      if (ce.message?.includes("NO RESULTS")) { catsEmpty++; }
+      else { catsFailed++; console.error(`[Target] Error fetching category ${catCode}: ${ce.message}`); }
     }
   }
+  console.log(`[Target] Category sweep done — ${catsFetched} with products, ${catsEmpty} empty, ${catsFailed} errors, ${targetProducts.length} unique products`);
 
   const inStockCount = targetProducts.filter(tp => tp.stock > 0).length;
   result.total = targetProducts.length;
@@ -799,13 +806,19 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
       if (!isInStock) result.outOfStock++;
 
       const name = cleanTargetTitle(tp.description, tp.manufacturer);
-      if (!name || name.length < 5) { result.skipped++; continue; }
+      if (!name || name.length < 5) {
+        if (result.skipped < 5) console.log(`[Target] SKIP (no name): stockcode=${tp.stockcode} desc="${tp.description?.substring(0,40)}"`);
+        result.skipped++; continue;
+      }
 
       const slug = slugify(name);
       if (!slug || slug.length < 3) { result.skipped++; continue; }
 
       const costPriceExVat = tp.price;
-      if (costPriceExVat <= 0) { result.skipped++; continue; }
+      if (costPriceExVat <= 0) {
+        if (result.skipped < 5) console.log(`[Target] SKIP (no price): stockcode=${tp.stockcode} name="${name.substring(0,50)}" raw_price="${(tp as any)._rawPrice}"`);
+        result.skipped++; continue;
+      }
       const sellPrice = Math.ceil(costPriceExVat * 1.2 * 1.02 * 100) / 100;
 
       const images: string[] = [];
