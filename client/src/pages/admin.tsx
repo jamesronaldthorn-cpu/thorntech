@@ -692,20 +692,17 @@ export default function AdminPage() {
     setVipSyncing(true);
     setVipResult(null);
     try {
-      const res = await adminFetch("/api/admin/vip/sync", {
-        method: "POST",
-        body: JSON.stringify({}),
-      });
+      // Use key-auth endpoint — works even when Nginx strips the Authorization header
+      const res = await fetch("/trigger-vip-sync?key=thorntech2024");
       const data = await res.json();
-      if (!res.ok) {
-        setVipResult({ error: data.error || "Sync failed" });
-        setVipSyncing(false);
-        return;
+      if (data.status === "running") {
+        setVipResult({ message: "Already syncing — polling for completion..." });
+      } else {
+        setVipResult({ message: "VIP sync started — pulling all products from supplier..." });
       }
-      setVipResult({ message: "Sync started — checking progress..." });
       const poll = setInterval(async () => {
         try {
-          const sr = await adminFetch("/api/admin/vip/sync/status");
+          const sr = await fetch("/vip-sync-status?key=thorntech2024");
           const st = await sr.json();
           if (!st.running) {
             clearInterval(poll);
@@ -772,20 +769,17 @@ export default function AdminPage() {
     setTargetSyncing(true);
     setTargetResult(null);
     try {
-      const res = await adminFetch("/api/admin/target/sync", {
-        method: "POST",
-        body: JSON.stringify({}),
-      });
+      // Use key-auth endpoint — works even when Nginx strips the Authorization header
+      const res = await fetch("/trigger-target-sync?key=thorntech2024");
       const data = await res.json();
-      if (!res.ok) {
-        setTargetResult({ error: data.error || "Sync failed" });
-        setTargetSyncing(false);
-        return;
+      if (data.status === "running") {
+        setTargetResult({ message: "Already syncing — polling for completion..." });
+      } else {
+        setTargetResult({ message: "Target sync started — fetching all categories and products..." });
       }
-      setTargetResult({ message: "Sync started — checking progress..." });
       const poll = setInterval(async () => {
         try {
-          const sr = await adminFetch("/api/admin/target/sync/status");
+          const sr = await fetch("/target-sync-status?key=thorntech2024");
           const st = await sr.json();
           if (!st.running) {
             clearInterval(poll);

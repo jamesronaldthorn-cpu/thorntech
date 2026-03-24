@@ -741,6 +741,16 @@ export function nameBasedCategoryOverride(name: string, catBySlug: Map<string, n
   if (/\bnas\b|network.*attached.*storage/.test(n) && !/ssd|hdd|hard\s?drive|hard\s?disk/.test(n)) return catBySlug.get("servers-workstations") || null;
   if (/cctv|ip\s?camera|security\s?camera|dashcam|dash\s?cam/.test(n)) return catBySlug.get("security-cctv") || null;
   if (/smart\s?(plug|bulb|switch|speaker|display|home|strip)|echo\s|alexa\s|google\s*home\b/.test(n)) return catBySlug.get("smart-home") || null;
+
+  // Optical drives / disc writers
+  if (/dvd.*writer|blu.?ray.*writer|dvd.*re.?writer|optical.*drive|disc.*writer|cd.*rw|dvd.?rw|bd.?rw/.test(n)) return catBySlug.get("optical-drives") || null;
+
+  // Tablets / 2-in-1 devices — group with laptops (no separate tablets category)
+  if (/\btablet\b|\b2.in.1\b|\b2-in-1\b|\bchromebook\b|\bipad\b|\bandroid.*\d+\.\d+"\b|\bsurface\s+(pro|go|laptop)\b/.test(n)) return catBySlug.get("laptops") || null;
+
+  // Docking stations / port replicators
+  if (/dock(ing)?(\s+station)?|port\s+replicator|thunderbolt\s+dock/.test(n) && !/hard\s?drive|ssd|storage/i.test(n)) return catBySlug.get("accessories") || null;
+
   return null;
 }
 

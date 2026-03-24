@@ -1354,51 +1354,65 @@ export async function registerRoutes(
   });
 
   // Browser-accessible VIP sync trigger: GET /trigger-vip-sync?key=thorntech2024
-  // Nginx strips Authorization header so this is the workaround
+  // Nginx strips Authorization header so this bypasses that restriction
   app.get("/trigger-vip-sync", async (req, res) => {
     if (req.query.key !== "thorntech2024") return res.status(403).send("Invalid key");
-    res.send(`<html><body style="font-family:sans-serif;padding:2rem;max-width:800px">
-      <h2>&#x23F3; VIP Sync Started</h2>
-      <p>Full VIP sync is running in the background — this pulls <strong>all products</strong> including graphics cards, CPUs, and any lines that were previously missing.</p>
-      <p>Monitor progress: <code>pm2 logs thorntech</code></p>
-      <p>Check completion: <a href="/trigger-vip-sync/status?key=thorntech2024">/trigger-vip-sync/status</a></p>
-      <p><a href="/">&#8592; Back to site</a></p>
-    </body></html>`);
+    if (syncStatus.running) {
+      return res.json({ status: "running", message: "VIP sync already in progress" });
+    }
+    syncStatus = { running: true, result: null, error: null };
+    res.json({ status: "started", message: "VIP sync started" });
     setImmediate(async () => {
       try {
         const result = await vipApi.syncVipProducts();
         const dedupRemoved = await vipApi.deduplicateProducts();
+        syncStatus = { running: false, result: { ...result, dedupRemoved }, error: null };
         console.log(`[trigger-vip-sync] Done — imported=${result.imported} updated=${result.updated} skipped=${result.skipped} outOfStock=${result.outOfStock} dedup=${dedupRemoved}`);
-        // Auto price-match after sync
-        try {
-          const { matchInternetPrices } = await import("./productEnricher");
-          const pm = await matchInternetPrices(200);
-          console.log(`[trigger-vip-sync] Price match done — ${pm.priceUpdated} updated`);
-        } catch {}
+        if (!priceMatchStatus.running) {
+          priceMatchStatus = { running: true, result: null };
+          matchInternetPrices(200).then(r => {
+            priceMatchStatus = { running: false, result: r };
+            console.log(`[trigger-vip-sync] Price match done — ${r.priceUpdated} updated`);
+          }).catch(() => { priceMatchStatus = { running: false, result: null }; });
+        }
       } catch (e: any) {
+        syncStatus = { running: false, result: null, error: e.message };
         console.error(`[trigger-vip-sync] Error: ${e.message}`);
       }
     });
   });
 
+  // Key-auth VIP sync status (for admin UI polling without Authorization header)
+  app.get("/vip-sync-status", (req, res) => {
+    if (req.query.key !== "thorntech2024") return res.status(403).json({ error: "Invalid key" });
+    res.json(syncStatus);
+  });
+
   // Browser-accessible Target sync trigger: GET /trigger-target-sync?key=thorntech2024
   app.get("/trigger-target-sync", async (req, res) => {
     if (req.query.key !== "thorntech2024") return res.status(403).send("Invalid key");
-    res.send(`<html><body style="font-family:sans-serif;padding:2rem;max-width:800px">
-      <h2>&#x23F3; Target Sync Started</h2>
-      <p>Full Target Components sync is running in the background using STOCKCHECKALL — every product on the account will be checked.</p>
-      <p>Monitor progress: <code>pm2 logs thorntech</code></p>
-      <p><a href="/">&#8592; Back to site</a></p>
-    </body></html>`);
+    if (targetSyncStatus.running) {
+      return res.json({ status: "running", message: "Target sync already in progress" });
+    }
+    targetSyncStatus = { running: true, result: null, error: null };
+    res.json({ status: "started", message: "Target sync started" });
     setImmediate(async () => {
       try {
         const { syncTargetProducts } = await import("./targetApi");
         const result = await syncTargetProducts();
-        console.log(`[trigger-target-sync] Done — imported=${result.imported} updated=${result.updated} skipped=${result.skipped}`);
+        targetSyncStatus = { running: false, result, error: null };
+        console.log(`[trigger-target-sync] Done — imported=${result.imported} updated=${result.updated} skipped=${result.skipped} outOfStock=${result.outOfStock}`);
       } catch (e: any) {
+        targetSyncStatus = { running: false, result: null, error: e.message };
         console.error(`[trigger-target-sync] Error: ${e.message}`);
       }
     });
+  });
+
+  // Key-auth Target sync status (for admin UI polling without Authorization header)
+  app.get("/target-sync-status", (req, res) => {
+    if (req.query.key !== "thorntech2024") return res.status(403).json({ error: "Invalid key" });
+    res.json(targetSyncStatus);
   });
 
   app.post("/api/admin/fix-categories", adminAuth, async (_req, res) => {
