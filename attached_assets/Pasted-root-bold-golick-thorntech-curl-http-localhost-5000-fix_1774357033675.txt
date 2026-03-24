@@ -1,0 +1,110 @@
+root@bold-golick:~/thorntech# curl "http://localhost:5000/fix-categories?key=thorntech2024"
+<html><body style="font-family:sans-serif;padding:2rem">
+      <h2>⏳ Fixing categories...</h2>
+      <p>Running in background. Check server logs for progress.</p>
+      <p><a href="/">← Back to site</a></p>
+    </body></html>root@bold-golick:~/thorntech# pm2 logs thorntech --lines 50
+[TAILING] Tailing last 50 lines for [thorntech] process (change the value with --lines option)
+/root/.pm2/logs/thorntech-error.log last 50 lines:
+0|thorntec |     at wp (/root/thorntech/dist/index.cjs:144:24715)
+0|thorntec |     at async OY (/root/thorntech/dist/index.cjs:205:1980)
+0|thorntec |     at async /root/thorntech/dist/index.cjs:205:7105
+0|thorntec | Failed to initialize Stripe: Error: Stripe keys not configured. Set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY environment variables.
+0|thorntec |     at lb (/root/thorntech/dist/index.cjs:144:24280)
+0|thorntec |     at SG (/root/thorntech/dist/index.cjs:144:24600)
+0|thorntec |     at Pp (/root/thorntech/dist/index.cjs:144:24715)
+0|thorntec |     at async RY (/root/thorntech/dist/index.cjs:205:1980)
+0|thorntec |     at async /root/thorntech/dist/index.cjs:205:7105
+0|thorntec | [trigger-vip-sync] Error: VIP Computers credentials not configured (VIP_ACCOUNT_ID, VIP_USERNAME, VIP_PASSWORD)
+0|thorntec | Failed to initialize Stripe: Error: Stripe keys not configured. Set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY environment variables.
+0|thorntec |     at db (/root/thorntech/dist/index.cjs:144:24280)
+0|thorntec |     at OG (/root/thorntech/dist/index.cjs:144:24600)
+0|thorntec |     at Pp (/root/thorntech/dist/index.cjs:144:24715)
+0|thorntec |     at async BY (/root/thorntech/dist/index.cjs:209:1980)
+0|thorntec |     at async /root/thorntech/dist/index.cjs:209:7105
+0|thorntec | [fix-categories] Error: Cannot find module '/root/thorntech/dist/db' imported from /root/thorntech/dist/index.cjs
+0|thorntec | [trigger-vip-sync] Error: VIP Computers credentials not configured (VIP_ACCOUNT_ID, VIP_USERNAME, VIP_PASSWORD)
+0|thorntec | Failed to initialize Stripe: Error: Stripe keys not configured. Set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY environment variables.
+0|thorntec |     at db (/root/thorntech/dist/index.cjs:144:24280)
+0|thorntec |     at OG (/root/thorntech/dist/index.cjs:144:24600)
+0|thorntec |     at Pp (/root/thorntech/dist/index.cjs:144:24715)
+0|thorntec |     at async BY (/root/thorntech/dist/index.cjs:209:1980)
+0|thorntec |     at async /root/thorntech/dist/index.cjs:209:7105
+0|thorntec | [fix-categories] Error: Cannot find module '/root/thorntech/dist/db' imported from /root/thorntech/dist/index.cjs
+0|thorntec | Failed to initialize Stripe: Error: Stripe keys not configured. Set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY environment variables.
+0|thorntec |     at db (/root/thorntech/dist/index.cjs:144:24280)
+0|thorntec |     at OG (/root/thorntech/dist/index.cjs:144:24600)
+0|thorntec |     at Pp (/root/thorntech/dist/index.cjs:144:24715)
+0|thorntec |     at async BY (/root/thorntech/dist/index.cjs:209:1980)
+0|thorntec |     at async /root/thorntech/dist/index.cjs:209:7105
+0|thorntec | [fix-categories] Error: Cannot find module '/root/thorntech/dist/db' imported from /root/thorntech/dist/index.cjs
+0|thorntec | Failed to initialize Stripe: Error: Stripe keys not configured. Set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY environment variables.
+0|thorntec |     at lb (/root/thorntech/dist/index.cjs:144:24280)
+0|thorntec |     at SG (/root/thorntech/dist/index.cjs:144:24600)
+0|thorntec |     at Pp (/root/thorntech/dist/index.cjs:144:24715)
+0|thorntec |     at async RY (/root/thorntech/dist/index.cjs:209:1980)
+0|thorntec |     at async /root/thorntech/dist/index.cjs:209:7105
+0|thorntec | Failed to initialize Stripe: Error: Stripe keys not configured. Set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY environment variables.
+0|thorntec |     at lb (/root/thorntech/dist/index.cjs:144:24280)
+0|thorntec |     at SG (/root/thorntech/dist/index.cjs:144:24600)
+0|thorntec |     at Pp (/root/thorntech/dist/index.cjs:144:24715)
+0|thorntec |     at async RY (/root/thorntech/dist/index.cjs:209:1980)
+0|thorntec |     at async /root/thorntech/dist/index.cjs:209:7105
+0|thorntec | Failed to initialize Stripe: Error: Stripe keys not configured. Set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY environment variables.
+0|thorntec |     at lb (/root/thorntech/dist/index.cjs:144:24280)
+0|thorntec |     at SG (/root/thorntech/dist/index.cjs:144:24600)
+0|thorntec |     at Pp (/root/thorntech/dist/index.cjs:144:24715)
+0|thorntec |     at async RY (/root/thorntech/dist/index.cjs:209:1980)
+0|thorntec |     at async /root/thorntech/dist/index.cjs:209:7105
+
+/root/.pm2/logs/thorntech-out.log last 50 lines:
+0|thorntec | [BadImageCleaner] Replaced bad main image with supplier image: "TP-Link Omada OC200 Hardware Cloud Controller"
+0|thorntec | [BadImageCleaner] Replaced bad main image with supplier image: "Kingston DataTraveler SE9 G3 256GB USB 3.2 USB Fla"
+0|thorntec | [BadImageCleaner] Replaced bad main image with supplier image: "TP-Link JetStream TL-SG3210 8-Port Metal Gigabit L"
+0|thorntec | [BadImageCleaner] Replaced bad main image with supplier image: "Ubiquiti USW-FLEX-XG UniFi Switch Flex XG Managed "
+0|thorntec | [BadImageCleaner] Replaced bad main image with supplier image: "Lindy 36771 1M HDMI (M) 2.1 Ultra High Speed Black"
+0|thorntec | [BadImageCleaner] Replaced bad main image with supplier image: "TP-Link TL-POE150S IEEE 802.3af PoE Injector"
+0|thorntec | [BadImageCleaner] Replaced bad main image with supplier image: "HP Pro 290 G9 Small Form Factor Desktop PC, Intel "
+0|thorntec |
+0|thorntec | > rest-express@1.0.0 start
+0|thorntec | > NODE_ENV=production node dist/index.cjs
+0|thorntec |
+0|thorntec | Initializing Stripe schema...
+0|thorntec | Stripe schema ready
+0|thorntec | [AutoFix] Moved "iiyama G-MASTER GB2795HSU-B1 27 inch Monitor, Full HD, 0.2ms" → monitors
+0|thorntec | [AutoFix] Moved "ASUS VA27ECPSN 27" Widescreen IPS LED Black Multimedia Docki" → monitors
+0|thorntec | [AutoFix] Moved "Plugable TBT4-UD5 ThunderBolt 4 Dual Monitor (2x 4K or 1x 8K" → monitors
+0|thorntec | [AutoFix] Moved "Plugable TBT4-UDZ ThunderBolt 4 Quad Monitor 100W USB-C PD 2" → monitors
+0|thorntec | [AutoFix] Moved "Plugable UD-3900C4 Quad Monitor 96W USB-C PD DisplayLink Cer" → monitors
+0|thorntec | [AutoFix] Moved "Plugable UD-3900Z USB-A/USB-C Dual Monitor Universal Display" → monitors
+0|thorntec | [AutoFix] Moved "Plugable UD-6950H Universal Dual Monitor 4K USB-A/USB-C Disp" → monitors
+0|thorntec | [AutoFix] Moved "Plugable UD-6950PDZ USB-C Triple Monitor 4K 60W USB-C PD Doc" → monitors
+0|thorntec | [AutoFix] Moved "Plugable UD-ULTCDL USB-C Triple Monitor 4K 96W USB-C PD Disp" → monitors
+0|thorntec | [AutoFix] Moved "iiyama PROLITE X3270QSU-B1 32 Inch IPS Monitor, Black, 2560x" → monitors
+0|thorntec | [AutoFix] Moved "iiyama PROLITE XU2293HSU-B7 22 inch IPS Monitor, Full HD, 1m" → monitors
+0|thorntec | [AutoFix] Moved "piXL PXD24VH 24 Inch Full HD 60Hz Widescreen Monitor with 19" → monitors
+0|thorntec | [AutoFix] Moved "iiyama G-MASTER G2245HSU-B2 22 inch IPS Gaming Monitor, Full" → monitors
+0|thorntec | [AutoFix] Moved "piXL 24-inch Full HD Energy Saving CCTV IPS Monitor for 24/7" → monitors
+0|thorntec | [AutoFix] Moved "iiyama PROLITE XUB2493HS-B6 24 inch IPS Monitor, Full HD, 0." → monitors
+0|thorntec | [AutoFix] Moved "Viewsonic VX2776-SMH 27 Inch IPS Frameless Monitor, Full HD," → monitors
+0|thorntec | [AutoFix] Moved "J5Create USB-C to 4 Port HDMI Multi Monitor Adapter" → monitors
+0|thorntec | [AutoFix] Moved "ASUS Rog Aura Monitor Light Bar" → monitors
+0|thorntec | [AutoFix] Moved "AOC 23.8" Widescreen IPS LED Black Multimedia Monitor (1920x" → monitors
+0|thorntec | [AutoFix] Moved "iiyama G-Master GCB3280QSU-B2 Red Eagle 32 Inch Curved Gamin" → monitors
+0|thorntec | [AutoFix] Moved "iiyama PROLITE XB2493HSU-B1 24 inch IPS Monitor, Full HD, 1m" → monitors
+0|thorntec | [AutoFix] Moved "iiyama PROLITE XU2293HS-B6 22 inch IPS Monitor, Full HD, 1ms" → monitors
+0|thorntec | [AutoFix] Moved "iiyama Prolite XU2493HS-B6 24 inch IPS Monitor, Full HD, 1ms" → monitors
+0|thorntec | [AutoFix] Moved "iiyama PROLITE XUB2293HS-B6 22 inch IPS Monitor, Full HD, 1m" → monitors
+0|thorntec | [AutoFix] Moved "Viewsonic VA2408-HDJ 24 Inch IPS Monitor, Full HD, 100Hz, 5m" → monitors
+0|thorntec | [AutoFix] Moved "iiyama ProLite Curved Monitor XCB3497WQSNP-B1 34&quot; VA Ul" → monitors
+0|thorntec | [AutoFix] Moved "Msipro MP275QPDG 27" IPS LED Black Multimedia Docking Monito" → monitors
+0|thorntec | [AutoFix] Moved "ASUS VA27ACFSN 27" IPS LED Black Multimedia Docking Monitor" → monitors
+0|thorntec | [AutoFix] Moved "Colorway Multipurpose 3 in 1 Cleaner Set with Microfiber Clo" → monitors
+0|thorntec | [AutoFix] Re-categorised 29 misplaced products
+0|thorntec | [Feed Scheduler] Started — checking every 5 minutes for feeds due for import
+0|thorntec | [VIP] No credentials configured, scheduler not started
+0|thorntec | [Midnight Enricher] Scheduler started
+0|thorntec | [Midnight Enricher] Scheduled to run in 11.1 hours (midnight UK time)
+0|thorntec | [Target Scheduler] Started — syncing every 3 hours
+0|thorntec | 12:56:34 PM [express] serving on port 5000
+0|thorntec | [fix-categories] Done — 0 products reclassified out of 3813
