@@ -702,6 +702,18 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         if (vipFeatures.length > 0) {
           updates.vipFeatures = JSON.stringify(vipFeatures);
         }
+        // Populate features for existing products that don't have any
+        const hasNoFeatures = !existing.features || existing.features === "[]";
+        if (hasNoFeatures) {
+          if (vipFeatures.length > 0) {
+            updates.features = JSON.stringify(vipFeatures);
+          } else if (Object.keys(vipSpecs).length > 0) {
+            const specFeatures = Object.entries(vipSpecs)
+              .filter(([, v]) => v && v.length > 0 && v.length < 80)
+              .map(([k, v]) => `${k}: ${v}`);
+            if (specFeatures.length > 0) updates.features = JSON.stringify(specFeatures);
+          }
+        }
         if (vp.Manufacturer && vp.Manufacturer !== existing.vendor) updates.vendor = vp.Manufacturer;
         if (mpn && existing.mpn !== mpn) updates.mpn = mpn;
         // Always push the best category we know — name-override takes precedence
@@ -750,6 +762,14 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
       const ean = vp.EAN ? String(vp.EAN).trim() : null;
       const vipSpecs = extractVipSpecs(vp);
       const vipFeatures = extractVipFeatures(vp);
+      // Build features (Key Specifications table) from VIP specs when no explicit features found
+      let derivedFeatures: string[] | null = null;
+      if (vipFeatures.length === 0 && Object.keys(vipSpecs).length > 0) {
+        const specFeatures = Object.entries(vipSpecs)
+          .filter(([, v]) => v && v.length > 0 && v.length < 80)
+          .map(([k, v]) => `${k}: ${v}`);
+        if (specFeatures.length > 0) derivedFeatures = specFeatures;
+      }
       const productData = {
         name,
         slug,
@@ -761,7 +781,7 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         image: imageUrl,
         images: allVipImages.length > 0 ? JSON.stringify(allVipImages) : null,
         specs: Object.keys(vipSpecs).length > 0 ? JSON.stringify(vipSpecs) : null,
-        features: null as string | null,
+        features: derivedFeatures ? JSON.stringify(derivedFeatures) : null,
         vipFeatures: vipFeatures.length > 0 ? JSON.stringify(vipFeatures) : null,
         badge: null as string | null,
         inStock: isInStock,

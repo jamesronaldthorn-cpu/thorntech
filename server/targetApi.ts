@@ -107,18 +107,20 @@ export async function searchTargetProducts(searchTerm: string): Promise<TargetPr
 }
 
 export async function checkTargetStock(stockcodes: string[]): Promise<TargetProduct[]> {
-  const extras: Record<string, string> = {};
-  stockcodes.forEach((code, i) => {
-    extras[`stockcode`] = code;
-  });
-  const xml = buildRequest("STOCKCHECK", extras);
-  const result = await postTargetXml(xml);
-  const response = result.response || result;
-  if (response.result !== "OK") return [];
-  const products = response.product;
-  if (!products) return [];
-  const prodArray = Array.isArray(products) ? products : [products];
-  return prodArray.map(parseTargetProduct);
+  const results: TargetProduct[] = [];
+  for (const code of stockcodes) {
+    try {
+      const xml = buildRequest("STOCKCHECK", { stockcode: code });
+      const result = await postTargetXml(xml);
+      const response = result.response || result;
+      if (response.result !== "OK") continue;
+      const products = response.product;
+      if (!products) continue;
+      const prodArray = Array.isArray(products) ? products : [products];
+      results.push(...prodArray.map(parseTargetProduct));
+    } catch {}
+  }
+  return results;
 }
 
 function parseTargetProduct(p: any): TargetProduct {
@@ -774,6 +776,7 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
   }
 
   let catsFetched = 0, catsEmpty = 0, catsFailed = 0;
+  const failedCats: string[] = [];
   for (const catCode of allCategoryCodes) {
     try {
       const products = await getTargetProductsByCategory(catCode);
@@ -787,10 +790,58 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
       else catsEmpty++;
     } catch (ce: any) {
       if (ce.message?.includes("NO RESULTS")) { catsEmpty++; }
-      else { catsFailed++; console.error(`[Target] Error fetching category ${catCode}: ${ce.message}`); }
+      else { catsFailed++; failedCats.push(catCode); console.error(`[Target] Error fetching category ${catCode}: ${ce.message}`); }
     }
   }
   console.log(`[Target] Category sweep done — ${catsFetched} with products, ${catsEmpty} empty, ${catsFailed} errors, ${targetProducts.length} unique products`);
+
+  // Retry any failed categories once
+  if (failedCats.length > 0) {
+    console.log(`[Target] Retrying ${failedCats.length} failed categories...`);
+    let retryOk = 0;
+    for (const catCode of failedCats) {
+      try {
+        const products = await getTargetProductsByCategory(catCode);
+        for (const p of products) {
+          if (!seenStockcodes.has(p.stockcode)) {
+            seenStockcodes.add(p.stockcode);
+            targetProducts.push(p);
+          }
+        }
+        if (products.length > 0) retryOk++;
+      } catch {}
+    }
+    console.log(`[Target] Retry complete — ${retryOk} categories recovered, total now ${targetProducts.length}`);
+  }
+
+  // STOCKCHECKALL supplement: find any stockcodes Target has that our category sweep missed
+  try {
+    console.log(`[Target] Running STOCKCHECKALL to find any missed stockcodes...`);
+    const allProds = await getTargetAllProducts();
+    const missedCodes = allProds
+      .map(p => p.stockcode)
+      .filter(sc => sc && !seenStockcodes.has(sc));
+    console.log(`[Target] STOCKCHECKALL found ${allProds.length} total, ${missedCodes.length} not yet seen`);
+
+    // STOCKCHECK missed codes in batches (capped at 300 to avoid API overload)
+    const cap = missedCodes.slice(0, 300);
+    let supplemented = 0;
+    for (const sc of cap) {
+      try {
+        const checked = await checkTargetStock([sc]);
+        for (const p of checked) {
+          if (p.stockcode && !seenStockcodes.has(p.stockcode)) {
+            seenStockcodes.add(p.stockcode);
+            targetProducts.push(p);
+            supplemented++;
+          }
+        }
+      } catch {}
+    }
+    if (supplemented > 0) console.log(`[Target] Supplement added ${supplemented} products, new total: ${targetProducts.length}`);
+  } catch (e: any) {
+    console.warn(`[Target] STOCKCHECKALL supplement failed (non-fatal): ${e.message}`);
+  }
 
   const inStockCount = targetProducts.filter(tp => tp.stock > 0).length;
   result.total = targetProducts.length;
@@ -936,10 +987,13 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
           }
         }
 
-        if (!existing.features && tp.overview) {
-          const cleaned = tp.overview.replace(/<[^>]+>/g, " ").replace(/&[a-z]+;/gi, " ");
-          const parts = cleaned.split(/[,;|]/).map((s: string) => s.trim()).filter((s: string) => s.length > 3 && s.length < 150);
-          if (parts.length > 0) updates.features = JSON.stringify(parts);
+        if (tp.overview) {
+          const cleaned = tp.overview.replace(/<[^>]+>/g, " ").replace(/&[a-z]+;/gi, " ").replace(/\s{3,}/g, "  ").trim();
+          const parts = cleaned.split(/\s{2,}/).map((s: string) => s.trim()).filter((s: string) => s.length > 2 && s.includes(":"));
+          const parsedFeatures = parts.length > 1 ? parts : cleaned.split(/[,;|]/).map((s: string) => s.trim()).filter((s: string) => s.length > 3 && s.length < 200);
+          const needsUpdate = !existing.features || existing.features === "[]" ||
+            (parsedFeatures.length > 1 && existing.features && !JSON.parse(existing.features as string || "[]").some((f: string) => f.includes(":")));
+          if (parsedFeatures.length > 0 && needsUpdate) updates.features = JSON.stringify(parsedFeatures);
         }
 
         if (Object.keys(updates).length > 0) {
@@ -986,9 +1040,16 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
 
       const features: string[] = [];
       if (tp.overview) {
-        const cleaned = tp.overview.replace(/<[^>]+>/g, " ").replace(/&[a-z]+;/gi, " ");
-        const parts = cleaned.split(/[,;|]/).map((s: string) => s.trim()).filter((s: string) => s.length > 3 && s.length < 150);
-        features.push(...parts);
+        const cleaned = tp.overview.replace(/<[^>]+>/g, " ").replace(/&[a-z]+;/gi, " ").replace(/\s{3,}/g, "  ").trim();
+        // Target uses double-space as key-spec delimiter: "Key: Value  Key: Value"
+        const parts = cleaned.split(/\s{2,}/).map((s: string) => s.trim()).filter((s: string) => s.length > 2 && s.includes(":"));
+        if (parts.length > 1) {
+          features.push(...parts);
+        } else {
+          // Fallback: comma/semicolon split for non-standard formats
+          const fallback = cleaned.split(/[,;|]/).map((s: string) => s.trim()).filter((s: string) => s.length > 3 && s.length < 200);
+          features.push(...fallback);
+        }
       }
 
       const specs: Record<string, string> = {};
