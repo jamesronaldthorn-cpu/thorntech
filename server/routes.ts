@@ -1328,6 +1328,39 @@ export async function registerRoutes(
     }
   });
 
+  // Re-run category detection on ALL products: GET /fix-categories?key=thorntech2024
+  app.get("/fix-categories", async (req, res) => {
+    if (req.query.key !== "thorntech2024") return res.status(403).send("Invalid key");
+    res.send(`<html><body style="font-family:sans-serif;padding:2rem">
+      <h2>⏳ Fixing categories...</h2>
+      <p>Running in background. Check server logs for progress.</p>
+      <p><a href="/">← Back to site</a></p>
+    </body></html>`);
+    (async () => {
+      try {
+        const { nameBasedCategoryOverride: nameCatOverride } = await import("./targetApi");
+        const { db } = await import("./db");
+        const { products: productsTable } = await import("../shared/schema");
+        const allProducts = await db.select().from(productsTable);
+        const cats = await storage.getCategories();
+        const catBySlug = new Map(cats.map(c => [c.slug, c.id]));
+        const catById = new Map(cats.map(c => [c.id, c.slug]));
+        let fixed = 0;
+        for (const p of allProducts) {
+          const override = nameCatOverride(p.name, catBySlug);
+          if (override && override !== p.categoryId) {
+            await storage.updateProduct(p.id, { categoryId: override });
+            fixed++;
+            console.log(`[fix-categories] "${p.name.substring(0,60)}" → ${catById.get(override)}`);
+          }
+        }
+        console.log(`[fix-categories] Done — ${fixed} products reclassified out of ${allProducts.length}`);
+      } catch (e: any) {
+        console.error(`[fix-categories] Error: ${e.message}`);
+      }
+    })();
+  });
+
   // Browser-accessible image cleanup: GET /fix-images?key=thorntech2024
   // Runs in background so Nginx doesn't time out on large catalogues
   app.get("/fix-images", async (req, res) => {

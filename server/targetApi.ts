@@ -714,10 +714,20 @@ export function nameBasedCategoryOverride(name: string, catBySlug: Map<string, n
   if (/webcam|web cam/.test(n)) return catBySlug.get("webcams-cameras") || null;
   if (/\bups\b|uninterruptible power|battery backup unit/.test(n)) return catBySlug.get("ups-power-protection") || null;
 
+  // PSUs — MUST come before motherboard check: ATX/SFX appear in PSU names constantly
+  const isPsu = /\bpower\s+supply\b|\bpsu\b|\b\d{3,4}\s*w\b.{0,40}(atx|sfx|modular|gold|bronze|platinum|titanium|80.plus)|\b(80.plus|fully\s+modular|semi.modular)\b.{0,40}\bw\b|\bsfx.l?\b.*\bpower\b|\batx\s+3\.\d\b/.test(n);
+  if (isPsu) return catBySlug.get("power-supplies") || null;
+
+  // PC cases — MUST come before motherboard check: "Micro-ATX case" etc.
+  const isCase = /\bpc\s+case\b|\bcase,?\s*(mid|full|mini)[\s-]?tower|\b(mid|full|mini)[\s-]?tower\b.{0,30}\bcase\b|\bchassis\b|\btower\s+case\b|\batx\s+(case|chassis)\b|\bitx\s+(case|chassis)\b|\bdesktop\s+(case|chassis)\b|\brackmount\b/.test(n);
+  if (isCase) return catBySlug.get("cases") || null;
+
   // RAM / System memory — must come BEFORE storage checks to avoid misclassification
   // Exclude laptops, tablets, notebooks, pre-built systems, and motherboards that mention DDR slots
   const isDevice = /\blaptop\b|\bnotebook\b|\btablet\b|\bchromebook\b|\bmacbook\b|\ball.in.one\b|\bdesktop\s+(pc|computer)\b|\bpre.?built\b|\b\d{2}\.\d"|\b\d{2}\.\d\s?inch|\bwindows\s+\d+\s+(home|pro)\b|\bandroid\s+\d+\b|\bcore\s+i[3579]\b|\bryzen\s+[357]\b|\bceleron\b|\bpentium\b|\bcore\s+ultra\b/.test(n);
-  const isMotherboard = /\bmotherboard\b|\b(atx|m-atx|micro-atx|mini-itx|e-atx)\b|\bsocket\s+(1[7-9]\d\d|am[45]|lga\d+)\b|\b(ddr[345]\s+slots?|ddr[345]\s+dimm)\b/.test(n);
+  // Motherboard: require "motherboard" explicitly, or socket/chipset combos, or form-factor+socket combos
+  // Removed bare "atx" — too broad, catches PSUs/cases. "m-atx/micro-atx/mini-itx/e-atx" still valid when not a PSU/case.
+  const isMotherboard = /\bmotherboard\b|\bsocket\s+(1[7-9]\d\d|am[45]|lga\d+)\b|\b(ddr[345]\s+slots?|ddr[345]\s+dimm)\b|\b(m-atx|micro-atx|mini-itx|e-atx)\b.{0,40}(board|socket|chipset|lga|am[45]|z\d{3}|b\d{3}|x\d{3}|h\d{3})|\b(z\d{3}|b\d{3}|x\d{3}|h\d{3})\b.{0,30}(atx|m-atx|micro-atx|mini-itx)/.test(n);
   // Motherboards go to motherboards category regardless of DDR mentions
   if (isMotherboard) return catBySlug.get("motherboards") || null;
 
