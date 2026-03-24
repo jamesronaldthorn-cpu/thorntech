@@ -716,8 +716,12 @@ export function nameBasedCategoryOverride(name: string, catBySlug: Map<string, n
 
   // PC Monitors — must come before PSU check so monitor names with wattage don't get misclassified
   // Exclude accessories: arms, mounts, stands, cables; also exclude DJ/audio/baby monitors
-  const isMonitorAccessory = /\b(arm|mount|stand|cleaner|wipe|riser|wall\s*mount|bracket|docking\s*station)\b.{0,30}\bmonitor\b|\bmonitor\b.{0,30}\b(arm|mount|stand|cleaner|bracket|cable|hub|dock)\b/.test(n);
-  if (!isMonitorAccessory && /\bmonitor\b/.test(n) && !/\bdj\s*monitor\b|\baudio\s*monitor\b|\bbaby\s*monitor\b/.test(n)) return catBySlug.get("monitors") || null;
+  const isMonitorAccessory = /\b(arm|mount|stand|cleaner|wipe|riser|wall\s*mount|bracket)\b.{0,50}\bmonitor\b|\bmonitor\b.{0,50}\b(arm|mount|stand|cleaner|bracket|cable)\b/.test(n);
+  const hasMonitorWord = /\bmonitor\b/.test(n) && !/\bdj\s*monitor\b|\baudio\s*monitor\b|\bbaby\s*monitor\b/.test(n);
+  // Also catch display panels from known monitor brands that omit the word "monitor"
+  const isMonitorBrand = /\biiyama\b|\bviewsonic\b|\bbenq\b|\b(aoc)\s+\d|\bphilips\b.{0,20}\d+\s*(inch|")|\bpixl\b.{0,20}(inch|hz|ips|fhd|monitor)/.test(n);
+  const hasDisplaySpec = /\b(ips|va|oled|qled|nano.ips)\b.{0,30}\b(panel|display|screen|technology)|\b(qhd|fhd|uhd|wqhd|4k|2k)\b.{0,30}\b(ips|va|oled|panel|display)|\b\d{2,3}\s*hz\b.{0,30}\b(ips|va|oled|panel|curved)/.test(n);
+  if (!isMonitorAccessory && (hasMonitorWord || (isMonitorBrand && hasDisplaySpec))) return catBySlug.get("monitors") || null;
 
   // Networking devices — route to networking before PSU check (POE/powered switches mention "powered")
   if (/\bunifi\b|\bubiquiti\b|\bnano\s*station|\bairmax\b|\busw[\s-]|\buap[\s-]|\bpoe\s+(switch|hub|injector|splitter)|\bmanaged\s+(poe\s+)?switch|\bgigabit\s+(poe\s+)?switch|\bnetgear\b|\btp.?link\b|\bnetworking\s+switch/.test(n)) return catBySlug.get("networking") || null;
