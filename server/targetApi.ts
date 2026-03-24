@@ -714,13 +714,36 @@ export function nameBasedCategoryOverride(name: string, catBySlug: Map<string, n
   if (/webcam|web cam/.test(n)) return catBySlug.get("webcams-cameras") || null;
   if (/\bups\b|uninterruptible power|battery backup unit/.test(n)) return catBySlug.get("ups-power-protection") || null;
 
-  // PSUs — MUST come before motherboard check: ATX/SFX appear in PSU names constantly
-  const isPsu = /\bpower\s+supply\b|\bpsu\b|\b\d{3,4}\s*w\b.{0,40}(atx|sfx|modular|gold|bronze|platinum|titanium|80.plus)|\b(80.plus|fully\s+modular|semi.modular)\b.{0,40}\bw\b|\bsfx.l?\b.*\bpower\b|\batx\s+3\.\d\b/.test(n);
-  if (isPsu) return catBySlug.get("power-supplies") || null;
+  // Networking devices — route to networking before PSU check (POE/powered switches mention "powered")
+  if (/\bunifi\b|\bubiquiti\b|\bnano\s*station|\bairmax\b|\busw[\s-]|\buap[\s-]|\bpoe\s+(switch|hub|injector|splitter)|\bmanaged\s+(poe\s+)?switch|\bgigabit\s+(poe\s+)?switch|\bnetgear\b|\btp.?link\b|\bnetworking\s+switch/.test(n)) return catBySlug.get("networking") || null;
 
-  // PC cases — MUST come before motherboard check: "Micro-ATX case" etc.
-  const isCase = /\bpc\s+case\b|\bcase,?\s*(mid|full|mini)[\s-]?tower|\b(mid|full|mini)[\s-]?tower\b.{0,30}\bcase\b|\bchassis\b|\btower\s+case\b|\batx\s+(case|chassis)\b|\bitx\s+(case|chassis)\b|\bdesktop\s+(case|chassis)\b|\brackmount\b/.test(n);
+  // PSU extension / sleeved cables — route to cables category, not PSU
+  if (/\b(psu|power)\b.{0,30}\b(extension|sleeved|cable\s+kit|braided)\b|\b(extension|sleeved|cable\s+kit|braided)\b.{0,30}\b(psu|power\s+supply)\b/.test(n)) return catBySlug.get("cables-adapters") || null;
+
+  // PC cases — MUST come before PSU check: cases with bundled PSUs mention "500W PSU" but are still cases
+  const caseNames = [
+    /\bpc\s+case\b/,
+    /\b(mid|full|mini|micro|slim|tower)\s*(tower|size)\s*case\b/,
+    /\bcase\b.{0,60}\b(mid|full|mini|micro|atx|itx)\b/,
+    /\b(mid|full|mini|micro)[\s-]?tower\b.{0,60}\bcase\b/,
+    /\bsmall\s+form\s+factor\s+case\b|\bsff\b.{0,30}\bcase\b|\bcase\b.{0,30}\bsff\b/,
+    /\bchassis\b(?!.{0,20}\bfan\b.{0,10}\bcontroller\b)/,
+    /\btower\s+case\b/,
+    /\b(atx|itx)\s+(case|chassis)\b/,
+    /\bcase\b.{0,80}\b(itx|atx)\b.{0,20}(case|chassis|bundle|\bpsu\b|power)/,
+    /\bdesktop\s+(case|chassis)\b/,
+    /\brackmount.{0,30}(case|chassis|enclosure)\b/,
+    /\btempered\s+glass.{0,40}\bcase\b/,
+    /\bcase\b.{0,40}\btempered\s+glass\b/,
+    /\b(gaming|office|home|business)\b.{0,20}\bcase\b/,
+    /\bcase\b.{0,15}\b(usb\s+[23]\.0|with\s+\d+w|black\s+interior)\b/,
+  ];
+  const isCase = caseNames.some(r => r.test(n)) && !/\bcontroller\b.{0,30}\bcase\b/.test(n);
   if (isCase) return catBySlug.get("cases") || null;
+
+  // PSUs — after cases so "Mid Tower Case with 500W PSU" goes to cases, not PSU
+  const isPsu = /\bpower\s+supply\b|\bpsu\b|\b\d{3,4}\s*w\b.{0,40}(atx|sfx|modular|gold|bronze|platinum|titanium|80.plus)|\b(80.plus|fully\s+modular|semi.modular)\b.{0,80}\bw\b|\bsfx.l?\b.*\bpower\b|\batx\s+3\.\d\b/.test(n) && !/\bcase\b|\bchassis\b/.test(n);
+  if (isPsu) return catBySlug.get("power-supplies") || null;
 
   // RAM / System memory — must come BEFORE storage checks to avoid misclassification
   // Exclude laptops, tablets, notebooks, pre-built systems, and motherboards that mention DDR slots
