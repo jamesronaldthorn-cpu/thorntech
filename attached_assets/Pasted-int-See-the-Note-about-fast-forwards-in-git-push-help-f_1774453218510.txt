@@ -1,0 +1,40 @@
+int: See the 'Note about fast-forwards' in 'git push --help' for details.
+~/workspace$ git push --force https://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@github.com/jamesronaldthorn-cpu/thorntech.git main
+Enumerating objects: 346, done.
+Counting objects: 100% (346/346), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (252/252), done.
+Writing objects: 100% (325/325), 2.30 MiB | 5.73 MiB/s, done.
+Total 325 (delta 272), reused 76 (delta 73), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (272/272), completed with 19 local objects.
+remote: error: GH013: Repository rule violations found for refs/heads/main.
+remote: 
+remote: - GITHUB PUSH PROTECTION
+remote:   —————————————————————————————————————————
+remote:     Resolve the following violations before pushing again
+remote: 
+remote:     - Push cannot contain secrets
+remote: 
+remote:     
+remote:      (?) Learn how to resolve a blocked push
+remote:      https://docs.github.com/code-security/secret-scanning/working-with-secret-scanning-and-push-protection/working-with-push-protection-from-the-command-line#resolving-a-blocked-push
+remote:     
+remote:      (?) This repository does not have Secret Scanning enabled, but is eligible. Enable Secret Scanning to view and manage detected secrets.
+remote:      Visit the repository settings page, https://github.com/jamesronaldthorn-cpu/thorntech/settings/security_analysis
+remote:     
+remote:     
+remote:       —— GitHub Personal Access Token ——————————————————————
+remote:        locations:
+remote:          - commit: b86543ebfcdfdeb4a5e6d28c92a805aa0c941b46
+remote:            path: attached_assets/Pasted-root-bold-golick-thorntech-cd-root-thorntech-git-remote_1774008891667.txt:1
+remote:          - commit: b86543ebfcdfdeb4a5e6d28c92a805aa0c941b46
+remote:            path: attached_assets/Pasted-root-bold-golick-thorntech-cd-root-thorntech-git-remote_1774008891667.txt:56
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/jamesronaldthorn-cpu/thorntech/security/secret-scanning/unblock-secret/3BRYAxZ5HNuHs6ayEYiQ5mt9qNR
+remote:     
+remote: 
+remote: 
+To https://github.com/jamesronaldthorn-cpu/thorntech.git
+ ! [remote rejected] main -> main (push declined due to repository rule violations)
+error: failed to push
