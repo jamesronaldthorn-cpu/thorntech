@@ -65,11 +65,13 @@ export function getMarkupFactor(costPriceExVat: number, categorySlug?: string): 
 
   let scaled = base;
   if (costPriceExVat > 600) {
-    scaled = Math.max(base * 0.82, 1.08);   // very expensive: slim to 8% floor
+    scaled = Math.max(base * 0.80, 1.04);   // very expensive (>£600): floor at 4% — keeps flagship CPUs/GPUs competitive
   } else if (costPriceExVat > 300) {
-    scaled = Math.max(base * 0.90, 1.10);   // expensive: slim to 10% floor
+    scaled = Math.max(base * 0.87, 1.06);   // expensive (£300–£600): floor at 6%
+  } else if (costPriceExVat > 150) {
+    scaled = Math.max(base * 0.93, 1.08);   // mid-range (£150–£300): floor at 8%
   } else if (costPriceExVat < 20) {
-    scaled = Math.min(base * 1.15, 1.40);   // cheap items: boost up to 40% cap
+    scaled = Math.min(base * 1.15, 1.40);   // cheap items (<£20): boost up to 40% cap
   }
 
   return Math.round(scaled * 1000) / 1000;
