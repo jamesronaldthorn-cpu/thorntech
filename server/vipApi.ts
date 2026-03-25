@@ -3,6 +3,7 @@ import { XMLParser } from "fast-xml-parser";
 import { storage } from "./storage";
 import { matchInternetPrices } from "./priceMatcher";
 import { nameBasedCategoryOverride } from "./targetApi";
+import { minSellPrice } from "./priceUtils";
 
 const VIP_SECURITY_URL = "https://xml3.vip-computers.com/Security.asmx";
 const VIP_PRODUCTS_URL = "https://xml3.vip-computers.com/Products.asmx";
@@ -636,7 +637,7 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
       }
 
       const costPriceExVat = buyPrice;
-      const minSellPrice = Math.ceil(costPriceExVat * 1.2 * 1.20 * 100) / 100;
+      const sellFloor = minSellPrice(costPriceExVat);
       const isInStock = stock ? stock.AvailQty > 0 : false;
       if (!isInStock) result.outOfStock++;
 
@@ -723,7 +724,7 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         if (costPriceExVat < existingCost) {
           updates.costPrice = costPriceExVat;
           updates.source = "VIP Computers";
-          const newMinSell = Math.ceil(costPriceExVat * 1.2 * 1.20 * 100) / 100;
+          const newMinSell = minSellPrice(costPriceExVat);
           if (Math.abs(existing.price - newMinSell) > 0.50) {
             updates.price = newMinSell;
           }
@@ -774,7 +775,7 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         name,
         slug,
         description,
-        price: minSellPrice,
+        price: sellFloor,
         costPrice: costPriceExVat,
         compareAtPrice: null,
         categoryId,
@@ -794,7 +795,7 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
       };
       try {
         await storage.createProduct(productData);
-        existingBySlug.set(slug, { id: 0, slug, inStock: isInStock, image: imageUrl, price: minSellPrice, costPrice: costPriceExVat, vendor: vp.Manufacturer || null } as any);
+        existingBySlug.set(slug, { id: 0, slug, inStock: isInStock, image: imageUrl, price: sellFloor, costPrice: costPriceExVat, vendor: vp.Manufacturer || null } as any);
         if (mpnKey) existingByMpn.set(mpnKey, existingBySlug.get(slug)!);
         result.imported++;
       } catch (insertErr: any) {
@@ -840,7 +841,7 @@ export async function debugProductPrice(sku: number): Promise<any> {
   const priceMap = await getPrices(sessionKey);
   const priceData = priceMap.get(sku);
   const bestCost = priceData ? getBestCostPrice(priceData) : null;
-  const minSell = bestCost ? Math.ceil(bestCost * 1.2 * 1.20 * 100) / 100 : null;
+  const minSell = bestCost ? minSellPrice(bestCost) : null;
   return { sku, rawPriceData: priceData || null, selectedCost: bestCost, minSellPrice: minSell };
 }
 

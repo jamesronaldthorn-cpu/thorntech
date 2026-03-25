@@ -1,6 +1,7 @@
 import { XMLParser, XMLBuilder } from "fast-xml-parser";
 import { storage } from "./storage";
 import { matchInternetPrices } from "./priceMatcher";
+import { minSellPrice } from "./priceUtils";
 
 
 const TARGET_XML_URL = "https://xml.targetcomponents.co.uk/tcxmlv3.asp";
@@ -922,7 +923,7 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
         if (result.skipped < 5) console.log(`[Target] SKIP (no price): stockcode=${tp.stockcode} name="${name.substring(0,50)}" raw_price="${(tp as any)._rawPrice}"`);
         result.skipped++; continue;
       }
-      const sellPrice = Math.ceil(costPriceExVat * 1.2 * 1.20 * 100) / 100;
+      const sellPrice = minSellPrice(costPriceExVat);
 
       const images: string[] = [];
       if (tp.largeimageurl) images.push(tp.largeimageurl);
@@ -975,7 +976,7 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
         if (costPriceExVat < existingCost) {
           updates.costPrice = costPriceExVat;
           updates.source = "Target Components";
-          const newMinSell = Math.ceil(costPriceExVat * 1.2 * 1.20 * 100) / 100;
+          const newMinSell = minSellPrice(costPriceExVat);
           if (existing.price > newMinSell + 0.50 || existing.price < newMinSell - 0.50) {
             updates.price = newMinSell;
           }

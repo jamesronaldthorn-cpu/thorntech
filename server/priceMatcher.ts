@@ -1,6 +1,5 @@
 import { storage } from "./storage";
-
-const MIN_MARGIN = 0.20;
+import { minSellPrice } from "./priceUtils";
 
 // ---------- Price sanity helpers ----------
 
@@ -382,14 +381,13 @@ export async function matchInternetPrices(batchSize = 500): Promise<PriceMatchRe
       console.log(`[PriceMatcher] ${result.totalProcessed}/${batch.length}: ${product.name}`);
 
       const costPrice = product.costPrice!;
-      const costPlusVat = costPrice * 1.2;
-      const minSellPrice = Math.ceil(costPlusVat * (1 + MIN_MARGIN) * 100) / 100;
+      const floor = minSellPrice(costPrice);
 
       const internetPrice = await searchProductPrice(
         product.name,
         product.vendor || undefined,
         product.mpn || undefined,
-        minSellPrice
+        floor
       );
 
       if (!internetPrice) {
@@ -410,7 +408,7 @@ export async function matchInternetPrices(batchSize = 500): Promise<PriceMatchRe
       }
 
       let newPrice: number;
-      if (internetPrice >= minSellPrice) {
+      if (internetPrice >= floor) {
         newPrice = internetPrice;
         if (internetPrice > product.price) {
           console.log(`[PriceMatcher]   Raising to match internet: £${product.price.toFixed(2)} → £${internetPrice.toFixed(2)}`);
@@ -418,8 +416,8 @@ export async function matchInternetPrices(batchSize = 500): Promise<PriceMatchRe
           console.log(`[PriceMatcher]   Lowering to match internet: £${product.price.toFixed(2)} → £${internetPrice.toFixed(2)}`);
         }
       } else {
-        newPrice = minSellPrice;
-        console.log(`[PriceMatcher]   Internet £${internetPrice.toFixed(2)} below min margin — set to floor £${minSellPrice.toFixed(2)}`);
+        newPrice = floor;
+        console.log(`[PriceMatcher]   Internet £${internetPrice.toFixed(2)} below floor — set to floor £${floor.toFixed(2)}`);
       }
 
       if (Math.abs(product.price - newPrice) > 0.01) {
@@ -429,7 +427,7 @@ export async function matchInternetPrices(batchSize = 500): Promise<PriceMatchRe
         }
         await storage.updateProduct(product.id, updates);
         result.priceUpdated++;
-        console.log(`[PriceMatcher]   UPDATED: £${product.price.toFixed(2)} → £${newPrice.toFixed(2)} (internet: £${internetPrice.toFixed(2)}, min: £${minSellPrice.toFixed(2)})`);
+        console.log(`[PriceMatcher]   UPDATED: £${product.price.toFixed(2)} → £${newPrice.toFixed(2)} (internet: £${internetPrice.toFixed(2)}, floor: £${floor.toFixed(2)})`);
       } else {
         result.keptExisting++;
         console.log(`[PriceMatcher]   Competitive: £${product.price.toFixed(2)} (internet: £${internetPrice.toFixed(2)})`);

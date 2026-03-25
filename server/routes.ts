@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
+import { minSellPrice } from "./priceUtils";
 import { registerSchema, loginSchema } from "@shared/schema";
 import type { Product, Category } from "@shared/schema";
 import * as xero from "./xero";
@@ -686,7 +687,7 @@ export async function registerRoutes(
       const product = await storage.getProduct(id);
       if (!product) return res.status(404).json({ error: "Product not found" });
       if (!product.costPrice || product.costPrice <= 0) return res.status(400).json({ error: "No cost price set" });
-      const correctPrice = Math.round(product.costPrice * 1.2 * 1.20 * 100) / 100;
+      const correctPrice = minSellPrice(product.costPrice);
       const updated = await storage.updateProduct(id, { price: correctPrice, compareAtPrice: null });
       res.json({ id, oldPrice: product.price, newPrice: correctPrice, product: updated });
     } catch (e: any) {
@@ -1360,7 +1361,7 @@ export async function registerRoutes(
   });
 
   // Browser-accessible price floor fix: GET /fix-prices?key=thorntech2024
-  // Raises any product priced below cost × 1.2 × 1.20 to the correct floor
+  // Raises any product priced below the tiered minimum floor
   app.get("/fix-prices", async (req, res) => {
     if (req.query.key !== "thorntech2024") return res.status(403).send("Invalid key");
     res.send(`<html><body style="font-family:sans-serif;padding:2rem;max-width:800px">
@@ -1376,7 +1377,7 @@ export async function registerRoutes(
         let skipped = 0;
         for (const p of allProducts) {
           if (!p.costPrice || p.costPrice <= 0) { skipped++; continue; }
-          const correctSell = Math.ceil(p.costPrice * 1.2 * 1.20 * 100) / 100;
+          const correctSell = minSellPrice(p.costPrice);
           if (p.price < correctSell - 0.01) {
             console.log(`[fix-prices] "${p.name.substring(0, 60)}" £${p.price.toFixed(2)} → £${correctSell.toFixed(2)} (cost £${p.costPrice.toFixed(2)})`);
             await storage.updateProduct(p.id, { price: correctSell });
@@ -1724,7 +1725,7 @@ export async function registerRoutes(
       let fixed = 0;
       for (const p of allProducts) {
         if (p.costPrice && p.costPrice > 0) {
-          const correctSell = Math.ceil(p.costPrice * 1.2 * 1.20 * 100) / 100;
+          const correctSell = minSellPrice(p.costPrice);
           if (Math.abs(p.price - correctSell) > 1) {
             console.log(`[FixPrices] ${p.name}: £${p.price.toFixed(2)} → £${correctSell.toFixed(2)} (cost £${p.costPrice.toFixed(2)})`);
             await storage.updateProduct(p.id, { price: correctSell });
