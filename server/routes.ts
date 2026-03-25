@@ -1174,19 +1174,13 @@ export async function registerRoutes(
         }
       }
 
-      // Auto-run price matching after sync (background)
-      if (!priceMatchStatus.running) {
-        priceMatchStatus = { running: true, result: null };
-        console.log(`[VIP] Post-sync price matching started (batch 200)…`);
-        resetMatchProgress();
-        matchInternetPrices(200).then(r => {
-          priceMatchStatus = { running: false, result: r };
-          console.log(`[VIP→PriceMatch] Complete: ${r.priceUpdated} updated, ${r.noResultsFound} no results`);
-        }).catch(e => {
-          priceMatchStatus = { running: false, result: { error: e.message } };
-          console.error("[VIP→PriceMatch] Error:", e.message);
-        });
-      }
+      // Auto-run price matching after sync (background) — does NOT touch priceMatchStatus so it never blocks manual triggers
+      console.log(`[VIP] Post-sync price matching started (batch 200)…`);
+      matchInternetPrices(200).then(r => {
+        console.log(`[VIP→PriceMatch] Complete: ${r.priceUpdated} updated, ${r.noResultsFound} no results`);
+      }).catch(e => {
+        console.error("[VIP→PriceMatch] Error:", e.message);
+      });
     } catch (e: any) {
       console.error("[VIP] Sync error:", e);
       syncStatus = { running: false, result: null, error: e.message };
@@ -1250,19 +1244,13 @@ export async function registerRoutes(
       targetSyncStatus = { running: false, result, error: null };
       console.log(`[Target] Sync complete: ${result.imported} new, ${result.updated} updated`);
 
-      // Auto-run price matching after sync (background)
-      if (!priceMatchStatus.running) {
-        priceMatchStatus = { running: true, result: null };
-        console.log(`[Target] Post-sync price matching started (batch 200)…`);
-        resetMatchProgress();
-        matchInternetPrices(200).then(r => {
-          priceMatchStatus = { running: false, result: r };
-          console.log(`[Target→PriceMatch] Complete: ${r.priceUpdated} updated, ${r.noResultsFound} no results`);
-        }).catch(e => {
-          priceMatchStatus = { running: false, result: { error: e.message } };
-          console.error("[Target→PriceMatch] Error:", e.message);
-        });
-      }
+      // Auto-run price matching after sync (background) — does NOT touch priceMatchStatus so it never blocks manual triggers
+      console.log(`[Target] Post-sync price matching started (batch 200)…`);
+      matchInternetPrices(200).then(r => {
+        console.log(`[Target→PriceMatch] Complete: ${r.priceUpdated} updated, ${r.noResultsFound} no results`);
+      }).catch(e => {
+        console.error("[Target→PriceMatch] Error:", e.message);
+      });
     } catch (e: any) {
       console.error("[Target] Sync error:", e);
       targetSyncStatus = { running: false, result: null, error: e.message };
@@ -1435,14 +1423,9 @@ export async function registerRoutes(
         const dedupRemoved = await vipApi.deduplicateProducts();
         syncStatus = { running: false, result: { ...result, dedupRemoved }, error: null };
         console.log(`[trigger-vip-sync] Done — imported=${result.imported} updated=${result.updated} skipped=${result.skipped} outOfStock=${result.outOfStock} dedup=${dedupRemoved}`);
-        if (!priceMatchStatus.running) {
-          priceMatchStatus = { running: true, result: null };
-          resetMatchProgress();
-          matchInternetPrices(200).then(r => {
-            priceMatchStatus = { running: false, result: r };
-            console.log(`[trigger-vip-sync] Price match done — ${r.priceUpdated} updated`);
-          }).catch(() => { priceMatchStatus = { running: false, result: null }; });
-        }
+        matchInternetPrices(200).then(r => {
+          console.log(`[trigger-vip-sync] Price match done — ${r.priceUpdated} updated`);
+        }).catch(() => {});
       } catch (e: any) {
         syncStatus = { running: false, result: null, error: e.message };
         console.error(`[trigger-vip-sync] Error: ${e.message}`);
@@ -1470,14 +1453,9 @@ export async function registerRoutes(
         const result = await syncTargetProducts();
         targetSyncStatus = { running: false, result, error: null };
         console.log(`[trigger-target-sync] Done — imported=${result.imported} updated=${result.updated} skipped=${result.skipped} outOfStock=${result.outOfStock}`);
-        if (!priceMatchStatus.running) {
-          priceMatchStatus = { running: true, result: null };
-          resetMatchProgress();
-          matchInternetPrices(200).then(r => {
-            priceMatchStatus = { running: false, result: r };
-            console.log(`[trigger-target-sync] Price match done — ${r.priceUpdated} updated`);
-          }).catch(() => { priceMatchStatus = { running: false, result: null }; });
-        }
+        matchInternetPrices(200).then(r => {
+          console.log(`[trigger-target-sync] Price match done — ${r.priceUpdated} updated`);
+        }).catch(() => {});
       } catch (e: any) {
         targetSyncStatus = { running: false, result: null, error: e.message };
         console.error(`[trigger-target-sync] Error: ${e.message}`);

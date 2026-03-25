@@ -263,6 +263,9 @@ async function autoFixCategories() {
   const { startFeedScheduler } = await import("./feedImporter");
   startFeedScheduler();
 
+  const { startPriceMatchScheduler } = await import("./priceMatcher");
+  startPriceMatchScheduler(6);
+
   const { startVipScheduler } = await import("./vipApi");
   startVipScheduler(3);
 

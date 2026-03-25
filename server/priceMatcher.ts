@@ -350,7 +350,33 @@ export function resetMatchProgress() {
   matchedProductIds.clear();
 }
 
+let priceMatchRunning = false;
+
+export function startPriceMatchScheduler(intervalHours = 6) {
+  console.log(`[PriceMatch Scheduler] Started — full catalogue match every ${intervalHours}h`);
+  setInterval(async () => {
+    if (priceMatchRunning) {
+      console.log("[PriceMatch Scheduler] Skipping — a match is already in progress");
+      return;
+    }
+    try {
+      console.log("[PriceMatch Scheduler] Starting full catalogue price match...");
+      resetMatchProgress();
+      const result = await matchInternetPrices(99999);
+      console.log(`[PriceMatch Scheduler] Done: ${result.priceUpdated} updated, ${result.noResultsFound} no results, ${result.errors} errors`);
+    } catch (e: any) {
+      console.error("[PriceMatch Scheduler] Error:", e.message);
+    }
+  }, intervalHours * 60 * 60 * 1000);
+}
+
 export async function matchInternetPrices(batchSize = 500): Promise<PriceMatchResult> {
+  if (priceMatchRunning) {
+    console.log("[PriceMatcher] Already running — skipping concurrent call");
+    return { totalProcessed: 0, priceUpdated: 0, noResultsFound: 0, keptExisting: 0, errors: 0 };
+  }
+  priceMatchRunning = true;
+
   const [allProducts, allCategories] = await Promise.all([storage.getProducts(), storage.getCategories()]);
   const catById = new Map(allCategories.map(c => [c.id, c.slug]));
   const productsWithCost = allProducts.filter(p => p.costPrice && p.costPrice > 0);
@@ -447,5 +473,6 @@ export async function matchInternetPrices(batchSize = 500): Promise<PriceMatchRe
   }
 
   console.log(`[PriceMatcher] Complete: ${result.priceUpdated} updated, ${result.noResultsFound} no results, ${result.keptExisting} kept, ${result.errors} errors`);
+  priceMatchRunning = false;
   return result;
 }
