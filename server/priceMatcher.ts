@@ -219,53 +219,15 @@ function buildSearchTerms(name: string, vendor?: string, mpn?: string): string[]
   return [...new Set(terms)];
 }
 
-async function searchScanPrices(searchTerm: string): Promise<number[]> {
+// PriceRunner aggregates prices from Scan, CCL, Amazon and many other UK retailers
+async function searchPriceRunnerPrices(searchTerm: string): Promise<number[]> {
   const query = encodeURIComponent(searchTerm);
-  const html = await fetchPage(`https://www.scan.co.uk/search?q=${query}`);
+  const html = await fetchPage(`https://www.pricerunner.co.uk/search?q=${query}`);
   if (!html) return [];
-
-  const dataPrices = extractPricesFromDataAttrs(html);
-  if (dataPrices.length > 0) return dataPrices;
-
-  const textPrices = extractPricesFromText(html);
-  return textPrices;
-}
-
-async function searchAmazonPrices(searchTerm: string): Promise<number[]> {
-  const query = encodeURIComponent(searchTerm);
-  const html = await fetchPage(`https://www.amazon.co.uk/s?k=${query}`);
-  if (!html) return [];
-
-  const allPrices: number[] = [];
-
-  const wholePartRegex = /class="a-price-whole">([\d,]+)<.*?class="a-price-fraction">(\d+)</gs;
-  let match;
-  while ((match = wholePartRegex.exec(html)) !== null) {
-    const whole = match[1].replace(/,/g, "");
-    const fraction = match[2];
-    const p = parseFloat(`${whole}.${fraction}`);
-    if (p >= 5 && p <= 50000) allPrices.push(p);
-  }
-
-  if (allPrices.length === 0) {
-    const textPrices = extractPricesFromText(html);
-    allPrices.push(...textPrices);
-  }
-
-  return allPrices;
-}
-
-async function searchCCLPrices(searchTerm: string): Promise<number[]> {
-  const query = encodeURIComponent(searchTerm);
-  const html = await fetchPage(`https://www.cclonline.com/search/${query}/`);
-  if (!html) return [];
-
   const jsonPrices = extractPricesFromJsonLd(html);
   if (jsonPrices.length > 0) return jsonPrices;
-
   const dataPrices = extractPricesFromDataAttrs(html);
   if (dataPrices.length > 0) return dataPrices;
-
   return extractPricesFromText(html);
 }
 
@@ -273,13 +235,21 @@ async function searchOverclockersPrices(searchTerm: string): Promise<number[]> {
   const query = encodeURIComponent(searchTerm);
   const html = await fetchPage(`https://www.overclockers.co.uk/search?q=${query}`);
   if (!html) return [];
-
   const jsonPrices = extractPricesFromJsonLd(html);
   if (jsonPrices.length > 0) return jsonPrices;
-
   const dataPrices = extractPricesFromDataAttrs(html);
   if (dataPrices.length > 0) return dataPrices;
+  return extractPricesFromText(html);
+}
 
+async function searchAwdItPrices(searchTerm: string): Promise<number[]> {
+  const query = encodeURIComponent(searchTerm);
+  const html = await fetchPage(`https://www.awd-it.co.uk/catalogsearch/result/?q=${query}`);
+  if (!html) return [];
+  const jsonPrices = extractPricesFromJsonLd(html);
+  if (jsonPrices.length > 0) return jsonPrices;
+  const dataPrices = extractPricesFromDataAttrs(html);
+  if (dataPrices.length > 0) return dataPrices;
   return extractPricesFromText(html);
 }
 
@@ -290,61 +260,46 @@ async function searchProductPrice(name: string, vendor?: string, mpn?: string, c
   const minAccept = minRef * 0.85;
   const maxAccept = minRef * 4;
 
-  // --- Source 1: Scan.co.uk ---
+  // --- Source 1: PriceRunner — aggregates Scan, CCL, Amazon + many other UK retailers ---
   for (const term of searchTerms) {
-    const scanPrices = await searchScanPrices(term);
-    const inBand = scanPrices.filter(p => p >= minAccept && p <= maxAccept);
+    const prices = await searchPriceRunnerPrices(term);
+    const inBand = prices.filter(p => p >= minAccept && p <= maxAccept);
     if (inBand.length > 0) {
       allPrices.push(...inBand);
-      console.log(`[PriceMatcher]   Scan "${term.substring(0,40)}": ${inBand.length}/${scanPrices.length} in-band (range £${Math.min(...inBand).toFixed(2)}-£${Math.max(...inBand).toFixed(2)})`);
+      console.log(`[PriceMatcher]   PriceRunner "${term.substring(0,40)}": ${inBand.length}/${prices.length} in-band (range £${Math.min(...inBand).toFixed(2)}-£${Math.max(...inBand).toFixed(2)})`);
       break;
-    } else if (scanPrices.length > 0) {
-      console.log(`[PriceMatcher]   Scan "${term.substring(0,40)}": ${scanPrices.length} prices ALL rejected (out of band £${minAccept.toFixed(0)}-£${maxAccept.toFixed(0)})`);
+    } else if (prices.length > 0) {
+      console.log(`[PriceMatcher]   PriceRunner "${term.substring(0,40)}": ${prices.length} prices ALL rejected (out of band £${minAccept.toFixed(0)}-£${maxAccept.toFixed(0)})`);
     }
     await delay(800);
   }
 
-  // --- Source 2: Amazon.co.uk — always check to cross-reference Scan ---
-  await delay(1000);
+  // --- Source 2: Overclockers — direct competitor ---
+  await delay(800);
   for (const term of searchTerms.slice(0, 2)) {
-    const amazonPrices = await searchAmazonPrices(term);
-    const inBand = amazonPrices.filter(p => p >= minAccept && p <= maxAccept);
+    const prices = await searchOverclockersPrices(term);
+    const inBand = prices.filter(p => p >= minAccept && p <= maxAccept);
     if (inBand.length > 0) {
       allPrices.push(...inBand);
-      console.log(`[PriceMatcher]   Amazon "${term.substring(0,40)}": ${inBand.length}/${amazonPrices.length} in-band (range £${Math.min(...inBand).toFixed(2)}-£${Math.max(...inBand).toFixed(2)})`);
+      console.log(`[PriceMatcher]   Overclockers "${term.substring(0,40)}": ${inBand.length}/${prices.length} in-band (range £${Math.min(...inBand).toFixed(2)}-£${Math.max(...inBand).toFixed(2)})`);
       break;
-    } else if (amazonPrices.length > 0) {
-      console.log(`[PriceMatcher]   Amazon "${term.substring(0,40)}": ${amazonPrices.length} prices ALL rejected (out of band)`);
+    } else if (prices.length > 0) {
+      console.log(`[PriceMatcher]   Overclockers "${term.substring(0,40)}": ${prices.length} prices ALL rejected (out of band)`);
     }
     await delay(800);
   }
 
-  // --- Source 3: CCL Online ---
+  // --- Source 3: AWD-IT ---
   await delay(800);
   for (const term of searchTerms.slice(0, 1)) {
-    const cclPrices = await searchCCLPrices(term);
-    const inBand = cclPrices.filter(p => p >= minAccept && p <= maxAccept);
+    const prices = await searchAwdItPrices(term);
+    const inBand = prices.filter(p => p >= minAccept && p <= maxAccept);
     if (inBand.length > 0) {
       allPrices.push(...inBand);
-      console.log(`[PriceMatcher]   CCL "${term.substring(0,40)}": ${inBand.length}/${cclPrices.length} in-band (range £${Math.min(...inBand).toFixed(2)}-£${Math.max(...inBand).toFixed(2)})`);
+      console.log(`[PriceMatcher]   AWD-IT "${term.substring(0,40)}": ${inBand.length}/${prices.length} in-band (range £${Math.min(...inBand).toFixed(2)}-£${Math.max(...inBand).toFixed(2)})`);
       break;
-    } else if (cclPrices.length > 0) {
-      console.log(`[PriceMatcher]   CCL "${term.substring(0,40)}": ${cclPrices.length} prices ALL rejected (out of band)`);
-    }
-    await delay(800);
-  }
-
-  // --- Source 4: Overclockers ---
-  await delay(800);
-  for (const term of searchTerms.slice(0, 1)) {
-    const ocPrices = await searchOverclockersPrices(term);
-    const inBand = ocPrices.filter(p => p >= minAccept && p <= maxAccept);
-    if (inBand.length > 0) {
-      allPrices.push(...inBand);
-      console.log(`[PriceMatcher]   Overclockers "${term.substring(0,40)}": ${inBand.length}/${ocPrices.length} in-band (range £${Math.min(...inBand).toFixed(2)}-£${Math.max(...inBand).toFixed(2)})`);
-      break;
-    } else if (ocPrices.length > 0) {
-      console.log(`[PriceMatcher]   Overclockers "${term.substring(0,40)}": ${ocPrices.length} prices ALL rejected (out of band)`);
+    } else if (prices.length > 0) {
+      console.log(`[PriceMatcher]   AWD-IT "${term.substring(0,40)}": ${prices.length} prices ALL rejected (out of band)`);
     }
     await delay(800);
   }
