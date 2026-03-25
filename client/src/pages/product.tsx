@@ -15,9 +15,6 @@ function formatPrice(p: number) {
   return `£${p.toFixed(2)}`;
 }
 
-function formatExVat(p: number) {
-  return `£${(p / 1.2).toFixed(2)}`;
-}
 
 function normalizeKey(url: string) {
   return url.toLowerCase().replace(/-lg\./i, ".").replace(/-th\./i, ".").replace(/\.jpeg$/i, ".jpg");
@@ -334,10 +331,10 @@ export default function ProductPage() {
           <div className="flex flex-col gap-3">
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
               <div className="mb-1">
-                <span className="text-3xl font-display font-bold text-primary" data-testid="text-product-price">£{exVat}</span>
-                <span className="text-xs text-muted-foreground ml-1">ex. VAT</span>
+                <span className="text-3xl font-display font-bold text-primary" data-testid="text-product-price">£{incVat}</span>
+                <span className="text-xs text-muted-foreground ml-1">inc. VAT</span>
               </div>
-              <p className="text-xs text-muted-foreground mb-3">£{incVat} inc. VAT · Price Per Unit</p>
+              <p className="text-xs text-muted-foreground mb-3">£{exVat} ex. VAT · Price Per Unit</p>
 
               {product.compareAtPrice && (
                 <div className="text-xs text-muted-foreground line-through mb-2">Was {formatPrice(product.compareAtPrice)}</div>
