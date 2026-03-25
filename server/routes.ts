@@ -1504,6 +1504,51 @@ export async function registerRoutes(
     res.json(targetSyncStatus);
   });
 
+  // Combined sync: runs VIP then Target sequentially, then price-matches all products
+  // GET /trigger-all-sync?key=thorntech2024
+  app.get("/trigger-all-sync", async (req, res) => {
+    if (req.query.key !== "thorntech2024") return res.status(403).send("Invalid key");
+    if (syncStatus.running || targetSyncStatus.running) {
+      return res.send(`<html><body style="font-family:sans-serif;padding:2rem"><h2>Already running</h2><p>A sync is already in progress — check back in a few minutes.</p></body></html>`);
+    }
+    res.send(`<html><body style="font-family:sans-serif;padding:2rem;max-width:800px">
+      <h2>⏳ Full Sync Started</h2>
+      <p>Running VIP → Target → Price Match in sequence.</p>
+      <p>Check progress: <code>pm2 logs thorntech</code></p>
+      <p><a href="/">← Back to site</a></p>
+    </body></html>`);
+    setImmediate(async () => {
+      try {
+        // Step 1: VIP
+        syncStatus = { running: true, result: null, error: null };
+        console.log("[trigger-all-sync] Step 1/3: VIP sync starting...");
+        const vipResult = await vipApi.syncVipProducts();
+        const dedupRemoved = await vipApi.deduplicateProducts();
+        syncStatus = { running: false, result: { ...vipResult, dedupRemoved }, error: null };
+        console.log(`[trigger-all-sync] VIP done — imported=${vipResult.imported} updated=${vipResult.updated} skipped=${vipResult.skipped} dedup=${dedupRemoved}`);
+
+        // Step 2: Target
+        targetSyncStatus = { running: true, result: null, error: null };
+        console.log("[trigger-all-sync] Step 2/3: Target sync starting...");
+        const { syncTargetProducts } = await import("./targetApi");
+        const targetResult = await syncTargetProducts();
+        targetSyncStatus = { running: false, result: targetResult, error: null };
+        console.log(`[trigger-all-sync] Target done — imported=${targetResult.imported} updated=${targetResult.updated} skipped=${targetResult.skipped}`);
+
+        // Step 3: Price match all products
+        console.log("[trigger-all-sync] Step 3/3: Price matching all products...");
+        resetMatchProgress();
+        const pmResult = await matchInternetPrices(99999);
+        console.log(`[trigger-all-sync] Price match done — ${pmResult.priceUpdated} updated, ${pmResult.noResultsFound} no results, ${pmResult.errors} errors`);
+        console.log("[trigger-all-sync] ✓ Full sync complete");
+      } catch (e: any) {
+        console.error("[trigger-all-sync] Error:", e.message);
+        syncStatus = { running: false, result: null, error: e.message };
+        targetSyncStatus = { running: false, result: null, error: e.message };
+      }
+    });
+  });
+
   app.post("/api/admin/fix-categories", adminAuth, async (_req, res) => {
     res.json({ status: "started", message: "Re-categorising misplaced products in background..." });
     try {
