@@ -1178,6 +1178,7 @@ export async function registerRoutes(
       if (!priceMatchStatus.running) {
         priceMatchStatus = { running: true, result: null };
         console.log(`[VIP] Post-sync price matching started (batch 200)…`);
+        resetMatchProgress();
         matchInternetPrices(200).then(r => {
           priceMatchStatus = { running: false, result: r };
           console.log(`[VIP→PriceMatch] Complete: ${r.priceUpdated} updated, ${r.noResultsFound} no results`);
@@ -1253,6 +1254,7 @@ export async function registerRoutes(
       if (!priceMatchStatus.running) {
         priceMatchStatus = { running: true, result: null };
         console.log(`[Target] Post-sync price matching started (batch 200)…`);
+        resetMatchProgress();
         matchInternetPrices(200).then(r => {
           priceMatchStatus = { running: false, result: r };
           console.log(`[Target→PriceMatch] Complete: ${r.priceUpdated} updated, ${r.noResultsFound} no results`);
@@ -1435,6 +1437,7 @@ export async function registerRoutes(
         console.log(`[trigger-vip-sync] Done — imported=${result.imported} updated=${result.updated} skipped=${result.skipped} outOfStock=${result.outOfStock} dedup=${dedupRemoved}`);
         if (!priceMatchStatus.running) {
           priceMatchStatus = { running: true, result: null };
+          resetMatchProgress();
           matchInternetPrices(200).then(r => {
             priceMatchStatus = { running: false, result: r };
             console.log(`[trigger-vip-sync] Price match done — ${r.priceUpdated} updated`);
@@ -1467,6 +1470,14 @@ export async function registerRoutes(
         const result = await syncTargetProducts();
         targetSyncStatus = { running: false, result, error: null };
         console.log(`[trigger-target-sync] Done — imported=${result.imported} updated=${result.updated} skipped=${result.skipped} outOfStock=${result.outOfStock}`);
+        if (!priceMatchStatus.running) {
+          priceMatchStatus = { running: true, result: null };
+          resetMatchProgress();
+          matchInternetPrices(200).then(r => {
+            priceMatchStatus = { running: false, result: r };
+            console.log(`[trigger-target-sync] Price match done — ${r.priceUpdated} updated`);
+          }).catch(() => { priceMatchStatus = { running: false, result: null }; });
+        }
       } catch (e: any) {
         targetSyncStatus = { running: false, result: null, error: e.message };
         console.error(`[trigger-target-sync] Error: ${e.message}`);
