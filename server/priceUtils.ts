@@ -1,88 +1,37 @@
 /**
- * Category-aware, cost-scaled minimum pricing.
+ * Minimum pricing floor — just enough to cover cost + VAT + a small cushion.
+ *
+ * These are FLOORS only. The price matcher sets the actual sell price by
+ * finding the cheapest internet price and undercutting by £1.
+ * A product only sells at the floor if no internet price can be found.
  *
  * Both VIP Computers and Target Components supply prices EXCLUSIVE of VAT.
- * Sell price (inc-VAT) = costExVat × 1.2 (VAT) × getMarkupFactor(cost, categorySlug)
- *
- * Base markups reflect real UK PC component market norms. Within each category,
- * expensive items get a further reduction so high-end products stay competitive.
+ * Inc-VAT sell price = costExVat × 1.2 × floor factor
  */
-
-const CATEGORY_MARKUP: Record<string, number> = {
-  // Very tight — heavily comparison-shopped, razor-thin retail margins
-  "graphics-cards":         1.10,
-  "processors":             1.10,
-  "laptops":                1.10,
-  "tablets":                1.10,
-
-  // Competitive but with slightly more flexibility
-  "monitors":               1.12,
-  "memory":                 1.13,
-  "motherboards":           1.14,
-  "storage":                1.15,
-  "networking":             1.14,
-  "ups-power-protection":   1.14,
-  "servers-workstations":   1.14,
-
-  // Good margin — less commoditised, SRP generally respected
-  "cases":                  1.18,
-  "power-supplies":         1.18,
-  "cpu-cooling":            1.18,
-  "liquid-cooling":         1.18,
-  "sound-cards":            1.18,
-  "gaming-controllers":     1.20,
-  "webcams-cameras":        1.20,
-  "printers":               1.20,
-  "scanners-multifunction": 1.20,
-
-  // Healthy margin — branded peripherals with SRP flexibility
-  "keyboards":              1.22,
-  "mice":                   1.22,
-  "headsets":               1.22,
-  "software":               1.25,
-  "ink-toner":              1.25,
-
-  // High margin — low-value, high-convenience
-  "cables-adapters":        1.35,
-};
-
-function costFallback(cost: number): number {
-  if (cost < 30)  return 1.28;
-  if (cost < 75)  return 1.22;
-  if (cost < 150) return 1.18;
-  if (cost < 300) return 1.16;
-  if (cost < 600) return 1.13;
-  return 1.10;
-}
 
 /**
- * Returns the markup multiplier for a product.
- * Category sets the base; cost-based scaling compresses margins further for
- * expensive items (so high-end products stay competitive) and boosts them for
- * very cheap items (so absolute profit per unit isn't pennies).
+ * Minimum floor factor above cost+VAT.
+ * Kept deliberately low so the price matcher can always compete.
+ *   1.03 = 3% above VAT-inclusive cost  (most categories)
+ *   1.05 = 5% above VAT-inclusive cost  (cables/accessories — harder to match online)
  */
-export function getMarkupFactor(costExVat: number, categorySlug?: string): number {
-  const base: number = (categorySlug ? CATEGORY_MARKUP[categorySlug] : undefined) ?? costFallback(costExVat);
-
-  let scaled = base;
-  if (costExVat > 600) {
-    scaled = Math.max(base * 0.80, 1.04);   // very expensive (>£600 ex-VAT): floor at 4%
-  } else if (costExVat > 300) {
-    scaled = Math.max(base * 0.87, 1.06);   // expensive (£300–£600 ex-VAT): floor at 6%
-  } else if (costExVat > 150) {
-    scaled = Math.max(base * 0.93, 1.08);   // mid-range (£150–£300 ex-VAT): floor at 8%
-  } else if (costExVat < 20) {
-    scaled = Math.min(base * 1.15, 1.40);   // cheap items (<£20 ex-VAT): boost up to 40% cap
-  }
-
-  return Math.round(scaled * 1000) / 1000;
+function floorFactor(categorySlug?: string): number {
+  if (categorySlug === "cables-adapters") return 1.05;
+  return 1.03;
 }
 
 /**
  * Minimum profitable sell price (inc-VAT).
- * costExVat is the supplier's ex-VAT trade price; ×1.2 converts to inc-VAT before markup.
- * The price matcher will never go below this value.
+ * The price matcher will never set a price below this value.
  */
 export function minSellPrice(costExVat: number, categorySlug?: string): number {
-  return Math.ceil(costExVat * 1.2 * getMarkupFactor(costExVat, categorySlug) * 100) / 100;
+  return Math.ceil(costExVat * 1.2 * floorFactor(categorySlug) * 100) / 100;
+}
+
+/**
+ * Legacy export — kept so existing callers that import getMarkupFactor don't break.
+ * Returns the floor factor (not a full markup target).
+ */
+export function getMarkupFactor(costExVat: number, categorySlug?: string): number {
+  return floorFactor(categorySlug);
 }
