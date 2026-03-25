@@ -956,30 +956,34 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
         const updates: Record<string, any> = {};
         if (existing.inStock !== isInStock) updates.inStock = isInStock;
 
-        const hasNoImage = !existing.image;
-        const hasBadImage = existing.image && (existing.image.includes("placeholder") || existing.image.includes("no-image") || existing.image.includes("default"));
-        if (mainImage && (hasNoImage || hasBadImage)) {
+        // Target always wins on name — use Target's proper product title
+        if (name && existing.name !== name) updates.name = name;
+
+        // Target always wins on image — prefer Target supplier images over VIP
+        if (mainImage && existing.image !== mainImage) {
           updates.image = mainImage;
         }
 
         if (images.length > 0) {
-          let existingImages: string[] = [];
-          try { if (existing.images) existingImages = typeof existing.images === "string" ? JSON.parse(existing.images) : existing.images; } catch {}
-          const merged = [...existingImages];
-          for (const img of images) {
+          // Place Target images first, then append any extras that aren't already there
+          const existingImages: string[] = (() => {
+            try { return existing.images ? (typeof existing.images === "string" ? JSON.parse(existing.images) : existing.images) : []; } catch { return []; }
+          })();
+          const merged = [...images];
+          for (const img of existingImages) {
             if (img && !merged.some(e => e === img || e.replace(/-lg\./i, '.').replace(/\.JPG$/i, '.jpg') === img.replace(/-lg\./i, '.').replace(/\.JPG$/i, '.jpg'))) {
               merged.push(img);
             }
           }
-          if (merged.length > existingImages.length) {
-            updates.images = JSON.stringify(merged);
-          }
+          updates.images = JSON.stringify(merged.slice(0, 15));
         }
+
+        // Always mark as Target source when Target has this product
+        updates.source = "Target Components";
 
         const existingCost = existing.costPrice || Infinity;
         if (costPriceExVat < existingCost) {
           updates.costPrice = costPriceExVat;
-          updates.source = "Target Components";
           const newMinSell = minSellPrice(costPriceExVat, categorySlug);
           if (existing.price > newMinSell + 0.50 || existing.price < newMinSell - 0.50) {
             updates.price = newMinSell;

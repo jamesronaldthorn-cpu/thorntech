@@ -668,17 +668,21 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
       const mpnKey = mpn && mpn.length > 3 ? mpn.toLowerCase().trim() : null;
       const existing = (mpnKey && existingByMpn.get(mpnKey)) || existingBySlug.get(slug);
       if (existing) {
+        const isTargetOwned = existing.source === "Target Components";
         const updates: Record<string, any> = {};
-        if (existing.name !== name) updates.name = name;
+        // VIP defers to Target on name/image/description — only update these if Target hasn't claimed the product
+        if (!isTargetOwned && existing.name !== name) updates.name = name;
         if (existing.slug !== slug) updates.slug = slug;
         if (existing.inStock !== isInStock) updates.inStock = isInStock;
-        const hasNoImage = !existing.image;
-        const hasBadImage = existing.image && (existing.image.includes("ftp://") || existing.image.includes("placeholder") || existing.image.includes("no-image") || existing.image.includes("default"));
-        if (imageUrl && (hasNoImage || hasBadImage)) {
-          updates.image = imageUrl;
+        if (!isTargetOwned) {
+          const hasNoImage = !existing.image;
+          const hasBadImage = existing.image && (existing.image.includes("ftp://") || existing.image.includes("placeholder") || existing.image.includes("no-image") || existing.image.includes("default"));
+          if (imageUrl && (hasNoImage || hasBadImage)) {
+            updates.image = imageUrl;
+          }
         }
 
-        if (allVipImages.length > 0) {
+        if (!isTargetOwned && allVipImages.length > 0) {
           let existingImages: string[] = [];
           try { if (existing.images) existingImages = typeof existing.images === "string" ? JSON.parse(existing.images) : existing.images; } catch {}
           const goodExisting = existingImages.filter(img => img && !img.includes("placeholder") && !img.includes("no-image") && !img.includes("ftp://"));
@@ -694,29 +698,31 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
 
         const vipSpecs = extractVipSpecs(vp);
         const vipFeatures = extractVipFeatures(vp);
-        if (Object.keys(vipSpecs).length > 0) {
-          let existingSpecs: Record<string, string> = {};
-          try { if (existing.specs) existingSpecs = JSON.parse(existing.specs as string); } catch {}
-          if (Object.keys(existingSpecs).length === 0) {
-            updates.specs = JSON.stringify(vipSpecs);
-          } else {
-            const merged = { ...vipSpecs, ...existingSpecs };
-            updates.specs = JSON.stringify(merged);
+        // Only push specs/features from VIP if Target hasn't already set them
+        if (!isTargetOwned) {
+          if (Object.keys(vipSpecs).length > 0) {
+            let existingSpecs: Record<string, string> = {};
+            try { if (existing.specs) existingSpecs = JSON.parse(existing.specs as string); } catch {}
+            if (Object.keys(existingSpecs).length === 0) {
+              updates.specs = JSON.stringify(vipSpecs);
+            } else {
+              const merged = { ...vipSpecs, ...existingSpecs };
+              updates.specs = JSON.stringify(merged);
+            }
           }
-        }
-        if (vipFeatures.length > 0) {
-          updates.vipFeatures = JSON.stringify(vipFeatures);
-        }
-        // Populate features for existing products that don't have any
-        const hasNoFeatures = !existing.features || existing.features === "[]";
-        if (hasNoFeatures) {
           if (vipFeatures.length > 0) {
-            updates.features = JSON.stringify(vipFeatures);
-          } else if (Object.keys(vipSpecs).length > 0) {
-            const specFeatures = Object.entries(vipSpecs)
-              .filter(([, v]) => v && v.length > 0 && v.length < 80)
-              .map(([k, v]) => `${k}: ${v}`);
-            if (specFeatures.length > 0) updates.features = JSON.stringify(specFeatures);
+            updates.vipFeatures = JSON.stringify(vipFeatures);
+          }
+          const hasNoFeatures = !existing.features || existing.features === "[]";
+          if (hasNoFeatures) {
+            if (vipFeatures.length > 0) {
+              updates.features = JSON.stringify(vipFeatures);
+            } else if (Object.keys(vipSpecs).length > 0) {
+              const specFeatures = Object.entries(vipSpecs)
+                .filter(([, v]) => v && v.length > 0 && v.length < 80)
+                .map(([k, v]) => `${k}: ${v}`);
+              if (specFeatures.length > 0) updates.features = JSON.stringify(specFeatures);
+            }
           }
         }
         if (vp.Manufacturer && vp.Manufacturer !== existing.vendor) updates.vendor = vp.Manufacturer;
@@ -727,7 +733,7 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         const existingCost = existing.costPrice || Infinity;
         if (costPriceExVat < existingCost) {
           updates.costPrice = costPriceExVat;
-          updates.source = "VIP Computers";
+          if (!isTargetOwned) updates.source = "VIP Computers";
           const newMinSell = minSellPrice(costPriceExVat, categorySlug);
           if (Math.abs(existing.price - newMinSell) > 0.50) {
             updates.price = newMinSell;
