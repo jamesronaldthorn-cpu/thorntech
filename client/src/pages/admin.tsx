@@ -1689,7 +1689,8 @@ export default function AdminPage() {
                   <tr className="border-b border-white/10 text-gray-400 text-left">
                     <th className="py-3 px-3">ID</th>
                     <th className="py-3 px-3">Name</th>
-                    <th className="py-3 px-3">Price</th>
+                    <th className="py-3 px-3">Sell Price</th>
+                    <th className="py-3 px-3 hidden lg:table-cell">Cost (ex-VAT)</th>
                     <th className="py-3 px-3 hidden md:table-cell">Category</th>
                     <th className="py-3 px-3 hidden md:table-cell">Source</th>
                     <th className="py-3 px-3 hidden md:table-cell">Stock</th>
@@ -1711,6 +1712,16 @@ export default function AdminPage() {
                       <td className="py-3 px-3">
                         <span className="text-purple-400 font-medium">£{p.price.toFixed(2)}</span>
                         {p.compareAtPrice && <span className="text-xs text-gray-500 line-through ml-1">£{p.compareAtPrice.toFixed(2)}</span>}
+                      </td>
+                      <td className="py-3 px-3 hidden lg:table-cell" data-testid={`text-cost-${p.id}`}>
+                        {(p as any).costPrice > 0 ? (
+                          <div>
+                            <span className="text-green-400 font-medium">£{Number((p as any).costPrice).toFixed(2)}</span>
+                            <div className="text-xs text-gray-500">inc-VAT £{(Number((p as any).costPrice) * 1.2).toFixed(2)}</div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-600">—</span>
+                        )}
                       </td>
                       <td className="py-3 px-3 hidden md:table-cell text-gray-400">{catMap.get(p.categoryId ?? 0) || "—"}</td>
                       <td className="py-3 px-3 hidden md:table-cell">
@@ -1735,7 +1746,7 @@ export default function AdminPage() {
                     </tr>
                   ))}
                   {filteredProducts.length === 0 && (
-                    <tr><td colSpan={8} className="py-12 text-center text-gray-500">No products found</td></tr>
+                    <tr><td colSpan={9} className="py-12 text-center text-gray-500">No products found</td></tr>
                   )}
                 </tbody>
               </table>
