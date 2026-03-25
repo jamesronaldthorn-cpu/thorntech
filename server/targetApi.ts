@@ -1262,7 +1262,6 @@ export function startTargetScheduler(intervalHours = 3) {
       }
 
       console.log("[Target Scheduler] Starting internet price matching...");
-      resetMatchProgress();
       const priceResult = await matchInternetPrices(500);
       console.log(`[Target Scheduler] Price match done: ${priceResult.priceUpdated} updated, ${priceResult.noResultsFound} no results`);
     } catch (e: any) {

@@ -974,7 +974,6 @@ export function startVipScheduler(intervalHours = 3) {
       }
 
       console.log("[VIP Scheduler] Starting internet price matching...");
-      resetMatchProgress();
       const priceResult = await matchInternetPrices(500);
       console.log(`[VIP Scheduler] Price match done: ${priceResult.priceUpdated} updated, ${priceResult.noResultsFound} no results`);
     } catch (e: any) {
