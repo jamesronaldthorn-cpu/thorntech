@@ -1372,12 +1372,14 @@ export async function registerRoutes(
     </body></html>`);
     setImmediate(async () => {
       try {
-        const allProducts = await storage.getAllProductsAdmin();
+        const [allProducts, allCategories] = await Promise.all([storage.getAllProductsAdmin(), storage.getCategories()]);
+        const catById = new Map(allCategories.map(c => [c.id, c.slug]));
         let fixed = 0;
         let skipped = 0;
         for (const p of allProducts) {
           if (!p.costPrice || p.costPrice <= 0) { skipped++; continue; }
-          const correctSell = minSellPrice(p.costPrice);
+          const catSlug = p.categoryId ? catById.get(p.categoryId) : undefined;
+          const correctSell = minSellPrice(p.costPrice, catSlug);
           if (p.price < correctSell - 0.01) {
             console.log(`[fix-prices] "${p.name.substring(0, 60)}" £${p.price.toFixed(2)} → £${correctSell.toFixed(2)} (cost £${p.costPrice.toFixed(2)})`);
             await storage.updateProduct(p.id, { price: correctSell });
@@ -1721,11 +1723,13 @@ export async function registerRoutes(
 
   app.post("/api/admin/fix-prices", adminAuth, async (_req, res) => {
     try {
-      const allProducts = await storage.getProducts();
+      const [allProducts, allCategories] = await Promise.all([storage.getProducts(), storage.getCategories()]);
+      const catById = new Map(allCategories.map(c => [c.id, c.slug]));
       let fixed = 0;
       for (const p of allProducts) {
         if (p.costPrice && p.costPrice > 0) {
-          const correctSell = minSellPrice(p.costPrice);
+          const catSlug = p.categoryId ? catById.get(p.categoryId) : undefined;
+          const correctSell = minSellPrice(p.costPrice, catSlug);
           if (Math.abs(p.price - correctSell) > 1) {
             console.log(`[FixPrices] ${p.name}: £${p.price.toFixed(2)} → £${correctSell.toFixed(2)} (cost £${p.costPrice.toFixed(2)})`);
             await storage.updateProduct(p.id, { price: correctSell });

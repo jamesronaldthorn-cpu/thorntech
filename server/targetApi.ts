@@ -901,7 +901,8 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
 
   const categories = await storage.getCategories();
   const catBySlug = new Map<string, number>();
-  for (const c of categories) catBySlug.set(c.slug, c.id);
+  const catById  = new Map<number, string>();
+  for (const c of categories) { catBySlug.set(c.slug, c.id); catById.set(c.id, c.slug); }
 
   let matchedByMpn = 0, matchedBySlug = 0, newCount = 0;
   for (const tp of targetProducts) {
@@ -923,21 +924,24 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
         if (result.skipped < 5) console.log(`[Target] SKIP (no price): stockcode=${tp.stockcode} name="${name.substring(0,50)}" raw_price="${(tp as any)._rawPrice}"`);
         result.skipped++; continue;
       }
-      const sellPrice = minSellPrice(costPriceExVat);
+
+      // Determine category BEFORE pricing so the floor reflects market norms per category
+      let categoryId: number | null = null;
+      let categorySlug: string | undefined;
+      if (tp.category) {
+        const areaCode = tp.category.substring(0, 2);
+        const cs = targetCategoryMap[tp.category] || targetCategoryFallback[areaCode];
+        if (cs) { categoryId = catBySlug.get(cs) || null; categorySlug = cs; }
+      }
+      const nameOverride = nameBasedCategoryOverride(name, catBySlug);
+      if (nameOverride) { categoryId = nameOverride; categorySlug = catById.get(nameOverride); }
+
+      const sellPrice = minSellPrice(costPriceExVat, categorySlug);
 
       const images: string[] = [];
       if (tp.largeimageurl) images.push(tp.largeimageurl);
       if (tp.imageurl && !images.includes(tp.imageurl)) images.push(tp.imageurl);
       const mainImage = images[0] || null;
-
-      let categoryId: number | null = null;
-      if (tp.category) {
-        const areaCode = tp.category.substring(0, 2);
-        const catSlug = targetCategoryMap[tp.category] || targetCategoryFallback[areaCode];
-        if (catSlug) categoryId = catBySlug.get(catSlug) || null;
-      }
-      const nameOverride = nameBasedCategoryOverride(name, catBySlug);
-      if (nameOverride) categoryId = nameOverride;
 
       const mpn = tp.manupartcode?.trim() || null;
       const mpnKey = mpn && mpn.length > 3 ? mpn.toLowerCase().trim() : null;
@@ -976,7 +980,7 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
         if (costPriceExVat < existingCost) {
           updates.costPrice = costPriceExVat;
           updates.source = "Target Components";
-          const newMinSell = minSellPrice(costPriceExVat);
+          const newMinSell = minSellPrice(costPriceExVat, categorySlug);
           if (existing.price > newMinSell + 0.50 || existing.price < newMinSell - 0.50) {
             updates.price = newMinSell;
           }

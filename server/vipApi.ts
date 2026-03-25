@@ -586,6 +586,7 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
 
   const storeCategories = await storage.getCategories();
   const catBySlug = new Map(storeCategories.map(c => [c.slug, c.id]));
+  const catById   = new Map(storeCategories.map(c => [c.id,   c.slug]));
 
   const existingProducts = await storage.getProducts();
   const existingBySlug = new Map(existingProducts.map(p => [p.slug, p]));
@@ -637,7 +638,6 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
       }
 
       const costPriceExVat = buyPrice;
-      const sellFloor = minSellPrice(costPriceExVat);
       const isInStock = stock ? stock.AvailQty > 0 : false;
       if (!isInStock) result.outOfStock++;
 
@@ -653,12 +653,16 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
       if (imageUrl) imgSet++;
       else imgNull++;
 
+      // Determine category BEFORE pricing so the floor reflects market norms per category
       const catSlug = vipCategoryMap[vp.ProductGroup];
       let categoryId: number | null = catSlug ? (catBySlug.get(catSlug) || null) : null;
+      let categorySlug: string | undefined = catSlug || undefined;
       // Name-based override runs unconditionally — corrects wrong ProductGroup assignments
       const nameOverride = nameBasedCategoryOverride(name, catBySlug);
-      if (nameOverride) categoryId = nameOverride;
+      if (nameOverride) { categoryId = nameOverride; categorySlug = catById.get(nameOverride); }
       if (categoryId) result.categoriesMatched++;
+
+      const sellFloor = minSellPrice(costPriceExVat, categorySlug);
 
       const mpn = vp.ManufacturersPartNumber != null ? String(vp.ManufacturersPartNumber).trim() : null;
       const mpnKey = mpn && mpn.length > 3 ? mpn.toLowerCase().trim() : null;
@@ -724,7 +728,7 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         if (costPriceExVat < existingCost) {
           updates.costPrice = costPriceExVat;
           updates.source = "VIP Computers";
-          const newMinSell = minSellPrice(costPriceExVat);
+          const newMinSell = minSellPrice(costPriceExVat, categorySlug);
           if (Math.abs(existing.price - newMinSell) > 0.50) {
             updates.price = newMinSell;
           }

@@ -351,7 +351,8 @@ export function resetMatchProgress() {
 }
 
 export async function matchInternetPrices(batchSize = 500): Promise<PriceMatchResult> {
-  const allProducts = await storage.getProducts();
+  const [allProducts, allCategories] = await Promise.all([storage.getProducts(), storage.getCategories()]);
+  const catById = new Map(allCategories.map(c => [c.id, c.slug]));
   const productsWithCost = allProducts.filter(p => p.costPrice && p.costPrice > 0);
   const unmatched = productsWithCost.filter(p => !matchedProductIds.has(p.id));
 
@@ -381,7 +382,8 @@ export async function matchInternetPrices(batchSize = 500): Promise<PriceMatchRe
       console.log(`[PriceMatcher] ${result.totalProcessed}/${batch.length}: ${product.name}`);
 
       const costPrice = product.costPrice!;
-      const floor = minSellPrice(costPrice);
+      const catSlug = product.categoryId ? catById.get(product.categoryId) : undefined;
+      const floor = minSellPrice(costPrice, catSlug);
 
       const internetPrice = await searchProductPrice(
         product.name,
