@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Package, Tag, ShoppingCart, Plus, Pencil, Trash2, LogOut,
-  Eye, EyeOff, X, Save, Search, ChevronDown, ChevronUp, Rss, Upload, Copy, ExternalLink, Download, Loader2, CheckCircle, AlertCircle, Users, KeyRound, BarChart3, TrendingUp, Globe, Calendar, RotateCcw, Sparkles, Star, ImageOff, RefreshCw, ImageIcon
+  Eye, EyeOff, X, Save, Search, ChevronDown, ChevronUp, Rss, Upload, Copy, ExternalLink, Download, Loader2, CheckCircle, AlertCircle, Users, KeyRound, BarChart3, TrendingUp, Globe, Calendar, RotateCcw, Star, ImageOff, RefreshCw, ImageIcon
 } from "lucide-react";
 import type { Product, Category, Order, CustomFeed, FeedSource, BlogPost } from "@shared/schema";
 import { FileText } from "lucide-react";
@@ -471,9 +471,6 @@ export default function AdminPage() {
   const [priceMatching, setPriceMatching] = useState(false);
   const [priceMatchResult, setPriceMatchResult] = useState<any>(null);
   const [priceMatchBatch, setPriceMatchBatch] = useState("500");
-  const [enriching, setEnriching] = useState(false);
-  const [enrichResult, setEnrichResult] = useState<any>(null);
-  const [enrichBatch, setEnrichBatch] = useState("500");
   const [pullingImages, setPullingImages] = useState(false);
   const [pullImageResult, setPullImageResult] = useState<any>(null);
   const [sourceFilter, setSourceFilter] = useState<string>("all");
@@ -654,35 +651,6 @@ export default function AdminPage() {
           loadData();
         } else if (st.running && st.current > 0) {
           setPriceMatchResult({ message: "Price matching in progress...", progress: { current: st.current, total: st.total, currentProduct: st.currentProduct } });
-        }
-      } catch {}
-    }, 3000);
-  };
-
-  const enrichProductsAction = async () => {
-    setEnriching(true);
-    setEnrichResult({ message: "Starting product enrichment..." });
-    try {
-      adminFetch("/api/admin/enrich-products", {
-        method: "POST",
-        body: JSON.stringify({ batchSize: parseInt(enrichBatch) || 50 }),
-      }).catch(() => {});
-    } catch {}
-    await new Promise(r => setTimeout(r, 3000));
-    setEnrichResult({ message: "Enrichment in progress...", progress: { current: 0, total: 0, currentProduct: "" } });
-    const poll = setInterval(async () => {
-      try {
-        const sr = await adminFetch("/api/admin/enrich-products/status");
-        const text = await sr.text();
-        if (!text.startsWith("{")) return;
-        const st = JSON.parse(text);
-        if (!st.running && st.result) {
-          clearInterval(poll);
-          setEnrichResult(st.result);
-          setEnriching(false);
-          loadData();
-        } else if (st.running && st.current > 0) {
-          setEnrichResult({ message: "Enrichment in progress...", progress: { current: st.current, total: st.total, currentProduct: st.currentProduct } });
         }
       } catch {}
     }, 3000);
@@ -1395,195 +1363,6 @@ export default function AdminPage() {
                 </Button>
               </div>
 
-              <div className="mt-6 pt-6 border-t border-white/10">
-                <h3 className="text-white font-medium mb-3 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-purple-400" />
-                  Product Enrichment
-                </h3>
-                <p className="text-gray-400 text-xs mb-3">Pull detailed specs, features, and images from UK retailer websites to make product pages look professional.</p>
-                <div className="flex items-center gap-4 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-gray-400 text-xs whitespace-nowrap">Batch Size:</Label>
-                    <Input
-                      type="number"
-                      value={enrichBatch}
-                      onChange={e => setEnrichBatch(e.target.value)}
-                      className="w-20 bg-white/5 border-white/10 text-white h-9"
-                      data-testid="input-enrich-batch"
-                    />
-                  </div>
-                  <Button
-                    onClick={enrichProductsAction}
-                    disabled={enriching}
-                    className="bg-purple-600 hover:bg-purple-700 text-white"
-                    data-testid="button-enrich-products"
-                  >
-                    {enriching ? <><Loader2 className="w-4 h-4 animate-spin mr-1" /> Enriching...</> : <><Sparkles className="w-4 h-4 mr-1" /> Enrich Products</>}
-                  </Button>
-                  <Button
-                    onClick={async () => {
-                      await adminFetch("/api/admin/enrich-products/reset", { method: "POST" });
-                      setEnrichResult({ message: "Progress reset — next batch starts from unenriched products." });
-                    }}
-                    disabled={enriching}
-                    variant="outline"
-                    className="border-white/20 text-white hover:bg-white/10"
-                    data-testid="button-reset-enrich"
-                  >
-                    Reset All
-                  </Button>
-                  <Button
-                    onClick={async () => {
-                      const result = await adminFetch("/api/admin/enrich-products/reset-empty", { method: "POST" });
-                      if (result) setEnrichResult(result);
-                    }}
-                    disabled={enriching}
-                    variant="outline"
-                    className="border-white/20 text-white hover:bg-white/10"
-                    data-testid="button-reset-empty-enrich"
-                  >
-                    Re-enrich Low Specs
-                  </Button>
-                  <Button
-                    onClick={async () => {
-                      const result = await adminFetch("/api/admin/upgrade-images", { method: "POST" });
-                      if (result) setEnrichResult(result);
-                    }}
-                    variant="outline"
-                    className="border-white/20 text-white hover:bg-white/10"
-                    data-testid="button-upgrade-images"
-                  >
-                    Upgrade Image Quality
-                  </Button>
-                </div>
-                <div className="mt-3 pt-3 border-t border-gray-700">
-                  <Button
-                    onClick={async () => {
-                      setPullingImages(true);
-                      setPullImageResult({ message: "Starting image pull..." });
-                      await adminFetch("/api/admin/pull-images", { method: "POST" });
-                      const poll = setInterval(async () => {
-                        try {
-                          const sr = await adminFetch("/api/admin/pull-images/status");
-                          const st = await sr.json();
-                          if (st.done) {
-                            clearInterval(poll);
-                            setPullImageResult({ done: true, updated: st.updated, skipped: st.skipped, errors: st.errors, total: st.total });
-                            setPullingImages(false);
-                          } else if (st.running) {
-                            setPullImageResult({ message: "Pulling images...", progress: st });
-                          } else if (!st.running && st.total === 0) {
-                            clearInterval(poll);
-                            setPullImageResult({ done: true, updated: st.updated, skipped: st.skipped, errors: st.errors, total: st.total });
-                            setPullingImages(false);
-                          }
-                        } catch { }
-                      }, 2000);
-                    }}
-                    disabled={pullingImages}
-                    className="bg-blue-600 hover:bg-blue-700"
-                    data-testid="button-pull-images"
-                  >
-                    {pullingImages ? <><Loader2 className="w-4 h-4 animate-spin mr-1" /> Pulling Images...</> : <><Download className="w-4 h-4 mr-1" /> Pull Missing Images (Amazon)</>}
-                  </Button>
-                  <Button
-                    onClick={async () => {
-                      if (!confirm("This will clear ALL Amazon images so they can be re-pulled. Continue?")) return;
-                      const r = await adminFetch("/api/admin/clear-bad-images", { method: "POST" });
-                      const d = await r.json();
-                      setPullImageResult({ done: true, updated: 0, skipped: 0, errors: 0, total: d.cleared, message: d.message });
-                    }}
-                    variant="outline"
-                    className="ml-2 border-red-500/30 text-red-400 hover:bg-red-500/10"
-                    data-testid="button-clear-bad-images"
-                  >
-                    <Trash2 className="w-4 h-4 mr-1" /> Clear Bad Images
-                  </Button>
-                  <p className="text-xs text-gray-500 mt-1">Fetches product images from Amazon UK for products without images. Runs in background.</p>
-                  {pullImageResult && (
-                    <div className={`mt-3 p-3 rounded-lg text-sm ${pullImageResult.done ? "bg-green-500/10 border border-green-500/20" : "bg-blue-500/10 border border-blue-500/20"}`}>
-                      {pullImageResult.done ? (
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="w-4 h-4 text-green-400" />
-                            <span className="text-green-400 font-medium">Image pull complete — {pullImageResult.total} products processed</span>
-                          </div>
-                          <p className="text-gray-400 text-xs ml-6">{pullImageResult.updated} images found and saved</p>
-                          <p className="text-gray-400 text-xs ml-6">{pullImageResult.skipped} no image found (kept existing)</p>
-                          {pullImageResult.errors > 0 && <p className="text-red-400 text-xs ml-6">{pullImageResult.errors} errors</p>}
-                        </div>
-                      ) : (
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
-                            <span className="text-blue-400">{pullImageResult.message}</span>
-                          </div>
-                          {pullImageResult.progress && pullImageResult.progress.total > 0 && (
-                            <div className="mt-2 space-y-1">
-                              <div className="w-full bg-gray-700 rounded-full h-3">
-                                <div className="bg-blue-500 h-3 rounded-full transition-all duration-500" style={{ width: `${Math.round((pullImageResult.progress.current / pullImageResult.progress.total) * 100)}%` }} />
-                              </div>
-                              <div className="flex justify-between text-xs text-gray-400">
-                                <span>{pullImageResult.progress.current} / {pullImageResult.progress.total} products</span>
-                                <span>{pullImageResult.progress.updated} images found</span>
-                              </div>
-                              {pullImageResult.progress.currentProduct && (
-                                <p className="text-xs text-gray-500 truncate">Processing: {pullImageResult.progress.currentProduct}</p>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-                {enrichResult && (
-                  <div className={`mt-3 p-3 rounded-lg text-sm ${enrichResult.error ? "bg-red-500/10 border border-red-500/20" : enrichResult.message ? "bg-purple-500/10 border border-purple-500/20" : "bg-green-500/10 border border-green-500/20"}`}>
-                    {enrichResult.error ? (
-                      <div className="flex items-start gap-2">
-                        <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
-                        <span className="text-red-400">{enrichResult.error}</span>
-                      </div>
-                    ) : enrichResult.message ? (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
-                          <span className="text-purple-400">{enrichResult.message}</span>
-                        </div>
-                        {enrichResult.progress && enrichResult.progress.total > 0 && (
-                          <>
-                            <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
-                              <div className="bg-purple-500 h-3 rounded-full transition-all duration-500" style={{ width: `${Math.round((enrichResult.progress.current / enrichResult.progress.total) * 100)}%` }} />
-                            </div>
-                            <div className="flex justify-between text-xs text-gray-400">
-                              <span>{enrichResult.progress.current} / {enrichResult.progress.total} products</span>
-                              <span>{Math.round((enrichResult.progress.current / enrichResult.progress.total) * 100)}%</span>
-                            </div>
-                            {enrichResult.progress.currentProduct && (
-                              <p className="text-xs text-gray-500 truncate">Processing: {enrichResult.progress.currentProduct}</p>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                          <span className="text-green-400 font-medium">Enrichment complete — {enrichResult.totalProcessed} products processed</span>
-                        </div>
-                        <p className="text-gray-400 text-xs ml-6">{enrichResult.enriched} products enriched with web data</p>
-                        {enrichResult.parsedFromName > 0 && (
-                          <p className="text-gray-400 text-xs ml-6">{enrichResult.parsedFromName} specs parsed from product name</p>
-                        )}
-                        <p className="text-gray-400 text-xs ml-6">{enrichResult.noDataFound} no data found</p>
-                        {enrichResult.errors > 0 && (
-                          <p className="text-red-400 text-xs ml-6">{enrichResult.errors} errors</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         )}
@@ -2466,33 +2245,6 @@ export default function AdminPage() {
             }
           };
 
-          const reenrich = async (p: Product) => {
-            setImgRowStatus(s => ({ ...s, [p.id]: { loading: true, msg: "Enriching — this takes ~30s..." } }));
-            try {
-              await adminFetch(`/api/admin/products/${p.id}/reenrich`, { method: "POST" });
-              setImgMismatches(m => { const n = { ...m }; delete n[p.id]; return n; });
-              let attempts = 0;
-              const poll = setInterval(async () => {
-                attempts++;
-                try {
-                  const sr = await adminFetch(`/api/admin/products/${p.id}/reenrich/status`);
-                  const st = await sr.json();
-                  if (st.enrichedAt) {
-                    clearInterval(poll);
-                    const newImg = st.image || null;
-                    setImgRowStatus(s => ({ ...s, [p.id]: { ok: true, msg: newImg ? "Re-enriched — new image found!" : "Re-enriched — no image found", newImage: newImg } }));
-                    setProducts(ps => ps.map(pr => pr.id === p.id ? { ...pr, image: newImg } : pr));
-                  } else if (attempts > 30) {
-                    clearInterval(poll);
-                    setImgRowStatus(s => ({ ...s, [p.id]: { ok: false, msg: "Timed out — check back shortly" } }));
-                  }
-                } catch {}
-              }, 3000);
-            } catch (e: any) {
-              setImgRowStatus(s => ({ ...s, [p.id]: { ok: false, msg: e.message } }));
-            }
-          };
-
           const scanMismatches = async () => {
             setImgScanLoading(true);
             setImgBulkStatus({ loading: true, msg: "Scanning all products for mismatched images..." });
@@ -2511,7 +2263,7 @@ export default function AdminPage() {
           };
 
           const bulkClearBad = async () => {
-            if (!confirm(`Clear all bad/mismatched images (phone images + category mismatches) and queue those products for re-enrichment?`)) return;
+            if (!confirm(`Clear all bad/mismatched images (phone images + category mismatches)?`)) return;
             setImgBulkStatus({ loading: true, msg: "Clearing bad images..." });
             try {
               const r = await adminFetch("/api/admin/clear-bad-images", { method: "POST" });
@@ -2641,9 +2393,6 @@ export default function AdminPage() {
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </Button>
                               )}
-                              <Button size="sm" variant="ghost" onClick={() => reenrich(p)} disabled={status?.loading} className={`h-8 px-2 text-xs ${isBad ? "text-orange-400 hover:text-orange-300" : "text-gray-400 hover:text-purple-400"}`} data-testid={`button-reenrich-${p.id}`} title="Clear image and re-enrich now (~30s)">
-                                <RefreshCw className="w-3.5 h-3.5" />
-                              </Button>
                               <a href={`/product/${p.slug}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center text-gray-400 hover:text-blue-400 h-8 w-8 p-0" data-testid={`button-view-img-product-${p.id}`} title="View product page">
                                 <ExternalLink className="w-3.5 h-3.5" />
                               </a>
