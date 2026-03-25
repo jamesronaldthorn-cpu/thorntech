@@ -1,0 +1,111 @@
+root@bold-golick:~/thorntech# curl "http://localhost:5000/fix-prices?key=thorntech2024"
+<html><body style="font-family:sans-serif;padding:2rem;max-width:800px">
+      <h2>⏳ Price Fix Started</h2>
+      <p>Repricing all products below the minimum profitable floor in the background.</p>
+      <p>Check <code>pm2 logs thorntech</code> for progress. This usually takes under 30 seconds.</p>
+      <p><a href="/">← Back to site</a></p>
+    </body></html>root@bold-golick:~/thorntech# pm2 logs thorntech --lines 50
+[TAILING] Tailing last 50 lines for [thorntech] process (change the value with --lines option)
+/root/.pm2/logs/thorntech-error.log last 50 lines:
+0|thorntec |     at OG (/root/thorntech/dist/index.cjs:144:24600)
+0|thorntec |     at Pp (/root/thorntech/dist/index.cjs:144:24715)
+0|thorntec |     at async BY (/root/thorntech/dist/index.cjs:209:1980)
+0|thorntec |     at async /root/thorntech/dist/index.cjs:209:7105
+0|thorntec | [fix-categories] Error: Cannot find module '/root/thorntech/dist/db' imported from /root/thorntech/dist/index.cjs
+0|thorntec | [trigger-vip-sync] Error: VIP Computers credentials not configured (VIP_ACCOUNT_ID, VIP_USERNAME, VIP_PASSWORD)
+0|thorntec | Failed to initialize Stripe: Error: Stripe keys not configured. Set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY environment variables.
+0|thorntec |     at db (/root/thorntech/dist/index.cjs:144:24280)
+0|thorntec |     at OG (/root/thorntech/dist/index.cjs:144:24600)
+0|thorntec |     at Pp (/root/thorntech/dist/index.cjs:144:24715)
+0|thorntec |     at async BY (/root/thorntech/dist/index.cjs:209:1980)
+0|thorntec |     at async /root/thorntech/dist/index.cjs:209:7105
+0|thorntec | [fix-categories] Error: Cannot find module '/root/thorntech/dist/db' imported from /root/thorntech/dist/index.cjs
+0|thorntec | Failed to initialize Stripe: Error: Stripe keys not configured. Set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY environment variables.
+0|thorntec |     at db (/root/thorntech/dist/index.cjs:144:24280)
+0|thorntec |     at OG (/root/thorntech/dist/index.cjs:144:24600)
+0|thorntec |     at Pp (/root/thorntech/dist/index.cjs:144:24715)
+0|thorntec |     at async BY (/root/thorntech/dist/index.cjs:209:1980)
+0|thorntec |     at async /root/thorntech/dist/index.cjs:209:7105
+0|thorntec | [fix-categories] Error: Cannot find module '/root/thorntech/dist/db' imported from /root/thorntech/dist/index.cjs
+0|thorntec | Failed to initialize Stripe: Error: Stripe keys not configured. Set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY environment variables.
+0|thorntec |     at lb (/root/thorntech/dist/index.cjs:144:24280)
+0|thorntec |     at SG (/root/thorntech/dist/index.cjs:144:24600)
+0|thorntec |     at Pp (/root/thorntech/dist/index.cjs:144:24715)
+0|thorntec |     at async RY (/root/thorntech/dist/index.cjs:209:1980)
+0|thorntec |     at async /root/thorntech/dist/index.cjs:209:7105
+0|thorntec | Failed to initialize Stripe: Error: Stripe keys not configured. Set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY environment variables.
+0|thorntec |     at lb (/root/thorntech/dist/index.cjs:144:24280)
+0|thorntec |     at SG (/root/thorntech/dist/index.cjs:144:24600)
+0|thorntec |     at Pp (/root/thorntech/dist/index.cjs:144:24715)
+0|thorntec |     at async RY (/root/thorntech/dist/index.cjs:209:1980)
+0|thorntec |     at async /root/thorntech/dist/index.cjs:209:7105
+0|thorntec | Failed to initialize Stripe: Error: Stripe keys not configured. Set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY environment variables.
+0|thorntec |     at lb (/root/thorntech/dist/index.cjs:144:24280)
+0|thorntec |     at SG (/root/thorntech/dist/index.cjs:144:24600)
+0|thorntec |     at Pp (/root/thorntech/dist/index.cjs:144:24715)
+0|thorntec |     at async RY (/root/thorntech/dist/index.cjs:209:1980)
+0|thorntec |     at async /root/thorntech/dist/index.cjs:209:7105
+0|thorntec | Failed to initialize Stripe: Error: Stripe keys not configured. Set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY environment variables.
+0|thorntec |     at lb (/root/thorntech/dist/index.cjs:144:24280)
+0|thorntec |     at SG (/root/thorntech/dist/index.cjs:144:24600)
+0|thorntec |     at Pp (/root/thorntech/dist/index.cjs:144:24715)
+0|thorntec |     at async RY (/root/thorntech/dist/index.cjs:209:1980)
+0|thorntec |     at async /root/thorntech/dist/index.cjs:209:7105
+0|thorntec | Failed to initialize Stripe: Error: Stripe keys not configured. Set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY environment variables.
+0|thorntec |     at lb (/root/thorntech/dist/index.cjs:144:24280)
+0|thorntec |     at SG (/root/thorntech/dist/index.cjs:144:24600)
+0|thorntec |     at Pp (/root/thorntech/dist/index.cjs:144:24715)
+0|thorntec |     at async RY (/root/thorntech/dist/index.cjs:214:1980)
+0|thorntec |     at async /root/thorntech/dist/index.cjs:214:7105
+
+/root/.pm2/logs/thorntech-out.log last 50 lines:
+0|thorntec | [fix-prices] "Seagate 16TB SkyHawk Ai 3.5" Hard Drive (SATA 6Gb/s/512MB/72" £417.55 → £491.23 (cost £341.13)
+0|thorntec | [fix-prices] "Gigabyte GS27U 27" Widescreen IPS Black Monitor" £367.72 → £432.61 (cost £300.42)
+0|thorntec | [fix-prices] "Razer BlackShark V3 X Hyperspeed Black Gaming Headset" £84.56 → £99.48 (cost £69.08)
+0|thorntec | [fix-prices] "ASUS Rog Swift XG259CS 27" IPS Black Monitor" £288.88 → £339.86 (cost £236.01)
+0|thorntec | [fix-prices] "ASUS ProArt Pen MPA01" £69.00 → £78.17 (cost £54.28)
+0|thorntec | [fix-prices] "Aorus 1TB M.2 Solid State Drive Gen5 14000" £223.45 → £262.88 (cost £182.55)
+0|thorntec | [fix-prices] "Team GX2 (T253X2512G0C101) 512GB 2.5 Inch SSD, Sata 3 Interf" £72.16 → £84.89 (cost £58.95)
+0|thorntec | [fix-prices] "ASUS Tuf Gaming VG34VQL1B 34" Widescreen VA Black Curved Mul" £338.55 → £398.29 (cost £276.59)
+0|thorntec | [fix-prices] "ANTEC P20CE Case, E-ATX Gaming, Black, Mid Tower, 2 x USB 3." £68.97 → £81.13 (cost £56.34)
+0|thorntec | [fix-prices] "be quiet! Pure Base 600 Case, Black, MId Tower, 2 x USB 3.2 " £81.89 → £96.34 (cost £66.90)
+0|thorntec | [fix-prices] "Codegen 2U Rackmount 405mm Deep 3 x 80mm HDB PWM Fans Includ" £109.17 → £128.44 (cost £89.19)
+0|thorntec | [fix-prices] "MSI Mag CoreLiquid E240 White Liquid CPU Cooler" £92.38 → £108.68 (cost £75.47)
+0|thorntec | [fix-prices] "AMD Ryzen 5 7400 - AM5" £146.88 → £172.80 (cost £120.00)
+0|thorntec | [fix-prices] "Antec ARGB &amp; Fan Controller - 5 PWM Fan Ports, 5 ARGB LE" £8.54 → £10.04 (cost £6.97)
+0|thorntec | [fix-prices] "ASUS GeForce RTX 5070 Ti Rog Strix Oc 16GB GDDR7" £1087.52 → £1279.43 (cost £888.49)
+0|thorntec | [fix-prices] "Razer BlackWidow V4 Low-Profile HyperSpeed Wireless Gaming K" £169.99 → £197.95 (cost £137.46)
+0|thorntec | [fix-prices] "Dell P2425E 24" IPS LED Black/Silver Monitor" £202.97 → £238.79 (cost £165.82)
+0|thorntec | [fix-prices] "ASUS VY249HF-W 23.8" Widescreen IPS LED White Monitor" £124.97 → £146.09 (cost £101.45)
+0|thorntec | [fix-prices] "TARGET 99CDL2-023 Data Cable, USB 2.0 Type-A (M) to USB 2.0 " £1.16 → £1.36 (cost £0.94)
+0|thorntec | [fix-prices] "ASUS Vivobook Go 15 Laptop, 15.6 Inch Full HD Screen, AMD Ry" £409.53 → £481.80 (cost £334.58)
+0|thorntec | [fix-prices] "NZXT Kraken Elite 360 RGB White Liquid CPU Cooler" £245.51 → £288.84 (cost £200.58)
+0|thorntec | [fix-prices] "Kingston DataTraveler Exodia 256GB USB 3.2 Blk/Pink USB Flas" £23.99 → £24.44 (cost £16.97)
+0|thorntec | [fix-prices] "Razer Pro Click V2 Gaming Mouse" £84.56 → £99.48 (cost £69.08)
+0|thorntec | [fix-prices] "Razer BlackShark V3 Pro for Xbox Gaming Headset White" £211.40 → £248.71 (cost £172.71)
+0|thorntec | [fix-prices] "Razer BlackShark V3 Pro for PlayStation Gaming Headset Black" £238.99 → £248.71 (cost £172.71)
+0|thorntec | [fix-prices] "Cooler Master Tempest GP2711 27" Widescreen VA Black Multime" £217.08 → £255.39 (cost £177.35)
+0|thorntec | [fix-prices] "MSI 27" Widescreen IPS LED Black Multimedia Monitor" £108.87 → £128.08 (cost £88.94)
+0|thorntec | [fix-prices] "Philips Evnia 5000 31.5" Widescreen VA W-LED White Curved Mo" £216.93 → £255.22 (cost £177.23)
+0|thorntec | [fix-prices] "be quiet! (BZ003) MC1 Pro M.2 SSD Cooler, Integrated Heat Pi" £10.78 → £12.68 (cost £8.80)
+0|thorntec | [fix-prices] "ASUS ZenWiFi BQ16 Router - WiFi 7 - BE25000 - 1 Pack - White" £464.39 → £546.34 (cost £379.40)
+0|thorntec | [fix-prices] "Antec RTX50 PCIe 5.0 Riser Cable with 90 degree Bracket Moun" £45.90 → £54.00 (cost £37.50)
+0|thorntec | [fix-prices] "MSI 31.5" Widescreen VA LED Black Curved Monitor" £390.02 → £428.28 (cost £297.41)
+0|thorntec | [fix-prices] "AOC 23.8" IPS LED Black Monitor (1920x1080/0.3ms/2xHDMI/Disp" £125.81 → £148.01 (cost £102.78)
+0|thorntec | [fix-prices] "MSI GeForce RTX 5070 12G Ventus 3X Oc 12GB GDDR7" £567.22 → £667.32 (cost £463.41)
+0|thorntec | [fix-prices] "MSI Black Mid Tower Case ATX M-ATX Mini-ITX" £84.83 → £99.80 (cost £69.30)
+0|thorntec | [fix-prices] "Microsoft Office Home 2024 Medialess - Electronic Download" £107.17 → £126.08 (cost £87.55)
+0|thorntec | [fix-prices] "PowerColor Radeon RX 9070 Reaper 16GB GDDR6" £592.20 → £696.71 (cost £483.82)
+0|thorntec | [fix-prices] "++AOC 24.5" Widescreen IPS LED Black Monitor" £155.06 → £182.42 (cost £126.68)
+0|thorntec | [fix-prices] "Razer Viper V3 Pro Se Gaming Mouse" £84.56 → £99.48 (cost £69.08)
+0|thorntec | [fix-prices] "Razer BlackWidow V4 X - Minecraft Ed. - Us Layout Green Swit" £135.00 → £158.82 (cost £110.29)
+0|thorntec | [fix-prices] "Thrustmaster T248R Racing Wheel and Pedals Ps" £243.09 → £285.99 (cost £198.60)
+0|thorntec | [fix-prices] "Corsair 16GB (1x16GB) Single Channel Vengeance Black (DDR5 6" £77.14 → £90.75 (cost £63.02)
+0|thorntec | [fix-prices] "ASUS Tuf Gaming VG27AQM5A 27" IPS LED Black Multimedia Monit" £303.26 → £356.78 (cost £247.76)
+0|thorntec | [fix-prices] "ASUS Tuf Gaming VG27UQ1A 27" IPS LED Black Multimedia Monito" £352.95 → £415.23 (cost £288.35)
+0|thorntec | [fix-prices] "Hyte PCIe 5.0 Riser Cable Pitch Black" £57.18 → £67.27 (cost £46.71)
+0|thorntec | [fix-prices] "ASUS GeForce RTX 5060 Dual Oc White 8GB GDDR7" £348.93 → £410.51 (cost £285.07)
+0|thorntec | [fix-prices] "Patriot VIPER VENOM (PVV516G60C30) 16GB UDIMM System Memory," £202.00 → £218.22 (cost £151.54)
+0|thorntec | [fix-prices] "be quiet! Pure Base 501 DX Airflow Window Black ATX Mid Towe" £99.99 → £110.60 (cost £76.80)
+0|thorntec | [fix-prices] "ASUS VA249HG 23.8" IPS LED Black Monitor" £91.45 → £99.05 (cost £68.78)
+0|thorntec | [fix-prices] Done — 2827 products repriced, 0 skipped (no cost), 988 already correct
