@@ -1,6 +1,6 @@
 import { storage } from "./storage";
 
-const MIN_MARGIN = 0.02;
+const MIN_MARGIN = 0.20;
 
 // ---------- Price sanity helpers ----------
 

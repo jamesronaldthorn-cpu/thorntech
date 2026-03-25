@@ -922,7 +922,7 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
         if (result.skipped < 5) console.log(`[Target] SKIP (no price): stockcode=${tp.stockcode} name="${name.substring(0,50)}" raw_price="${(tp as any)._rawPrice}"`);
         result.skipped++; continue;
       }
-      const sellPrice = Math.ceil(costPriceExVat * 1.2 * 1.02 * 100) / 100;
+      const sellPrice = Math.ceil(costPriceExVat * 1.2 * 1.20 * 100) / 100;
 
       const images: string[] = [];
       if (tp.largeimageurl) images.push(tp.largeimageurl);
@@ -975,7 +975,7 @@ export async function syncTargetProducts(): Promise<{ imported: number; updated:
         if (costPriceExVat < existingCost) {
           updates.costPrice = costPriceExVat;
           updates.source = "Target Components";
-          const newMinSell = Math.ceil(costPriceExVat * 1.2 * 1.02 * 100) / 100;
+          const newMinSell = Math.ceil(costPriceExVat * 1.2 * 1.20 * 100) / 100;
           if (existing.price > newMinSell + 0.50 || existing.price < newMinSell - 0.50) {
             updates.price = newMinSell;
           }

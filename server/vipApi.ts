@@ -636,7 +636,7 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
       }
 
       const costPriceExVat = buyPrice;
-      const minSellPrice = Math.ceil(costPriceExVat * 1.2 * 1.02 * 100) / 100;
+      const minSellPrice = Math.ceil(costPriceExVat * 1.2 * 1.20 * 100) / 100;
       const isInStock = stock ? stock.AvailQty > 0 : false;
       if (!isInStock) result.outOfStock++;
 
@@ -723,7 +723,7 @@ export async function syncVipProducts(): Promise<VipSyncResult> {
         if (costPriceExVat < existingCost) {
           updates.costPrice = costPriceExVat;
           updates.source = "VIP Computers";
-          const newMinSell = Math.ceil(costPriceExVat * 1.2 * 1.02 * 100) / 100;
+          const newMinSell = Math.ceil(costPriceExVat * 1.2 * 1.20 * 100) / 100;
           if (Math.abs(existing.price - newMinSell) > 0.50) {
             updates.price = newMinSell;
           }
@@ -840,7 +840,7 @@ export async function debugProductPrice(sku: number): Promise<any> {
   const priceMap = await getPrices(sessionKey);
   const priceData = priceMap.get(sku);
   const bestCost = priceData ? getBestCostPrice(priceData) : null;
-  const minSell = bestCost ? Math.ceil(bestCost * 1.2 * 1.02 * 100) / 100 : null;
+  const minSell = bestCost ? Math.ceil(bestCost * 1.2 * 1.20 * 100) / 100 : null;
   return { sku, rawPriceData: priceData || null, selectedCost: bestCost, minSellPrice: minSell };
 }
 

@@ -686,7 +686,7 @@ export async function registerRoutes(
       const product = await storage.getProduct(id);
       if (!product) return res.status(404).json({ error: "Product not found" });
       if (!product.costPrice || product.costPrice <= 0) return res.status(400).json({ error: "No cost price set" });
-      const correctPrice = Math.round(product.costPrice * 1.2 * 1.02 * 100) / 100;
+      const correctPrice = Math.round(product.costPrice * 1.2 * 1.20 * 100) / 100;
       const updated = await storage.updateProduct(id, { price: correctPrice, compareAtPrice: null });
       res.json({ id, oldPrice: product.price, newPrice: correctPrice, product: updated });
     } catch (e: any) {
@@ -1359,6 +1359,37 @@ export async function registerRoutes(
     })();
   });
 
+  // Browser-accessible price floor fix: GET /fix-prices?key=thorntech2024
+  // Raises any product priced below cost × 1.2 × 1.20 to the correct floor
+  app.get("/fix-prices", async (req, res) => {
+    if (req.query.key !== "thorntech2024") return res.status(403).send("Invalid key");
+    res.send(`<html><body style="font-family:sans-serif;padding:2rem;max-width:800px">
+      <h2>⏳ Price Fix Started</h2>
+      <p>Repricing all products below the minimum profitable floor in the background.</p>
+      <p>Check <code>pm2 logs thorntech</code> for progress. This usually takes under 30 seconds.</p>
+      <p><a href="/">← Back to site</a></p>
+    </body></html>`);
+    setImmediate(async () => {
+      try {
+        const allProducts = await storage.getAllProductsAdmin();
+        let fixed = 0;
+        let skipped = 0;
+        for (const p of allProducts) {
+          if (!p.costPrice || p.costPrice <= 0) { skipped++; continue; }
+          const correctSell = Math.ceil(p.costPrice * 1.2 * 1.20 * 100) / 100;
+          if (p.price < correctSell - 0.01) {
+            console.log(`[fix-prices] "${p.name.substring(0, 60)}" £${p.price.toFixed(2)} → £${correctSell.toFixed(2)} (cost £${p.costPrice.toFixed(2)})`);
+            await storage.updateProduct(p.id, { price: correctSell });
+            fixed++;
+          }
+        }
+        console.log(`[fix-prices] Done — ${fixed} products repriced, ${skipped} skipped (no cost), ${allProducts.length - fixed - skipped} already correct`);
+      } catch (e: any) {
+        console.error(`[fix-prices] Error: ${e.message}`);
+      }
+    });
+  });
+
   // Browser-accessible image cleanup: GET /fix-images?key=thorntech2024
   // Runs in background so Nginx doesn't time out on large catalogues
   app.get("/fix-images", async (req, res) => {
@@ -1693,7 +1724,7 @@ export async function registerRoutes(
       let fixed = 0;
       for (const p of allProducts) {
         if (p.costPrice && p.costPrice > 0) {
-          const correctSell = Math.ceil(p.costPrice * 1.2 * 1.02 * 100) / 100;
+          const correctSell = Math.ceil(p.costPrice * 1.2 * 1.20 * 100) / 100;
           if (Math.abs(p.price - correctSell) > 1) {
             console.log(`[FixPrices] ${p.name}: £${p.price.toFixed(2)} → £${correctSell.toFixed(2)} (cost £${p.costPrice.toFixed(2)})`);
             await storage.updateProduct(p.id, { price: correctSell });
