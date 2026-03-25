@@ -411,15 +411,17 @@ export async function matchInternetPrices(batchSize = 500): Promise<PriceMatchRe
 
       let newPrice: number;
       if (internetPrice >= floor) {
-        newPrice = internetPrice;
-        if (internetPrice > product.price) {
-          console.log(`[PriceMatcher]   Raising to match internet: £${product.price.toFixed(2)} → £${internetPrice.toFixed(2)}`);
-        } else if (internetPrice < product.price) {
-          console.log(`[PriceMatcher]   Lowering to match internet: £${product.price.toFixed(2)} → £${internetPrice.toFixed(2)}`);
+        // Undercut the cheapest competitor by £1, but never drop below our profit floor
+        const undercut = Math.max(floor, Math.round((internetPrice - 1.00) * 100) / 100);
+        newPrice = undercut;
+        if (newPrice < product.price) {
+          console.log(`[PriceMatcher]   Beating internet (£${internetPrice.toFixed(2)}) by £1: £${product.price.toFixed(2)} → £${newPrice.toFixed(2)}`);
+        } else if (newPrice > product.price) {
+          console.log(`[PriceMatcher]   Raising below-market price: £${product.price.toFixed(2)} → £${newPrice.toFixed(2)} (internet: £${internetPrice.toFixed(2)})`);
         }
       } else {
         newPrice = floor;
-        console.log(`[PriceMatcher]   Internet £${internetPrice.toFixed(2)} below floor — set to floor £${floor.toFixed(2)}`);
+        console.log(`[PriceMatcher]   Internet £${internetPrice.toFixed(2)} below floor — holding floor £${floor.toFixed(2)}`);
       }
 
       if (Math.abs(product.price - newPrice) > 0.01) {

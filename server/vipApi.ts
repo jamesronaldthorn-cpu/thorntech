@@ -1,7 +1,7 @@
 
 import { XMLParser } from "fast-xml-parser";
 import { storage } from "./storage";
-import { matchInternetPrices } from "./priceMatcher";
+import { matchInternetPrices, resetMatchProgress } from "./priceMatcher";
 import { nameBasedCategoryOverride } from "./targetApi";
 import { minSellPrice } from "./priceUtils";
 
@@ -974,6 +974,7 @@ export function startVipScheduler(intervalHours = 3) {
       }
 
       console.log("[VIP Scheduler] Starting internet price matching...");
+      resetMatchProgress();
       const priceResult = await matchInternetPrices(500);
       console.log(`[VIP Scheduler] Price match done: ${priceResult.priceUpdated} updated, ${priceResult.noResultsFound} no results`);
     } catch (e: any) {
