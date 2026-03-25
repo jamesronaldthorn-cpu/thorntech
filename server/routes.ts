@@ -1384,24 +1384,59 @@ export async function registerRoutes(
   });
 
   // Browser-accessible image cleanup: GET /fix-images?key=thorntech2024
-  // Runs in background so Nginx doesn't time out on large catalogues
+  // Strips all non-supplier images; replaces bad main image with first good supplier image (or null).
+  // Supplier CDNs: vip-computers.com, pictureserver.co.uk, targetcomponents.com
   app.get("/fix-images", async (req, res) => {
     if (req.query.key !== "thorntech2024") {
       return res.status(403).send("Invalid key");
     }
-    // Respond immediately so the connection isn't held open
     res.send(`<html><body style="font-family:sans-serif;padding:2rem;max-width:800px">
       <h2>⏳ Image Cleanup Started</h2>
-      <p>The cleanup is running in the background. Check the server logs (<code>pm2 logs thorntech</code>) for progress.</p>
-      <p>It will finish within a few minutes. All products with wrong images will be corrected automatically.</p>
+      <p>Running in the background — only supplier images (VIP / Target) will be kept.</p>
+      <p>Check server logs (<code>pm2 logs thorntech</code>) for progress.</p>
       <p><a href="/">← Back to site</a></p>
     </body></html>`);
-    // Run cleanup after response is sent
     setImmediate(async () => {
       try {
-        const { cleanBadImages } = await import("./productEnricher");
-        const result = await cleanBadImages();
-        console.log(`[fix-images] Done — checked ${result.checked}, fixed ${result.fixed}, cleared ${result.cleared}`);
+        function isSupplierImg(url: string): boolean {
+          const u = url.toLowerCase();
+          return u.includes("vip-computers.com") || u.includes("pictureserver.co.uk") || u.includes("targetcomponents.com");
+        }
+        function isBadUrl(url: string): boolean {
+          const u = url.toLowerCase();
+          return u.startsWith("ftp://") || u.includes("placeholder") || u.includes("no-image") || u.includes("no_image") || u.includes("default");
+        }
+
+        const allProducts = await storage.getProducts();
+        let cleared = 0; let fixed = 0; let kept = 0;
+        console.log(`[fix-images] Checking ${allProducts.length} products...`);
+
+        for (const p of allProducts) {
+          let allImgs: string[] = [];
+          try { if (p.images) allImgs = typeof p.images === "string" ? JSON.parse(p.images) : (p.images as string[]); } catch {}
+          if (p.image && !allImgs.includes(p.image)) allImgs = [p.image, ...allImgs];
+
+          // Keep only supplier images
+          const supplierImgs = allImgs.filter(img => img && isSupplierImg(img) && !isBadUrl(img));
+
+          const mainIsGood = p.image && isSupplierImg(p.image) && !isBadUrl(p.image);
+          const updates: Record<string, any> = {};
+
+          if (!mainIsGood) {
+            updates.image = supplierImgs[0] || null;
+            if (!updates.image) cleared++; else fixed++;
+          }
+          updates.images = supplierImgs.length > 0 ? JSON.stringify(supplierImgs) : null;
+
+          const imagesChanged = JSON.stringify(allImgs.filter(img => img && isSupplierImg(img) && !isBadUrl(img))) !== JSON.stringify(allImgs);
+          if (Object.keys(updates).length > 0 && (!mainIsGood || imagesChanged)) {
+            await storage.updateProduct(p.id, updates);
+          } else {
+            kept++;
+          }
+        }
+
+        console.log(`[fix-images] Done — ${fixed} fixed, ${cleared} cleared (no supplier img), ${kept} already clean`);
       } catch (e: any) {
         console.error(`[fix-images] Error: ${e.message}`);
       }
