@@ -1,0 +1,59 @@
+oot@bold-golick:~/thorntech# git add -A
+git commit -m "Fix price matcher sources, remove enricher from admin"
+git push origin main
+On branch main
+Your branch is up to date with 'origin/main'.
+
+nothing to commit, working tree clean
+Everything up-to-date
+root@bold-golick:~/thorntech# cd /root/thorntech && git pull origin main && npm install && npm run build && pm2 restart thorntech
+From https://github.com/jamesronaldthorn-cpu/thorntech
+ * branch            main       -> FETCH_HEAD
+Already up to date.
+
+up to date, audited 447 packages in 1s
+
+59 packages are looking for funding
+  run `npm fund` for details
+
+8 vulnerabilities (1 low, 5 moderate, 2 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+> rest-express@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.3.1 building client environment for production...
+✓ 1850 modules transformed.
+../dist/public/index.html                       6.46 kB │ gzip:   2.08 kB
+../dist/public/assets/logo-BFk2Yk2T.png       777.57 kB
+../dist/public/assets/hero-bg-Y8bzrNyO.png  1,322.76 kB
+../dist/public/assets/index-BCAMq3qv.css      131.72 kB │ gzip:  20.59 kB
+../dist/public/assets/index-CCPiIG6j.js       684.54 kB │ gzip: 190.09 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.94s
+building server...
+
+  dist/index.cjs  1.4mb ⚠️
+
+⚡ Done in 138ms
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [thorntech](ids: [ 0 ])
+[PM2] [thorntech](0) ✓
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 0  │ thorntech          │ fork     │ 68   │ online    │ 0%       │ 3.6mb    │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+root@bold-golick:~/thorntech#
