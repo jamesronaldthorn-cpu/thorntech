@@ -155,23 +155,11 @@ function getBestPrice(prices: number[], costPlusVatMargin: number): number | nul
     .sort((a, b) => a - b);
 
   if (validPrices.length === 0) return null;
-  if (validPrices.length === 1) return validPrices[0];
 
-  if (validPrices.length === 2) {
-    // If the two prices differ by more than 40%, they're likely different products —
-    // use the average to avoid accidentally picking the wrong-product price
-    if (validPrices[1] / validPrices[0] > 1.4) {
-      return Math.round((validPrices[0] + validPrices[1]) / 2 * 100) / 100;
-    }
-    return validPrices[0]; // prices agree — use the lower (competitive)
-  }
-
-  // For 3+ prices: strip outliers with IQR, return the 25th-percentile of the middle band
-  // (competitive but not racing to the bottom)
-  const q1 = Math.floor(validPrices.length * 0.25);
-  const q3 = Math.floor(validPrices.length * 0.75);
-  const iqr = validPrices.slice(q1, q3 + 1);
-  return iqr.length > 0 ? iqr[0] : validPrices[Math.floor(validPrices.length / 2)];
+  // Return the lowest valid in-band price — this is the cheapest the market sells
+  // for, which is what we need to undercut by £1.
+  // The band filter already removes outliers so we don't need further IQR trimming.
+  return validPrices[0];
 }
 
 function buildSearchTerms(name: string, vendor?: string, mpn?: string): string[] {
@@ -281,6 +269,20 @@ async function searchCCLPrices(searchTerm: string): Promise<number[]> {
   return extractPricesFromText(html);
 }
 
+async function searchOverclockersPrices(searchTerm: string): Promise<number[]> {
+  const query = encodeURIComponent(searchTerm);
+  const html = await fetchPage(`https://www.overclockers.co.uk/search?q=${query}`);
+  if (!html) return [];
+
+  const jsonPrices = extractPricesFromJsonLd(html);
+  if (jsonPrices.length > 0) return jsonPrices;
+
+  const dataPrices = extractPricesFromDataAttrs(html);
+  if (dataPrices.length > 0) return dataPrices;
+
+  return extractPricesFromText(html);
+}
+
 async function searchProductPrice(name: string, vendor?: string, mpn?: string, costPlusVatMargin?: number): Promise<number | null> {
   const searchTerms = buildSearchTerms(name, vendor, mpn);
   const allPrices: number[] = [];
@@ -317,19 +319,34 @@ async function searchProductPrice(name: string, vendor?: string, mpn?: string, c
     await delay(800);
   }
 
-  // --- Source 3: CCL Online — only if still not enough data points ---
-  if (allPrices.length < 4) {
-    await delay(1000);
-    for (const term of searchTerms.slice(0, 1)) {
-      const cclPrices = await searchCCLPrices(term);
-      const inBand = cclPrices.filter(p => p >= minAccept && p <= maxAccept);
-      if (inBand.length > 0) {
-        allPrices.push(...inBand);
-        console.log(`[PriceMatcher]   CCL "${term.substring(0,40)}": ${inBand.length}/${cclPrices.length} in-band`);
-        break;
-      }
-      await delay(800);
+  // --- Source 3: CCL Online ---
+  await delay(800);
+  for (const term of searchTerms.slice(0, 1)) {
+    const cclPrices = await searchCCLPrices(term);
+    const inBand = cclPrices.filter(p => p >= minAccept && p <= maxAccept);
+    if (inBand.length > 0) {
+      allPrices.push(...inBand);
+      console.log(`[PriceMatcher]   CCL "${term.substring(0,40)}": ${inBand.length}/${cclPrices.length} in-band (range £${Math.min(...inBand).toFixed(2)}-£${Math.max(...inBand).toFixed(2)})`);
+      break;
+    } else if (cclPrices.length > 0) {
+      console.log(`[PriceMatcher]   CCL "${term.substring(0,40)}": ${cclPrices.length} prices ALL rejected (out of band)`);
     }
+    await delay(800);
+  }
+
+  // --- Source 4: Overclockers ---
+  await delay(800);
+  for (const term of searchTerms.slice(0, 1)) {
+    const ocPrices = await searchOverclockersPrices(term);
+    const inBand = ocPrices.filter(p => p >= minAccept && p <= maxAccept);
+    if (inBand.length > 0) {
+      allPrices.push(...inBand);
+      console.log(`[PriceMatcher]   Overclockers "${term.substring(0,40)}": ${inBand.length}/${ocPrices.length} in-band (range £${Math.min(...inBand).toFixed(2)}-£${Math.max(...inBand).toFixed(2)})`);
+      break;
+    } else if (ocPrices.length > 0) {
+      console.log(`[PriceMatcher]   Overclockers "${term.substring(0,40)}": ${ocPrices.length} prices ALL rejected (out of band)`);
+    }
+    await delay(800);
   }
 
   if (allPrices.length === 0) {
@@ -377,6 +394,7 @@ export async function matchInternetPrices(batchSize = 500): Promise<PriceMatchRe
   }
   priceMatchRunning = true;
 
+  try {
   const [allProducts, allCategories] = await Promise.all([storage.getProducts(), storage.getCategories()]);
   const catById = new Map(allCategories.map(c => [c.id, c.slug]));
   const productsWithCost = allProducts.filter(p => p.costPrice && p.costPrice > 0);
@@ -473,6 +491,8 @@ export async function matchInternetPrices(batchSize = 500): Promise<PriceMatchRe
   }
 
   console.log(`[PriceMatcher] Complete: ${result.priceUpdated} updated, ${result.noResultsFound} no results, ${result.keptExisting} kept, ${result.errors} errors`);
-  priceMatchRunning = false;
   return result;
+  } finally {
+    priceMatchRunning = false;
+  }
 }
