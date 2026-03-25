@@ -1,9 +1,8 @@
 /**
  * Category-aware, cost-scaled minimum pricing.
  *
- * Both VIP Computers and Target Components supply prices INCLUSIVE of VAT.
- * Sell price (inc-VAT) = costIncVat × getMarkupFactor(cost, categorySlug)
- * No additional ×1.2 is applied — the cost already includes VAT.
+ * Both VIP Computers and Target Components supply prices EXCLUSIVE of VAT.
+ * Sell price (inc-VAT) = costExVat × 1.2 (VAT) × getMarkupFactor(cost, categorySlug)
  *
  * Base markups reflect real UK PC component market norms. Within each category,
  * expensive items get a further reduction so high-end products stay competitive.
@@ -61,20 +60,19 @@ function costFallback(cost: number): number {
  * Category sets the base; cost-based scaling compresses margins further for
  * expensive items (so high-end products stay competitive) and boosts them for
  * very cheap items (so absolute profit per unit isn't pennies).
- * costIncVat is the supplier's inc-VAT trade price.
  */
-export function getMarkupFactor(costIncVat: number, categorySlug?: string): number {
-  const base: number = (categorySlug ? CATEGORY_MARKUP[categorySlug] : undefined) ?? costFallback(costIncVat);
+export function getMarkupFactor(costExVat: number, categorySlug?: string): number {
+  const base: number = (categorySlug ? CATEGORY_MARKUP[categorySlug] : undefined) ?? costFallback(costExVat);
 
   let scaled = base;
-  if (costIncVat > 600) {
-    scaled = Math.max(base * 0.80, 1.04);   // very expensive (>£600 inc-VAT): floor at 4%
-  } else if (costIncVat > 300) {
-    scaled = Math.max(base * 0.87, 1.06);   // expensive (£300–£600 inc-VAT): floor at 6%
-  } else if (costIncVat > 150) {
-    scaled = Math.max(base * 0.93, 1.08);   // mid-range (£150–£300 inc-VAT): floor at 8%
-  } else if (costIncVat < 20) {
-    scaled = Math.min(base * 1.15, 1.40);   // cheap items (<£20 inc-VAT): boost up to 40% cap
+  if (costExVat > 600) {
+    scaled = Math.max(base * 0.80, 1.04);   // very expensive (>£600 ex-VAT): floor at 4%
+  } else if (costExVat > 300) {
+    scaled = Math.max(base * 0.87, 1.06);   // expensive (£300–£600 ex-VAT): floor at 6%
+  } else if (costExVat > 150) {
+    scaled = Math.max(base * 0.93, 1.08);   // mid-range (£150–£300 ex-VAT): floor at 8%
+  } else if (costExVat < 20) {
+    scaled = Math.min(base * 1.15, 1.40);   // cheap items (<£20 ex-VAT): boost up to 40% cap
   }
 
   return Math.round(scaled * 1000) / 1000;
@@ -82,9 +80,9 @@ export function getMarkupFactor(costIncVat: number, categorySlug?: string): numb
 
 /**
  * Minimum profitable sell price (inc-VAT).
- * costIncVat is the supplier's inc-VAT trade price (no further VAT adjustment needed).
+ * costExVat is the supplier's ex-VAT trade price; ×1.2 converts to inc-VAT before markup.
  * The price matcher will never go below this value.
  */
-export function minSellPrice(costIncVat: number, categorySlug?: string): number {
-  return Math.ceil(costIncVat * getMarkupFactor(costIncVat, categorySlug) * 100) / 100;
+export function minSellPrice(costExVat: number, categorySlug?: string): number {
+  return Math.ceil(costExVat * 1.2 * getMarkupFactor(costExVat, categorySlug) * 100) / 100;
 }
