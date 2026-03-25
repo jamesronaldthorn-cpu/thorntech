@@ -146,19 +146,33 @@ function extractPricesFromJsonLd(html: string): number[] {
 function getBestPrice(prices: number[], costPlusVatMargin: number): number | null {
   if (prices.length === 0) return null;
 
-  const validPrices = [...new Set(prices)].filter(p => p >= costPlusVatMargin * 0.5).sort((a, b) => a - b);
+  // Only accept prices in a sensible band:
+  //   Lower bound: 85% of our floor — filters out accessories / wrong products priced too cheap
+  //   Upper bound: 4× our floor — filters out wildly wrong products / bundles
+  const minAccept = costPlusVatMargin * 0.85;
+  const maxAccept = costPlusVatMargin * 4;
+  const validPrices = [...new Set(prices)]
+    .filter(p => p >= minAccept && p <= maxAccept)
+    .sort((a, b) => a - b);
+
   if (validPrices.length === 0) return null;
-
   if (validPrices.length === 1) return validPrices[0];
-  if (validPrices.length === 2) return Math.min(validPrices[0], validPrices[1]);
 
+  if (validPrices.length === 2) {
+    // If the two prices differ by more than 40%, they're likely different products —
+    // use the average to avoid accidentally picking the wrong-product price
+    if (validPrices[1] / validPrices[0] > 1.4) {
+      return Math.round((validPrices[0] + validPrices[1]) / 2 * 100) / 100;
+    }
+    return validPrices[0]; // prices agree — use the lower (competitive)
+  }
+
+  // For 3+ prices: strip outliers with IQR, return the 25th-percentile of the middle band
+  // (competitive but not racing to the bottom)
   const q1 = Math.floor(validPrices.length * 0.25);
   const q3 = Math.floor(validPrices.length * 0.75);
   const iqr = validPrices.slice(q1, q3 + 1);
-  if (iqr.length > 0) {
-    return iqr[0];
-  }
-  return validPrices[Math.floor(validPrices.length / 2)];
+  return iqr.length > 0 ? iqr[0] : validPrices[Math.floor(validPrices.length / 2)];
 }
 
 function buildSearchTerms(name: string, vendor?: string, mpn?: string): string[] {
@@ -272,43 +286,56 @@ async function searchProductPrice(name: string, vendor?: string, mpn?: string, c
   const searchTerms = buildSearchTerms(name, vendor, mpn);
   const allPrices: number[] = [];
   const minRef = costPlusVatMargin || 1;
+  const minAccept = minRef * 0.85;
+  const maxAccept = minRef * 4;
 
+  // --- Source 1: Scan.co.uk ---
   for (const term of searchTerms) {
     const scanPrices = await searchScanPrices(term);
-    if (scanPrices.length > 0) {
-      allPrices.push(...scanPrices);
-      console.log(`[PriceMatcher]   Scan "${term}": found ${scanPrices.length} prices (lowest: £${Math.min(...scanPrices).toFixed(2)})`);
+    const inBand = scanPrices.filter(p => p >= minAccept && p <= maxAccept);
+    if (inBand.length > 0) {
+      allPrices.push(...inBand);
+      console.log(`[PriceMatcher]   Scan "${term.substring(0,40)}": ${inBand.length}/${scanPrices.length} in-band (range £${Math.min(...inBand).toFixed(2)}-£${Math.max(...inBand).toFixed(2)})`);
       break;
+    } else if (scanPrices.length > 0) {
+      console.log(`[PriceMatcher]   Scan "${term.substring(0,40)}": ${scanPrices.length} prices ALL rejected (out of band £${minAccept.toFixed(0)}-£${maxAccept.toFixed(0)})`);
     }
+    await delay(800);
+  }
+
+  // --- Source 2: Amazon.co.uk — always check to cross-reference Scan ---
+  await delay(1000);
+  for (const term of searchTerms.slice(0, 2)) {
+    const amazonPrices = await searchAmazonPrices(term);
+    const inBand = amazonPrices.filter(p => p >= minAccept && p <= maxAccept);
+    if (inBand.length > 0) {
+      allPrices.push(...inBand);
+      console.log(`[PriceMatcher]   Amazon "${term.substring(0,40)}": ${inBand.length}/${amazonPrices.length} in-band (range £${Math.min(...inBand).toFixed(2)}-£${Math.max(...inBand).toFixed(2)})`);
+      break;
+    } else if (amazonPrices.length > 0) {
+      console.log(`[PriceMatcher]   Amazon "${term.substring(0,40)}": ${amazonPrices.length} prices ALL rejected (out of band)`);
+    }
+    await delay(800);
+  }
+
+  // --- Source 3: CCL Online — only if still not enough data points ---
+  if (allPrices.length < 4) {
     await delay(1000);
-  }
-
-  if (allPrices.length < 3) {
-    await delay(1500);
-    for (const term of searchTerms.slice(0, 1)) {
-      const amazonPrices = await searchAmazonPrices(term);
-      if (amazonPrices.length > 0) {
-        allPrices.push(...amazonPrices);
-        console.log(`[PriceMatcher]   Amazon "${term}": found ${amazonPrices.length} prices (lowest: £${Math.min(...amazonPrices).toFixed(2)})`);
-        break;
-      }
-      await delay(1000);
-    }
-  }
-
-  if (allPrices.length < 3) {
-    await delay(1500);
     for (const term of searchTerms.slice(0, 1)) {
       const cclPrices = await searchCCLPrices(term);
-      if (cclPrices.length > 0) {
-        allPrices.push(...cclPrices);
-        console.log(`[PriceMatcher]   CCL "${term}": found ${cclPrices.length} prices (lowest: £${Math.min(...cclPrices).toFixed(2)})`);
+      const inBand = cclPrices.filter(p => p >= minAccept && p <= maxAccept);
+      if (inBand.length > 0) {
+        allPrices.push(...inBand);
+        console.log(`[PriceMatcher]   CCL "${term.substring(0,40)}": ${inBand.length}/${cclPrices.length} in-band`);
         break;
       }
-      await delay(1000);
+      await delay(800);
     }
   }
 
+  if (allPrices.length === 0) {
+    console.log(`[PriceMatcher]   No valid in-band prices found from any source`);
+  }
   return getBestPrice(allPrices, minRef);
 }
 
